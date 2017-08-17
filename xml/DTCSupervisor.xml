@@ -4,10 +4,16 @@
 
     <!-- Declare a context that contain applcation -->
     <xc:Context url="http://cmsuptrackerdaq.cern.ch:40400">
+
         <!-- Declare a DTCSupervisor application -->
-        <xc:Application class="Ph2TkDAQ::DTCSupervisor" id="2" instance="0" network="local"/>
+        <xc:Application class="Ph2TkDAQ::DTCSupervisor" id="2" instance="0" network="local">
+            <properties xmlns="urn:xdaq-application:DTCSupervisor" xsi:type="soapenc:Struct">
+                <HWDescriptionFile xsi:type="xsd:string">$(DTCSUPERVISOR_ROOT)/../Ph2_ACF/settings/D19CDescription.xml </HWDescriptionFile>
+            </properties>
+        </xc:Application>
+
         <!-- Shared object library that contains the HelloWorld inplementation -->
         <xc:Module>${DTCSUPERVISOR_ROOT}/lib/linux/x86_64_centos7/libDTCSupervisor.so</xc:Module>
-    </xc:Context>
 
+    </xc:Context>
 </xc:Partition>
