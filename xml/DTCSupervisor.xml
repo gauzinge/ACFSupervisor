@@ -8,7 +8,10 @@
         <!-- Declare a DTCSupervisor application -->
         <xc:Application class="Ph2TkDAQ::DTCSupervisor" id="2" instance="0" network="local">
             <properties xmlns="urn:xdaq-application:DTCSupervisor" xsi:type="soapenc:Struct">
-                <HWDescriptionFile xsi:type="xsd:string">$(DTCSUPERVISOR_ROOT)/../Ph2_ACF/settings/D19CDescription.xml </HWDescriptionFile>
+                <!--<HWDescriptionFile xsi:type="xsd:string">${PH2ACF_ROOT}/settings/D19CDescription.xml </HWDescriptionFile>-->
+                <!--<XSLStylesheet xsi:type="xsd:string">${PH2ACF_ROOT}/settings/misc/HWDescription.xsl </XSLStylesheet>-->
+                <HWDescriptionFile xsi:type="xsd:string">file:///afs/cern.ch/user/g/gauzinge/Ph2_ACF/settings/D19CDescription.xml </HWDescriptionFile>
+                <XSLStylesheet xsi:type="xsd:string">file:///afs/cern.ch/user/g/gauzinge/Ph2_ACF/settings/misc/HWDescription.xsl </XSLStylesheet>
             </properties>
         </xc:Application>
 

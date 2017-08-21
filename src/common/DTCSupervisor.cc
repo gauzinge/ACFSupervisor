@@ -7,7 +7,8 @@ XDAQ_INSTANTIATOR_IMPL (Ph2TkDAQ::DTCSupervisor)
 
 Ph2TkDAQ::DTCSupervisor::DTCSupervisor (xdaq::ApplicationStub* s)
 throw (xdaq::exception::Exception) : xdaq::WebApplication (s), // xgi::framework::UIManager (this),
-    fHWDescriptionFile ("")
+    fHWDescriptionFile (""),
+    fXLSStylesheet ("")
 {
     //bind xgi and xoap commands to methods
     xgi::bind (this, &DTCSupervisor::Default, "Default");
@@ -16,6 +17,7 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s), // xgi::framework
 
     //make configurable variapbles available in the Application Info Space
     this->getApplicationInfoSpace()->fireItemAvailable ("HWDescriptionFile", &fHWDescriptionFile);
+    this->getApplicationInfoSpace()->fireItemAvailable ("XSLStylesheet", &fXLSStylesheet);
     //detect when default values have been set
     this->getApplicationInfoSpace()->addListener (this, "urn:xdaq-event:setDefaultValues");
 
@@ -33,6 +35,7 @@ void Ph2TkDAQ::DTCSupervisor::actionPerformed (xdata::Event& e)
     {
         std::stringstream ss;
         ss << "HW Description file: " << std::string (fHWDescriptionFile) << " set!" << std::endl;
+        ss << "XSL HW Description Stylesheet: " << std::string (fXLSStylesheet) << " set!" << std::endl;
         ss << "All Default Values set!" << std::endl;
         LOG4CPLUS_INFO (this->getApplicationLogger(), ss.str() );
         //here is the listener for FSM state transition commands via xoap
@@ -61,9 +64,9 @@ void Ph2TkDAQ::DTCSupervisor::createHtmlHeader (xgi::Output* out, Tab pTab, cons
     *out << style() << std::endl;
     *out << "body {font-family: \"Lato\", sans-serif;\nbackground-color: #f1f1f1\n}" << std::endl;
     *out << "div.title {\noverflow: hidden;\nborder: none solid #ccc;\nbackground-color: inherit;\n}" << std::endl;
-    *out << "div.tab {\noverflow: hidden;\nborder: 1px solid #ccc;\nbackground-color: #f1f1f1;\n}" << std::endl;
-    *out << "a.button {\nbackground-color: inherit;\nfloat: left;\nborder: none;\noutline: none;\ncursor: pointer;\npadding: 10px 16px;\ntransition:0.3s;\nfont-size:17px;\n}" << std::endl;
-    *out << "a.button:hover {\nbackground-color: #ddd;\n}" << std::endl;
+    *out << "div.tab {\noverflow: hidden;\nborder: 1px solid #ccc;\nbackground-color: #e1e1e1;\n}" << std::endl;
+    *out << "a.button {\nbackground-color: inherit;\nfloat: left;\nborder: none;\noutline: none;\ncursor: pointer;\npadding: 8px 16px;\ntransition:0.3s;\nfont-size:17px;\n}" << std::endl;
+    *out << "a.button:hover {\nbackground-color: #aaa;\n}" << std::endl;
     *out << "a.button.active {\nbackground-color: #ccc;\n}" << std::endl;
     *out << style() << std::endl;
 
@@ -103,4 +106,40 @@ void Ph2TkDAQ::DTCSupervisor::createHtmlHeader (xgi::Output* out, Tab pTab, cons
     *out << html() << std::endl;
 
     //xgi::Utils::getPageHeader ( out, "DTCSupervisor", cTabBarString, getApplicationDescriptor()->getContextDescriptor()->getURL(), getApplicationDescriptor()->getURN(), "/xgi/images/Appkication.jpg" );
+    this->transformXmlDocument (fHWDescriptionFile, fXLSStylesheet);
+}
+
+void Ph2TkDAQ::DTCSupervisor::transformXmlDocument (const std::string& pInputDocument, const std::string& pStylesheet)
+{
+    extern int xmlLoadExtDtdDefaultValue;
+    //exsltRegisterAll();
+
+    // Read the stylesheet document.
+    //xmlDocPtr stylesheetDocument = xmlReadMemory (
+    //stylesheetString.c_str(),
+    //stylesheetString.length(),
+    //"stylesheet.xsd",
+    //0, // No encoding set - get it from the file header.
+    //0  // No further options.
+    //);
+
+    // Parse the stylesheet
+    xsltStylesheetPtr stylesheet = xsltParseStylesheetFile ( (const xmlChar*) pStylesheet.c_str() );
+
+    // Load the xml document
+    xmlDocPtr document = xmlParseFile ( pInputDocument.c_str() );
+
+    // Transform the document
+    xmlDocPtr result = xsltApplyStylesheet (stylesheet, document, 0);
+
+    xsltSaveResultToFile (stdout, result, stylesheet);
+
+    // Free used resources
+    xsltFreeStylesheet (stylesheet);
+    xmlFreeDoc (document);
+    xmlFreeDoc (result);
+    xsltCleanupGlobals();
+    xmlCleanupParser();
+
+    return;
 }

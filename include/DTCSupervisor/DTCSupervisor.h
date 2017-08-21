@@ -18,6 +18,18 @@
 #include "xdata/ActionListener.h"
 #include "xdata/String.h"
 
+#include "libxml/xmlmemory.h"
+#include "libxml/debugXML.h"
+#include "libxml/HTMLtree.h"
+#include "libxml/xmlIO.h"
+#include "libxml/DOCBparser.h"
+#include "libxml/xinclude.h"
+#include "libxml/catalog.h"
+#include "libxslt/xslt.h"
+#include "libxslt/xsltInternals.h"
+#include "libxslt/transform.h"
+#include "libxslt/xsltutils.h"
+
 enum class Tab {EDITOR, MAIN, CALIBRATION, DAQ};
 
 namespace Ph2TkDAQ {
@@ -48,9 +60,14 @@ namespace Ph2TkDAQ {
 
       protected:
         xdata::String fHWDescriptionFile;
+        xdata::String fXLSStylesheet;
         //xgi::framework::UIManager fManager;
 
         Tab fCurrentPageView;
+
+
+      private:
+        void transformXmlDocument (const std::string& pInputDocument, const std::string& pStylesheet);
 
     };
 
