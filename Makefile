@@ -9,18 +9,17 @@ Sources= DTCSupervisor.cc version.cc
 IncludeDirs = \
      $(XDAQ_ROOT)/include \
      $(XDAQ_ROOT)/include/linux \
-	 /usr/include/libxslt \
-	 /usr/include/libxml2
+	 /usr/local/include
 
 LibraryDirs = \
      $(XDAQ_ROOT)/x86/lib \
      $(XDAQ_ROOT)/lib \
-	 /usr/lib64
+	 /usr/local/lib
 
-ExeternalObjects = -lxml -lxslt
+ExeternalObjects =
 
-UserCCFlags = -g -fPIC -std=c++11 -Wcpp -Wno-unused-local-typedefs -O0 `xslt-config --cflags --libs`
-UserDynamicLinkFlags = -lxslt -lxml2 `xslt-config --cflags --libs`
+UserCCFlags = -g -fPIC -std=c++11 -Wcpp -Wno-unused-local-typedefs -O0 $(shell pkg-config --cflags xsltwrapp)
+UserDynamicLinkFlags = $(shell pkg-config --libs xsltwrapp)
 
 DynamicLibrary=DTCSupervisor
 

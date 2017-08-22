@@ -18,19 +18,10 @@
 #include "xdata/ActionListener.h"
 #include "xdata/String.h"
 
-#include "libxml/xmlmemory.h"
-#include "libxml/debugXML.h"
-#include "libxml/HTMLtree.h"
-#include "libxml/xmlIO.h"
-#include "libxml/DOCBparser.h"
-#include "libxml/xinclude.h"
-#include "libxml/catalog.h"
-#include "libxslt/xslt.h"
-#include "libxslt/xsltInternals.h"
-#include "libxslt/transform.h"
-#include "libxslt/xsltutils.h"
+#include "Utils.h"
+#include "ConsoleColor.h"
 
-enum class Tab {EDITOR, MAIN, CALIBRATION, DAQ};
+enum class Tab {CONFIG, MAIN, CALIBRATION, DAQ};
 
 namespace Ph2TkDAQ {
 
@@ -49,25 +40,24 @@ namespace Ph2TkDAQ {
         //views
         void Default (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         void MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
-        void EditorPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        void ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         //void CalibrationPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         //void DAQPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
 
         ///HTML header for Hyperdaq interface
         void createHtmlHeader (xgi::Output* out, Tab pTab, const std::string& strDest = ".");
         ///Show FSM status and available transition in an HTML table
-        //void showStateMachineStatus (xgi::Output* out) throw (xgi::exception::Exception);
+        void showStateMachineStatus (xgi::Output* out) throw (xgi::exception::Exception);
 
+        void loadHWDescriptionFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
       protected:
         xdata::String fHWDescriptionFile;
         xdata::String fXLSStylesheet;
         //xgi::framework::UIManager fManager;
 
-        Tab fCurrentPageView;
-
-
       private:
-        void transformXmlDocument (const std::string& pInputDocument, const std::string& pStylesheet);
+
+        Tab fCurrentPageView;
 
     };
 

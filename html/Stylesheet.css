@@ -1,0 +1,268 @@
+@charset "utf-8";
+* {
+    box-sizing: border-box
+}
+/*main*/
+html, body, p, th, td, dd, dt {
+    font-family: Lato, sans-serif;
+    background-color: #f1f1f1;
+    margin-top: 1px;
+    margin-bottom: 1px;
+}
+
+h1, h2, h3, h4, h4, h6 {
+    margin-top: 5px;
+    margin-bottom: 5px
+}
+
+li, ul {
+    margin: 1px
+}
+
+input, select, textarea{
+    color: #000;
+    text-align: right;
+}
+
+textarea:hover, input:hover {
+    color: #000;
+    text-align: right;
+}
+
+/*for tab bar*/
+.title {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 5%;
+    width: 100%;
+    z-index: 1;
+    overflow: hidden;
+    border: none solid #ccc;
+    background-color: inherit;
+}
+
+.tab {
+    position: fixed;
+    top: 5%;
+    left: 0;
+    height: 3%;
+    width: 100%;
+    z-index: 1;
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #e1e1e1;
+}
+
+.tab a.button {
+    /*position: relative;*/
+    background-color: inherit;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 8px 16px 8px 16px;
+    transition: 0.3s;
+    font-size: 17px;
+    /*display: block;*/
+}
+
+.tab a.button:hover {
+    background-color: #aaa
+}
+
+.tab a.button.active {
+    background-color: #ccc
+}
+
+.content {
+    padding: 10px;
+    position: fixed;
+    height: 92%;
+    width: 90%;
+    top: 8%;
+    left: 10%;
+    float: left;
+    overflow-y: scroll;
+    /*position: relative;*/
+}
+
+/*Sidebar with FSM diagram*/
+.sidenav {
+    position: fixed;
+    float: left;
+    height: 92%;
+    width: 10%;
+    z-index: 1;
+    top: 8%;
+    left: 0;
+    border: 1px solid #ccc;
+    background-color: #e1e1e1;
+    overflow-x: auto;
+    padding-top: 30px;
+    transition: 0.3s;
+}
+
+/* The navigation menu links */
+.sidenav a.button {
+    /*position: relative;*/
+    width: 100%;
+    /*padding: 8px 8px 8px 8px;*/
+    margin: auto;
+    padding:auto;
+    text-decoration: none;
+    font-size: 17px;
+    transition: 0.3s
+    display: block;
+}
+
+.sidenav a.button.active {
+    background-color: #ccc;
+    width: 100%;
+}
+
+/* When you mouse over the navigation links, change their color */
+.sidenav a.button:hover, .offcanvas a:focus {
+    position:relative;
+    width: 10%;
+    background-color: #aaa
+}
+
+
+/*for HWDescription form*/
+ div.BeBoard {
+     font-size: 10 pt;
+     margin-top: 5px;
+     margin-bottom: 5px;
+     margin-left: 0px;
+     margin-right: 50px;
+     padding-top: 5px;
+     padding-bottom: 5px;
+     padding-left: 10px;
+     padding-right: 10px;
+
+     overflow: hidden;
+     border: none
+     solid: #ccc;
+     /*background-color: #424242;*/
+     background-color: inherit;
+     color: #34495e
+ }
+
+ div.General {
+     margin-top: 5px;
+     margin-bottom: 5px;
+     margin-left: 5px;
+     margin-right: 100px;
+     padding-top: 5px;
+     padding-bottom: 5px;
+     padding-left: 15px;
+     padding-right: 15px;
+     overflow: hidden;
+     border: none
+     solid: #ddd;
+     background-color: #ebedef
+ }
+
+ div.Module {
+     margin-top: 5px;
+     margin-bottom: 5px;
+     margin-left: 5px;
+     margin-right: 100px;
+     padding-top: 5px;
+     padding-bottom: 5px;
+     padding-left: 15px;
+     padding-right: 15px;
+     overflow: hidden;
+     border: none
+     solid: #ddd;
+     background-color: #d5d8dc;
+ }
+ 
+ div.CBC {
+     margin-top: 5px;
+     margin-bottom: 5px;
+     margin-left: 5px;
+     margin-right: 5px;
+     padding-top: 5px;
+     padding-bottom: 5px;
+     padding-left: 20px;
+     padding-right: 20px;
+     overflow: hidden;
+     border: none
+     solid: #ddd;
+     background-color: #ebedef;
+     color: #616161
+ }
+
+ div.Config {
+     margin-top: 5px;
+     margin-bottom: 5px;
+     margin-left: 5px;
+     margin-right: 5px;
+     padding-top: 5px;
+     padding-bottom: 5px;
+     padding-left: 20px;
+     padding-right: 20px;
+     overflow: hidden;
+     border: none
+     solid: #ddd;
+     background-color: #ccc;
+     color: #616161
+ }
+
+ div.SLink {
+     margin-top: 5px;
+     margin-bottom: 5px;
+     margin-left: 5px;
+     margin-right: 100px;
+     padding-top: 5px;
+     padding-bottom: 5px;
+     padding-left: 10px;
+     padding-right: 10px;
+     overflow: hidden;
+     border: 1px
+     solid: #ddd;
+     background-color: #ebedef
+ }
+
+ div.BeBoardRegisters {
+     margin-top: 5px;
+     margin-bottom: 5px;
+     margin-left: 5px;
+     margin-right: 100px;
+     padding-top: 5px;
+     padding-bottom: 5px;
+     padding-left: 10px;
+     padding-right: 10px;
+     overflow: hidden;
+     border: 1px
+     solid: #ddd;
+     background-color: #d5d8dc
+ }
+
+ /*#billdesc{*/
+    /*padding-top: 50px;*/
+/*}*/
+/*#test{*/
+    /*width: 100%;*/
+    /*height: 30px;*/
+/*}*/
+/*option {*/
+    /*height: 30px;*/
+    /*line-height: 30px;*/
+/*}*/
+
+/*.editOption{*/
+    /*width: 90%;*/
+    /*height: 24px;*/
+    /*position: relative;*/
+    /*top: -30px*/
+
+/*}*/
+
+/**out << "body {font-family: \"Lato\", sans-serif;\nbackground-color: #f1f1f1\n}" << std::endl;*/
+/*-    *out << "div.title {\noverflow: hidden;\nborder: none solid #ccc;\nbackground-color: inherit;\n}" << std::endl;*/
+/*-    *out << "div.tab {\noverflow: hidden;\nborder: 1px solid #ccc;\nbackground-color: #e1e1e1;\n}" << std::endl;*/
+/*-    *out << "a.button {\nbackground-color: inherit;\nfloat: left;\nborder: none;\noutline: none;\ncursor: pointer;\npadding: 8px 16px;\ntransition:0.3s;\nfont-size:17px;\n}" << std::endl;*/
+/*-    *out << "a.button:hover {\nbackground-color: #aaa;\n}" << std::endl;*/
+/*-    *out << "a.button.active {\nbackground-color: #ccc;\n}" << std::endl;*/

@@ -11,9 +11,13 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s), // xgi::framework
     fXLSStylesheet ("")
 {
     //bind xgi and xoap commands to methods
+    //methods for tab navigation
     xgi::bind (this, &DTCSupervisor::Default, "Default");
-    //xgi::bind (this, &DTCSupervisor::MainPage, "MainPage");
-    //xgi::bind (this, &DTCSupervisor::EditorPage, "Editor");
+    xgi::bind (this, &DTCSupervisor::MainPage, "MainPage");
+    xgi::bind (this, &DTCSupervisor::ConfigPage, "ConfigPage");
+
+    //helper methods for buttons etc
+    xgi::bind (this, &DTCSupervisor::loadHWDescriptionFile, "loadHWDescriptionFile");
 
     //make configurable variapbles available in the Application Info Space
     this->getApplicationInfoSpace()->fireItemAvailable ("HWDescriptionFile", &fHWDescriptionFile);
@@ -34,9 +38,9 @@ void Ph2TkDAQ::DTCSupervisor::actionPerformed (xdata::Event& e)
     if (e.type() == "urn:xdaq-event:setDefaultValues")
     {
         std::stringstream ss;
-        ss << "HW Description file: " << std::string (fHWDescriptionFile) << " set!" << std::endl;
-        ss << "XSL HW Description Stylesheet: " << std::string (fXLSStylesheet) << " set!" << std::endl;
-        ss << "All Default Values set!" << std::endl;
+        ss << BLUE << "HW Description file: " << fHWDescriptionFile.toString() << " set!" << std::endl;
+        ss << "XSL HW Description Stylesheet: " << fXLSStylesheet.toString() << " set!" << std::endl;
+        ss << "All Default Values set!" << RESET << std::endl;
         LOG4CPLUS_INFO (this->getApplicationLogger(), ss.str() );
         //here is the listener for FSM state transition commands via xoap
         //have a look at https://gitlab.cern.ch/cms_tk_ph2/BoardSupervisor/blob/master/src/common/BoardSupervisor.cc
@@ -48,13 +52,53 @@ void Ph2TkDAQ::DTCSupervisor::Default (xgi::Input* in, xgi::Output* out)
 throw (xgi::exception::Exception)
 {
     this->createHtmlHeader (out, fCurrentPageView);
-    //this->showStateMachineStatus (out);
+    this->showStateMachineStatus (out);
+    this->MainPage (in, out);
+}
 
-    LOG4CPLUS_INFO (this->getApplicationLogger(), "Default method called!");
+void Ph2TkDAQ::DTCSupervisor::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    fCurrentPageView = Tab::MAIN;
+    this->createHtmlHeader (out, fCurrentPageView);
+    this->showStateMachineStatus (out);
+
+    std::string url = "/" + getApplicationDescriptor()->getURN() + "/" + "loadHWDescriptionFile";
+
+    std::ostringstream cForm;
+
+    cForm << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
+    cForm << "<label for=\"HwDescriptionFile\">HwDescriptionFile: </label>" << std::endl;
+    //cForm << "<input type=\"text\" name=\"HwDescriptionFile\" id=\"HwDescriptionFile\" size=\"60\" value=\"" << "/afs/cern.ch/user/g/gauzinge/Ph2_ACF/settings/D19CDescription.xml" << "\"/>" << std::endl;
+    cForm << "<input type=\"text\" name=\"HwDescriptionFile\" id=\"HwDescriptionFile\" size=\"60\" value=\"" << Ph2TkDAQ::expandEnvironmentVariables (fHWDescriptionFile.toString () ) << "\"/>" << std::endl;
+    cForm << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load") << std::endl;
+    cForm << cgicc::form() << std::endl;
+
+    *out << "<div class=\"content\">" << std::endl;
+    *out << cgicc::h3 ("DTCSupervisor Main Page") << std::endl;
+    *out << cForm.str() << std::endl;
+    *out << "</div>" << std::endl;
+}
+
+void Ph2TkDAQ::DTCSupervisor::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    fCurrentPageView = Tab::CONFIG;
+    this->createHtmlHeader (out, fCurrentPageView);
+    this->showStateMachineStatus (out);
+    std::ostringstream cLogStream;
+
+    // Display the HwDescription HTML form
+    *out << "<div class=\"content\">" << std::endl;
+    *out << Ph2TkDAQ::transformXmlDocument (expandEnvironmentVariables ("${PH2ACF_ROOT}/settings/D19CDescription.xml"), expandEnvironmentVariables ("${PH2ACF_ROOT}/settings/misc/HWDescription.xsl"), cLogStream) << std::endl;
+    *out << "</div>" << std::endl;
+
+    LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
 }
 
 void Ph2TkDAQ::DTCSupervisor::createHtmlHeader (xgi::Output* out, Tab pTab, const std::string& strDest)
 {
+    // Create the Title, Tab bar
+    std::ostringstream cLogStream;
+
     out->getHTTPResponseHeader().addHeader ("Content-Type", "text/html");
     *out << html().set ("lang", "en").set ("dir", "ltr") << std::endl;
     *out << HTMLDoctype (HTMLDoctype::eStrict) << std::endl;
@@ -62,84 +106,93 @@ void Ph2TkDAQ::DTCSupervisor::createHtmlHeader (xgi::Output* out, Tab pTab, cons
     *out << head() << std::endl;
     //Style this thing
     *out << style() << std::endl;
-    *out << "body {font-family: \"Lato\", sans-serif;\nbackground-color: #f1f1f1\n}" << std::endl;
-    *out << "div.title {\noverflow: hidden;\nborder: none solid #ccc;\nbackground-color: inherit;\n}" << std::endl;
-    *out << "div.tab {\noverflow: hidden;\nborder: 1px solid #ccc;\nbackground-color: #e1e1e1;\n}" << std::endl;
-    *out << "a.button {\nbackground-color: inherit;\nfloat: left;\nborder: none;\noutline: none;\ncursor: pointer;\npadding: 8px 16px;\ntransition:0.3s;\nfont-size:17px;\n}" << std::endl;
-    *out << "a.button:hover {\nbackground-color: #aaa;\n}" << std::endl;
-    *out << "a.button.active {\nbackground-color: #ccc;\n}" << std::endl;
+    *out << Ph2TkDAQ::parseStylesheetCSS (Ph2TkDAQ::expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/html/Stylesheet.css"), cLogStream) << std::endl;
     *out << style() << std::endl;
 
     *out << title ("DTC Supervisor")  << std::endl;
     *out << head() << std::endl;
 
-    //*out <<  a ("Visit the XDAQ Web site").set ("href", "http://xdaq.web.cern.ch") << std::endl;
-    //*out << a ("Visit the Ph2 ACF Gitlab Repo").set ("href", "http://gitlab.cern.ch/cms_tk_ph2/Ph2_ACF.git") << std::endl;
+    std::ostringstream cTabBarString;
+    std::string url = "/" + getApplicationDescriptor()->getURN() + "/";
 
-    std::string cTabBarString;
-
+    // switch to show the current tab
     switch (pTab)
     {
         case Tab::MAIN:
-            cTabBarString = "<a href='MainPage' class=\"button active\">MainPage</a>  <a href='EditorPage' class=\"button\">EditorPage</a>  <a href='CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='DAQPage' class=\"button\">DAQPage</a>";
+            cTabBarString << "<a href='" << url << "MainPage' class=\"button active\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button\">DAQPage</a>" << std::endl;
             break;
 
-            //case Tab::EDITOR:
-            //cTabBarString = "<a href='MainPage' class=\"button\">MainPage</a>  <a href='EditorPage' class=\"button active\">EditorPage</a>  <a href='CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='DAQPage' class=\"button\">DAQPage</a>";
-            //break;
+        case Tab::CONFIG:
+            cTabBarString << "<a href='" << url << "MainPage' class=\"button\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button active\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button\">DAQPage</a>" << std::endl;
+            break;
 
-            //case Tab::CALIBRATION:
-            //cTabBarString = "<a href='MainPage' class=\"button\">MainPage</a>  <a href='EditorPage' class=\"button\">EditorPage</a>  <a href='CalibrationPage' class=\"button active\">CalibrationPage</a>  <a href='DAQPage' class=\"button\">DAQPage</a>";
-            //break;
+        case Tab::CALIBRATION:
+            cTabBarString << "<a href='" << url << "MainPage' class=\"button\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button active\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button\">DAQPage</a>" << std::endl;
+            break;
 
-            //case Tab::DAQ:
-            //cTabBarString = "<a href='MainPage' class=\"button\">MainPage</a>  <a href='EditorPage' class=\"button\">EditorPage</a>  <a href='CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='DAQPage' class=\"button active\">DAQPage</a>";
-            //break;
+        case Tab::DAQ:
+            cTabBarString << "<a href='" << url << "MainPage' class=\"button\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button active\">DAQPage</a>" << std::endl;
+            break;
     }
 
-    *out << "<div class=\"title\"> <h3> DTC Supervisor </h3></div>" << std::endl;
+    *out << "<div class=\"title\"> <h2> DTC Supervisor </h2></div>" << std::endl;
     *out << "<div class=\"tab\">" << std::endl;
-    *out << cTabBarString << std::endl;
+    *out << cTabBarString.str() << std::endl;
     *out << "</div>" << std::endl;
-    *out << cgicc::div() << std::endl;
-    *out << body() << std::endl;
-    *out << html() << std::endl;
 
-    //xgi::Utils::getPageHeader ( out, "DTCSupervisor", cTabBarString, getApplicationDescriptor()->getContextDescriptor()->getURL(), getApplicationDescriptor()->getURN(), "/xgi/images/Appkication.jpg" );
-    this->transformXmlDocument (fHWDescriptionFile, fXLSStylesheet);
+    LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
 }
 
-void Ph2TkDAQ::DTCSupervisor::transformXmlDocument (const std::string& pInputDocument, const std::string& pStylesheet)
+void Ph2TkDAQ::DTCSupervisor::showStateMachineStatus (xgi::Output* out) throw (xgi::exception::Exception)
 {
-    extern int xmlLoadExtDtdDefaultValue;
-    //exsltRegisterAll();
+    // create the FSM Status bar showing the current state
+    try
+    {
+        //std::string action = toolbox::toString ("/%s/fsmTransition", getApplicationDescriptor()->getURN().c_str() );
 
-    // Read the stylesheet document.
-    //xmlDocPtr stylesheetDocument = xmlReadMemory (
-    //stylesheetString.c_str(),
-    //stylesheetString.length(),
-    //"stylesheet.xsd",
-    //0, // No encoding set - get it from the file header.
-    //0  // No further options.
-    //);
+        // display FSM
+        //std::set<std::string> possibleInputs = fsm_.getInputs (fsm_.getCurrentState() );
+        //std::set<std::string> allInputs = fsm_.getInputs();
 
-    // Parse the stylesheet
-    xsltStylesheetPtr stylesheet = xsltParseStylesheetFile ( (const xmlChar*) pStylesheet.c_str() );
+        *out << "<div class=\"sidenav\">" << std::endl;
+        *out << "Current State: " << "Somestate" << std::endl;
+        *out << cgicc::br() << std::endl;
+        *out << "<a href=\"#\" class=\"button\"> Initialize </a>" << cgicc::br() << std::endl;
+        *out << "<a href=\"#\" class=\"button\"> Configure </a>" << cgicc::br() << std::endl;
+        *out << "<a href=\"#\" class=\"button\"> Start </a>" << cgicc::br() << std::endl;
+        *out << "<a href=\"#\" class=\"button\"> Stop </a>" << cgicc::br() << std::endl;
+        *out << "<a href=\"#\" class=\"button\"> Pause </a>" << cgicc::br() << std::endl;
+        *out << "<a href=\"#\" class=\"button\"> Resume </a>" << cgicc::br() << std::endl;
+        *out << "<a href=\"#\" class=\"button\"> Halt </a>" << cgicc::br() << std::endl;
+        *out << "<a href=\"#\" class=\"button\"> Destroy </a>" << cgicc::br() << std::endl;
+        *out << "</div>" << std::endl;
+    }
+    catch (xgi::exception::Exception& e)
+    {
+        XCEPT_RETHROW (xgi::exception::Exception, "Exception caught in WebShowRun", e);
+    }
+}
 
-    // Load the xml document
-    xmlDocPtr document = xmlParseFile ( pInputDocument.c_str() );
+void Ph2TkDAQ::DTCSupervisor::loadHWDescriptionFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    std::ostringstream cLogStream;
 
-    // Transform the document
-    xmlDocPtr result = xsltApplyStylesheet (stylesheet, document, 0);
+    //get the inptu from the form
+    cgicc::Cgicc cgi (in);
+    std::string cHWDescriptionFile = cgi.getElement ("HwDescriptionFile")->getValue();
+    std::cout << cHWDescriptionFile << std::endl;
 
-    xsltSaveResultToFile (stdout, result, stylesheet);
+    if (!cHWDescriptionFile.empty() )
+    {
+        if (Ph2TkDAQ::checkFile (cHWDescriptionFile) )
+        {
+            fHWDescriptionFile = cHWDescriptionFile;
+            cLogStream << BLUE << "Changed HW Description File to: " << cHWDescriptionFile << RESET << std::endl;
+        }
+    }
+    else
+        cLogStream << RED << "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist!" << RESET << std::endl;
 
-    // Free used resources
-    xsltFreeStylesheet (stylesheet);
-    xmlFreeDoc (document);
-    xmlFreeDoc (result);
-    xsltCleanupGlobals();
-    xmlCleanupParser();
-
-    return;
+    LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
+    this->MainPage (in, out);
 }
