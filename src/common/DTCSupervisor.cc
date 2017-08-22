@@ -17,7 +17,6 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s), // xgi::framework
     xgi::bind (this, &DTCSupervisor::ConfigPage, "ConfigPage");
 
     //helper methods for buttons etc
-    xgi::bind (this, &DTCSupervisor::loadHWDescriptionFile, "loadHWDescriptionFile");
 
     //make configurable variapbles available in the Application Info Space
     this->getApplicationInfoSpace()->fireItemAvailable ("HWDescriptionFile", &fHWDescriptionFile);
@@ -37,6 +36,8 @@ void Ph2TkDAQ::DTCSupervisor::actionPerformed (xdata::Event& e)
 {
     if (e.type() == "urn:xdaq-event:setDefaultValues")
     {
+        fHWDescriptionFile = Ph2TkDAQ::expandEnvironmentVariables (fHWDescriptionFile.toString() );
+        fXLSStylesheet = Ph2TkDAQ::expandEnvironmentVariables (fXLSStylesheet.toString() );
         std::stringstream ss;
         ss << BLUE << "HW Description file: " << fHWDescriptionFile.toString() << " set!" << std::endl;
         ss << "XSL HW Description Stylesheet: " << fXLSStylesheet.toString() << " set!" << std::endl;
@@ -58,37 +59,82 @@ throw (xgi::exception::Exception)
 
 void Ph2TkDAQ::DTCSupervisor::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
 {
+    //define view and create header
     fCurrentPageView = Tab::MAIN;
     this->createHtmlHeader (out, fCurrentPageView);
     this->showStateMachineStatus (out);
 
-    std::string url = "/" + getApplicationDescriptor()->getURN() + "/" + "loadHWDescriptionFile";
+    //std::string url = "/" + getApplicationDescriptor()->getURN() + "/" + "loadHWDescriptionFile";
+    //std::string url = "/" + getApplicationDescriptor()->getURN() + "/" + "MainPage";
+    std::string url = "";
 
-    std::ostringstream cForm;
+    // stream for logger
+    std::ostringstream cLogStream;
 
-    cForm << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
-    cForm << "<label for=\"HwDescriptionFile\">HwDescriptionFile: </label>" << std::endl;
-    //cForm << "<input type=\"text\" name=\"HwDescriptionFile\" id=\"HwDescriptionFile\" size=\"60\" value=\"" << "/afs/cern.ch/user/g/gauzinge/Ph2_ACF/settings/D19CDescription.xml" << "\"/>" << std::endl;
-    cForm << "<input type=\"text\" name=\"HwDescriptionFile\" id=\"HwDescriptionFile\" size=\"60\" value=\"" << Ph2TkDAQ::expandEnvironmentVariables (fHWDescriptionFile.toString () ) << "\"/>" << std::endl;
-    cForm << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load") << std::endl;
-    cForm << cgicc::form() << std::endl;
-
+    // generate the page content
     *out << "<div class=\"content\">" << std::endl;
     *out << cgicc::h3 ("DTCSupervisor Main Page") << std::endl;
-    *out << cForm.str() << std::endl;
+    *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
+    *out << "<label for=\"HwDescriptionFile\">Hw Descritpion FilePath: </label>" << std::endl;
+    //cForm << "<input type=\"text\" name=\"HwDescriptionFile\" id=\"HwDescriptionFile\" size=\"60\" value=\"" << "/afs/cern.ch/user/g/gauzinge/Ph2_ACF/settings/D19CDescription.xml" << "\"/>" << std::endl;
+    //cForm << "<input type=\"text\" name=\"HwDescriptionFile\" id=\"HwDescriptionFile\" size=\"60\" value=\"" << fHWDescriptionFile.toString ()  << "\"/>" << std::endl;
+    *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "55").set ("value", fHWDescriptionFile.toString() ) << std::endl;
+    *out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load") << std::endl;
+    *out << cgicc::form() << std::endl;
+
+    //parse the form input
+    cgicc::Cgicc cgi (in);
+    std::string cHWDescriptionFile;// = cgi.getElement ("HwDescriptionFile")->getValue();
+    cgicc::form_iterator cIt = cgi.getElement ("HwDescriptionFile");
+
+    if (!cIt->isEmpty() && cIt != (*cgi).end() )
+    {
+        cHWDescriptionFile = cIt->getValue();
+
+        std::cout << cHWDescriptionFile << std::endl;
+
+        //take action
+        if (!cHWDescriptionFile.empty() && Ph2TkDAQ::checkFile (cHWDescriptionFile) )
+        {
+            fHWDescriptionFile = cHWDescriptionFile;
+            cLogStream << BLUE << "Changed HW Description File to: " << cHWDescriptionFile << RESET << std::endl;
+            *out << "Changed HW Description File to: " << cHWDescriptionFile << "</p>" << std::endl;
+        }
+        else
+        {
+            cLogStream << RED << "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist!" << RESET << std::endl;
+            *out << "<span style=\"color:red\">The selected file " << cHWDescriptionFile << " does not exist!</span>" << std::endl;
+        }
+    }
+
     *out << "</div>" << std::endl;
+
+    LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
 }
 
 void Ph2TkDAQ::DTCSupervisor::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
 {
+    //define view and create header
     fCurrentPageView = Tab::CONFIG;
     this->createHtmlHeader (out, fCurrentPageView);
     this->showStateMachineStatus (out);
+
+    //stream for logger
     std::ostringstream cLogStream;
+
+    //string defining action
+    std::string url = "";
 
     // Display the HwDescription HTML form
     *out << "<div class=\"content\">" << std::endl;
+    *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
+    *out << cgicc::input().set ("type", "submit").set ("title", "submit the entered values").set ("value", "Submit") << std::endl;
+    *out << cgicc::input().set ("type", "reset").set ("title", "reset the form").set ("value", "Reset") << std::endl;
+
     *out << Ph2TkDAQ::transformXmlDocument (expandEnvironmentVariables ("${PH2ACF_ROOT}/settings/D19CDescription.xml"), expandEnvironmentVariables ("${PH2ACF_ROOT}/settings/misc/HWDescription.xsl"), cLogStream) << std::endl;
+    *out << cgicc::form() << std::endl;
+
+    //parse the input or definne other callback
     *out << "</div>" << std::endl;
 
     LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
@@ -171,28 +217,4 @@ void Ph2TkDAQ::DTCSupervisor::showStateMachineStatus (xgi::Output* out) throw (x
     {
         XCEPT_RETHROW (xgi::exception::Exception, "Exception caught in WebShowRun", e);
     }
-}
-
-void Ph2TkDAQ::DTCSupervisor::loadHWDescriptionFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
-{
-    std::ostringstream cLogStream;
-
-    //get the inptu from the form
-    cgicc::Cgicc cgi (in);
-    std::string cHWDescriptionFile = cgi.getElement ("HwDescriptionFile")->getValue();
-    std::cout << cHWDescriptionFile << std::endl;
-
-    if (!cHWDescriptionFile.empty() )
-    {
-        if (Ph2TkDAQ::checkFile (cHWDescriptionFile) )
-        {
-            fHWDescriptionFile = cHWDescriptionFile;
-            cLogStream << BLUE << "Changed HW Description File to: " << cHWDescriptionFile << RESET << std::endl;
-        }
-    }
-    else
-        cLogStream << RED << "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist!" << RESET << std::endl;
-
-    LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
-    this->MainPage (in, out);
 }

@@ -49,7 +49,6 @@ namespace Ph2TkDAQ {
         ///Show FSM status and available transition in an HTML table
         void showStateMachineStatus (xgi::Output* out) throw (xgi::exception::Exception);
 
-        void loadHWDescriptionFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
       protected:
         xdata::String fHWDescriptionFile;
         xdata::String fXLSStylesheet;
