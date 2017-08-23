@@ -52,7 +52,6 @@ namespace Ph2TkDAQ {
       protected:
         xdata::String fHWDescriptionFile;
         xdata::String fXLSStylesheet;
-        //xgi::framework::UIManager fManager;
 
       private:
 

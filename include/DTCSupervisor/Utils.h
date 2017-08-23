@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <algorithm>
 #include <fstream>
 #include <streambuf>
 #include <sys/stat.h>
@@ -15,8 +16,22 @@
 
 namespace Ph2TkDAQ {
 
-    static std::string expandEnvironmentVariables ( std::string s )
+    inline std::string removeFilePrefix (const std::string& pFile)
     {
+        std::string cResult;
+
+        if (!pFile.substr (0, 7).compare ("file://") )
+            cResult = pFile.substr (7);
+        else cResult = pFile;
+
+        return cResult;
+
+    }
+
+    static std::string expandEnvironmentVariables (  std::string s )
+    {
+        s.erase (std::remove_if (s.begin(), s.end(), ::isspace), s.end() );
+
         if ( s.find ( "${" ) == std::string::npos ) return s;
 
         std::string pre  = s.substr ( 0, s.find ( "${" ) );
@@ -34,7 +49,7 @@ namespace Ph2TkDAQ {
         return expandEnvironmentVariables ( pre + value + post );
     }
 
-    inline bool checkFile (std::string name)
+    inline bool checkFile (const std::string& name)
     {
         struct stat buffer;
         std::cout << stat (name.c_str(), & buffer) << std::endl;
@@ -63,7 +78,7 @@ namespace Ph2TkDAQ {
         return cResult;
     }
 
-    std::string transformXmlDocument (std::string pInputDocument, std::string pStylesheet, std::ostringstream& pStream)
+    std::string transformXmlDocument (const std::string& pInputDocument, const std::string& pStylesheet, std::ostringstream& pStream)
     {
         std::string cHtmlResult;
 
