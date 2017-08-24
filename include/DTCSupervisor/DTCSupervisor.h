@@ -60,6 +60,8 @@ namespace Ph2TkDAQ {
 
       private:
         void reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        void handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+
 
 
         void lastPage (xgi::Input* in, xgi::Output* out)

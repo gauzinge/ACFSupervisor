@@ -20,6 +20,7 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
 
     //helper methods for buttons etc
     xgi::bind (this, &DTCSupervisor::reloadHWFile, "reloadHWFile");
+    xgi::bind (this, &DTCSupervisor::handleHWFormData, "handleHWFormData");
 
     //make configurable variapbles available in the Application Info Space
     this->getApplicationInfoSpace()->fireItemAvailable ("HWDescriptionFile", &fHWDescriptionFile);
@@ -61,8 +62,6 @@ void Ph2TkDAQ::DTCSupervisor::actionPerformed (xdata::Event& e)
 void Ph2TkDAQ::DTCSupervisor::Default (xgi::Input* in, xgi::Output* out)
 throw (xgi::exception::Exception)
 {
-    //this->createHtmlHeader (in, out, fCurrentPageView);
-    //this->showStateMachineStatus (out);
     this->MainPage (in, out);
 }
 
@@ -78,13 +77,15 @@ void Ph2TkDAQ::DTCSupervisor::MainPage (xgi::Input* in, xgi::Output* out) throw 
     //std::ostringstream cLogStream;
 
     // generate the page content
-    //*out << "<div class=\"content\">" << std::endl;
     *out << cgicc::h3 ("DTCSupervisor Main Page") << std::endl;
     *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on") << std::endl;
     *out << "<label for=\"HwDescriptionFile\">Hw Descritpion FilePath: </label>" << std::endl;
+    //if(state==halted)
     *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile.toString() ) << std::endl;
     *out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load") << std::endl;
-    //*out << cgicc::input().set ("type", "reset").set ("title", "reset the Hw Description File to default value").set ("value", "Reset") << std::endl;
+    //else
+    //*out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile.toString() ).set ("disabled", "disabled") << std::endl;
+    //*out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load").set ("disabled", "disabled") << std::endl;
     *out << cgicc::form() << std::endl;
 
     //LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
@@ -97,11 +98,8 @@ void Ph2TkDAQ::DTCSupervisor::ConfigPage (xgi::Input* in, xgi::Output* out) thro
     fCurrentPageView = Tab::CONFIG;
     this->createHtmlHeader (in, out, fCurrentPageView);
 
-    //stream for logger
-    std::ostringstream cLogStream;
-
     //string defining action
-    std::string url = "";
+    std::string url = "/" + getApplicationDescriptor()->getURN() + "/" + "handleHWFormData";
 
     // Display the HwDescription HTML form
     *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
@@ -111,17 +109,7 @@ void Ph2TkDAQ::DTCSupervisor::ConfigPage (xgi::Input* in, xgi::Output* out) thro
     *out << fHWFormString << std::endl;
     *out << cgicc::form() << std::endl;
 
-    // get the form input
-    cgicc::Cgicc cgi (in);
 
-    for (auto cIt : *cgi)
-        if (cIt.getValue() != "")
-            fHWFormVector.push_back (std::make_pair (Ph2TkDAQ::removeDot (cIt.getName() ), cIt.getValue() ) );
-
-    for (auto cPair : fHWFormVector)
-        std::cout << cPair.first << " " << cPair.second << std::endl;
-
-    LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
     this->createHtmlFooter (in, out);
 }
 
@@ -174,9 +162,6 @@ void Ph2TkDAQ::DTCSupervisor::createHtmlHeader (xgi::Input* in, xgi::Output* out
     *out << "<div class=\"main\">" << std::endl;
     this->showStateMachineStatus (out);
     *out << "<div class=\"content\">" << std::endl;
-
-    //std::string cStringHeader;
-    //xgi::Utils::getWidget (out, "DTCSupervisor", cStringHeader, getApplicationDescriptor()->getContextDescriptor()->getURL(), getApplicationDescriptor()->getURN(), "/xgi/images/Application.jpg");
 
     LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
 }
@@ -246,6 +231,30 @@ void Ph2TkDAQ::DTCSupervisor::reloadHWFile (xgi::Input* in, xgi::Output* out) th
             //*out << "<span style=\"color:red\">The selected file " << cHWDescriptionFile << " does not exist!</span>" << std::endl;
         }
     }
+
+    LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
+    this->lastPage (in, out);
+}
+
+void Ph2TkDAQ::DTCSupervisor::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    //stream for logger
+    std::ostringstream cLogStream;
+
+    // get the form input
+    cgicc::Cgicc cgi (in);
+
+    for (auto cIt : *cgi)
+        if (cIt.getValue() != "")
+        {
+            //fHWFormVector.push_back (std::make_pair (Ph2TkDAQ::removeDot (cIt.getName() ), cIt.getValue() ) );
+            fHWFormVector.push_back (std::make_pair (cIt.getName(), cIt.getValue() ) );
+        }
+
+    Ph2TkDAQ::updateHTMLForm (fHWFormString, fHWFormVector, cLogStream);
+
+    //for (auto cPair : fHWFormVector)
+    //std::cout << cPair.first << " " << cPair.second << std::endl;
 
     LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
     this->lastPage (in, out);
