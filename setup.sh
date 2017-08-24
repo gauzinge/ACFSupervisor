@@ -1,5 +1,5 @@
-export LD_LIBRARY_PATH=/usr/local/lib:/opt/xdaq/lib:$LD_LIBRARY_PATH
-export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+export LD_LIBRARY_PATH=/opt/xdaq/lib:$LD_LIBRARY_PATH
+#export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
 export XDAQ_ROOT=/opt/xdaq
 export XDAQ_DOCUMENT_ROOT=/opt/xdaq/htdocs
 export DTCSUPERVISOR_ROOT=$(pwd)

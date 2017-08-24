@@ -6,9 +6,11 @@ using namespace cgicc;
 XDAQ_INSTANTIATOR_IMPL (Ph2TkDAQ::DTCSupervisor)
 
 Ph2TkDAQ::DTCSupervisor::DTCSupervisor (xdaq::ApplicationStub* s)
-throw (xdaq::exception::Exception) : xdaq::WebApplication (s), // xgi::framework::UIManager (this),
+throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
+    fManager (this),
     fHWDescriptionFile (""),
-    fXLSStylesheet ("")
+    fXLSStylesheet (""),
+    fHWFormString ("")
 {
     //bind xgi and xoap commands to methods
     //methods for tab navigation
@@ -17,6 +19,7 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s), // xgi::framework
     xgi::bind (this, &DTCSupervisor::ConfigPage, "ConfigPage");
 
     //helper methods for buttons etc
+    xgi::bind (this, &DTCSupervisor::reloadHWFile, "reloadHWFile");
 
     //make configurable variapbles available in the Application Info Space
     this->getApplicationInfoSpace()->fireItemAvailable ("HWDescriptionFile", &fHWDescriptionFile);
@@ -58,8 +61,8 @@ void Ph2TkDAQ::DTCSupervisor::actionPerformed (xdata::Event& e)
 void Ph2TkDAQ::DTCSupervisor::Default (xgi::Input* in, xgi::Output* out)
 throw (xgi::exception::Exception)
 {
-    this->createHtmlHeader (out, fCurrentPageView);
-    this->showStateMachineStatus (out);
+    //this->createHtmlHeader (in, out, fCurrentPageView);
+    //this->showStateMachineStatus (out);
     this->MainPage (in, out);
 }
 
@@ -67,60 +70,32 @@ void Ph2TkDAQ::DTCSupervisor::MainPage (xgi::Input* in, xgi::Output* out) throw 
 {
     //define view and create header
     fCurrentPageView = Tab::MAIN;
-    this->createHtmlHeader (out, fCurrentPageView);
-    this->showStateMachineStatus (out);
+    this->createHtmlHeader (in, out, fCurrentPageView);
 
-    //std::string url = "/" + getApplicationDescriptor()->getURN() + "/" + "MainPage";
-    std::string url = "";
+    std::string url = "/" + getApplicationDescriptor()->getURN() + "/" + "reloadHWFile";
 
     // stream for logger
-    std::ostringstream cLogStream;
+    //std::ostringstream cLogStream;
 
     // generate the page content
-    *out << "<div class=\"content\">" << std::endl;
+    //*out << "<div class=\"content\">" << std::endl;
     *out << cgicc::h3 ("DTCSupervisor Main Page") << std::endl;
-    *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
+    *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on") << std::endl;
     *out << "<label for=\"HwDescriptionFile\">Hw Descritpion FilePath: </label>" << std::endl;
-    *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "55").set ("value", fHWDescriptionFile.toString() ) << std::endl;
+    *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile.toString() ) << std::endl;
     *out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load") << std::endl;
+    //*out << cgicc::input().set ("type", "reset").set ("title", "reset the Hw Description File to default value").set ("value", "Reset") << std::endl;
     *out << cgicc::form() << std::endl;
 
-    //parse the form input
-    cgicc::Cgicc cgi (in);
-    std::string cHWDescriptionFile;
-    cgicc::form_iterator cIt = cgi.getElement ("HwDescriptionFile");
-
-    if (!cIt->isEmpty() && cIt != (*cgi).end() )
-    {
-        cHWDescriptionFile = cIt->getValue();
-
-        std::cout << cHWDescriptionFile << std::endl;
-
-        //take action
-        if (!cHWDescriptionFile.empty() && Ph2TkDAQ::checkFile (cHWDescriptionFile) )
-        {
-            fHWDescriptionFile = cHWDescriptionFile;
-            cLogStream << BLUE << "Changed HW Description File to: " << cHWDescriptionFile << RESET << std::endl;
-            *out << "Changed HW Description File to: " << cHWDescriptionFile << "</p>" << std::endl;
-        }
-        else
-        {
-            cLogStream << RED << "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist!" << RESET << std::endl;
-            *out << "<span style=\"color:red\">The selected file " << cHWDescriptionFile << " does not exist!</span>" << std::endl;
-        }
-    }
-
-    *out << "</div>" << std::endl;
-
-    LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
+    //LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
+    this->createHtmlFooter (in, out);
 }
 
 void Ph2TkDAQ::DTCSupervisor::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
 {
     //define view and create header
     fCurrentPageView = Tab::CONFIG;
-    this->createHtmlHeader (out, fCurrentPageView);
-    this->showStateMachineStatus (out);
+    this->createHtmlHeader (in, out, fCurrentPageView);
 
     //stream for logger
     std::ostringstream cLogStream;
@@ -129,37 +104,45 @@ void Ph2TkDAQ::DTCSupervisor::ConfigPage (xgi::Input* in, xgi::Output* out) thro
     std::string url = "";
 
     // Display the HwDescription HTML form
-    *out << "<div class=\"content\">" << std::endl;
     *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
     *out << cgicc::input().set ("type", "submit").set ("title", "submit the entered values").set ("value", "Submit") << std::endl;
     *out << cgicc::input().set ("type", "reset").set ("title", "reset the form").set ("value", "Reset") << std::endl;
 
-    *out << Ph2TkDAQ::transformXmlDocument (fHWDescriptionFile.toString(), fXLSStylesheet.toString(), cLogStream) << std::endl;
+    *out << fHWFormString << std::endl;
     *out << cgicc::form() << std::endl;
 
-    //parse the input or definne other callback
-    *out << "</div>" << std::endl;
+    // get the form input
+    cgicc::Cgicc cgi (in);
+
+    for (auto cIt : *cgi)
+        if (cIt.getValue() != "")
+            fHWFormVector.push_back (std::make_pair (Ph2TkDAQ::removeDot (cIt.getName() ), cIt.getValue() ) );
+
+    for (auto cPair : fHWFormVector)
+        std::cout << cPair.first << " " << cPair.second << std::endl;
 
     LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
+    this->createHtmlFooter (in, out);
 }
 
-void Ph2TkDAQ::DTCSupervisor::createHtmlHeader (xgi::Output* out, Tab pTab, const std::string& strDest)
+void Ph2TkDAQ::DTCSupervisor::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab)
 {
     // Create the Title, Tab bar
     std::ostringstream cLogStream;
 
-    out->getHTTPResponseHeader().addHeader ("Content-Type", "text/html");
-    *out << html().set ("lang", "en").set ("dir", "ltr") << std::endl;
-    *out << HTMLDoctype (HTMLDoctype::eStrict) << std::endl;
+    fManager.getHTMLHeader (in, out);
+    //out->getHTTPResponseHeader().addHeader ("Content-Type", "text/html");
+    //*out << html().set ("lang", "en").set ("dir", "ltr") << std::endl;
+    //*out << HTMLDoctype (HTMLDoctype::eStrict) << std::endl;
 
-    *out << head() << std::endl;
+    //*out << head() << std::endl;
     //Style this thing
     *out << style() << std::endl;
     *out << Ph2TkDAQ::parseStylesheetCSS (Ph2TkDAQ::expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/html/Stylesheet.css"), cLogStream) << std::endl;
     *out << style() << std::endl;
 
     *out << title ("DTC Supervisor")  << std::endl;
-    *out << head() << std::endl;
+    //*out << head() << std::endl;
 
     std::ostringstream cTabBarString;
     std::string url = "/" + getApplicationDescriptor()->getURN() + "/";
@@ -184,12 +167,26 @@ void Ph2TkDAQ::DTCSupervisor::createHtmlHeader (xgi::Output* out, Tab pTab, cons
             break;
     }
 
-    *out << "<div class=\"title\"> <h2> DTC Supervisor </h2></div>" << std::endl;
+    //*out << "<div class=\"title\"> <h2> DTC Supervisor </h2></div>" << std::endl;
     *out << "<div class=\"tab\">" << std::endl;
     *out << cTabBarString.str() << std::endl;
     *out << "</div>" << std::endl;
+    *out << "<div class=\"main\">" << std::endl;
+    this->showStateMachineStatus (out);
+    *out << "<div class=\"content\">" << std::endl;
+
+    //std::string cStringHeader;
+    //xgi::Utils::getWidget (out, "DTCSupervisor", cStringHeader, getApplicationDescriptor()->getContextDescriptor()->getURL(), getApplicationDescriptor()->getURN(), "/xgi/images/Application.jpg");
 
     LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
+}
+
+void Ph2TkDAQ::DTCSupervisor::createHtmlFooter (xgi::Input* in, xgi::Output* out)
+{
+    //close the main and content div
+    *out << "</div class=\"content\"></div class=\"main\">" << std::endl;
+    fManager.getHTMLFooter (in, out);
+
 }
 
 void Ph2TkDAQ::DTCSupervisor::showStateMachineStatus (xgi::Output* out) throw (xgi::exception::Exception)
@@ -204,7 +201,7 @@ void Ph2TkDAQ::DTCSupervisor::showStateMachineStatus (xgi::Output* out) throw (x
         //std::set<std::string> allInputs = fsm_.getInputs();
 
         *out << "<div class=\"sidenav\">" << std::endl;
-        *out << "Current State: " << "Somestate" << std::endl;
+        *out << "<p class=\"state\">Current State: " << "Somestate" << "</p>" << std::endl;
         *out << cgicc::br() << std::endl;
         *out << "<a href=\"#\" class=\"button\"> Initialize </a>" << cgicc::br() << std::endl;
         *out << "<a href=\"#\" class=\"button\"> Configure </a>" << cgicc::br() << std::endl;
@@ -220,4 +217,36 @@ void Ph2TkDAQ::DTCSupervisor::showStateMachineStatus (xgi::Output* out) throw (x
     {
         XCEPT_RETHROW (xgi::exception::Exception, "Exception caught in WebShowRun", e);
     }
+}
+
+void Ph2TkDAQ::DTCSupervisor::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    // stream for logger
+    std::ostringstream cLogStream;
+
+    //parse the form input
+    cgicc::Cgicc cgi (in);
+    std::string cHWDescriptionFile;
+    cgicc::form_iterator cIt = cgi.getElement ("HwDescriptionFile");
+
+    if (!cIt->isEmpty() && cIt != (*cgi).end() )
+    {
+        cHWDescriptionFile = cIt->getValue();
+
+        //take action
+        if (!cHWDescriptionFile.empty() && Ph2TkDAQ::checkFile (cHWDescriptionFile) )
+        {
+            fHWDescriptionFile = cHWDescriptionFile;
+            cLogStream << BLUE << "Changed HW Description File to: " << fHWDescriptionFile.toString() << RESET << std::endl;
+            fHWFormString = Ph2TkDAQ::transformXmlDocument (fHWDescriptionFile.toString(), fXLSStylesheet.toString(), cLogStream);
+        }
+        else
+        {
+            cLogStream << RED << "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist!" << RESET << std::endl;
+            //*out << "<span style=\"color:red\">The selected file " << cHWDescriptionFile << " does not exist!</span>" << std::endl;
+        }
+    }
+
+    LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
+    this->lastPage (in, out);
 }

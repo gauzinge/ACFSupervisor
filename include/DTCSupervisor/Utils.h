@@ -11,9 +11,6 @@
 
 #include "ConsoleColor.h"
 
-#include "xmlwrapp/xmlwrapp.h"
-#include "xsltwrapp/xsltwrapp.h"
-
 namespace Ph2TkDAQ {
 
     inline std::string removeFilePrefix (const std::string& pFile)
@@ -26,6 +23,17 @@ namespace Ph2TkDAQ {
 
         return cResult;
 
+    }
+
+    inline std::string removeDot (const std::string& pWord)
+    {
+        std::string cWord;
+
+        if (pWord.substr (0, 1) == ".")
+            cWord = pWord.substr (1);
+        else cWord = pWord;
+
+        return cWord;
     }
 
     static std::string expandEnvironmentVariables (  std::string s )
@@ -52,7 +60,6 @@ namespace Ph2TkDAQ {
     inline bool checkFile (const std::string& name)
     {
         struct stat buffer;
-        std::cout << stat (name.c_str(), & buffer) << std::endl;
         return (stat (name.c_str(), &buffer) == 0);
     }
 
@@ -76,28 +83,6 @@ namespace Ph2TkDAQ {
 
 
         return cResult;
-    }
-
-    std::string transformXmlDocument (const std::string& pInputDocument, const std::string& pStylesheet, std::ostringstream& pStream)
-    {
-        std::string cHtmlResult;
-
-        try
-        {
-            xml::tree_parser cParser (pInputDocument.c_str() );
-            xml::document& cDoc = cParser.get_document();
-            xslt::stylesheet cStylesheet (pStylesheet.c_str() );
-            xml::document& cResult = cStylesheet.apply (cDoc);
-            cResult.save_to_string (cHtmlResult);
-            pStream << BLUE << "Successfully transformed xml file: " << pInputDocument << " to html using stylesheet " << pStylesheet << RESET << std::endl;
-        }
-
-        catch (const std::exception& e)
-        {
-            pStream << RED << "Exception: " << e.what() << RESET << std::endl;
-        }
-
-        return cHtmlResult;
     }
 
 }

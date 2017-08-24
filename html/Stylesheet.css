@@ -19,17 +19,44 @@ li, ul {
     margin: 1px
 }
 
-input, select, textarea{
-    color: #000;
-    text-align: right;
+/*input, select, text, textarea{*/
+    /*color: #000;*/
+    /*text-align: right;*/
+    /*font-size: 12pt;*/
+/*}*/
+
+label {
+    font-size: 13pt;
 }
 
-textarea:hover, input:hover {
+input {
     color: #000;
-    text-align: right;
+    vertical-align:center;
+    height:28px;
 }
 
-/*for tab bar*/
+input[type="text"]
+{
+    font-size:12px;
+}
+
+select {
+    border:none solid #ccc;
+    vertical-align:center;
+    height:25px;
+    font-size: 9pt;
+}
+
+/*input, select{*/
+  /*box-sizing: border-box;*/
+  /*-moz-box-sizing: border-box;*/
+  /*-webkit-box-sizing: border-box;*/
+/*}*/
+
+option {
+    font-size: 12pt;
+}
+
 .title {
     position: fixed;
     top: 0;
@@ -42,110 +69,159 @@ textarea:hover, input:hover {
     background-color: inherit;
 }
 
+/*for tab bar*/
 .tab {
     position: fixed;
-    top: 5%;
     left: 0;
-    height: 3%;
+    height: 40px;
     width: 100%;
-    z-index: 1;
+    z-index: 999;
     overflow: hidden;
-    border: 1px solid #ccc;
+    border: none solid #ccc;
     background-color: #e1e1e1;
 }
 
 .tab a.button {
-    /*position: relative;*/
     background-color: inherit;
+    vertical-align: middle;
+    display: table-cell;
+    height: 100%;
     border: none;
     outline: none;
     cursor: pointer;
-    padding: 8px 16px 8px 16px;
     transition: 0.3s;
     font-size: 17px;
-    /*display: block;*/
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 16px;
+    padding-right: 16px;
+
 }
 
 .tab a.button:hover {
-    background-color: #aaa
+    height: 100%;
+    background-color: #aaa;
 }
 
 .tab a.button.active {
-    background-color: #ccc
+    height: 100%;
+    background-color: #ccc;
 }
 
-.content {
-    padding: 10px;
+/*main viewport under tab bar*/
+.main {
     position: fixed;
-    height: 92%;
+    float: bottom;
+    box-sizing: padding-box;
+    padding-top: 1.5%;
+    padding-bottom: 135px;
+    height: 100%;
+    width: 100%;
+    left: 0;
+    overflow: scroll;
+    background-color: inherit;
+}
+
+/*content of page*/
+.content {
+    /*font-size: 15pt;*/
+    float: right;
+    float: top;
+    height: 100%;
     width: 90%;
-    top: 8%;
-    left: 10%;
-    float: left;
+    /*z-index: 1;*/
+    right: 0;
+    padding-top: 3%;
+    padding-left: 1.5%;
+    border: 1px solid #ccc;
+    background-color: #e1e1e1;
     overflow-y: scroll;
-    /*position: relative;*/
+    background-color: inherit;
 }
 
 /*Sidebar with FSM diagram*/
 .sidenav {
-    position: fixed;
+    font-size: 15pt;
+    padding-top: 60px;
     float: left;
-    height: 92%;
+    height: 100%;
     width: 10%;
-    z-index: 1;
-    top: 8%;
+    z-index: 999;
     left: 0;
-    border: 1px solid #ccc;
+    border: none solid #ccc;
     background-color: #e1e1e1;
-    overflow-x: auto;
-    padding-top: 30px;
+    overflow: hidden;
     transition: 0.3s;
+}
+
+.sidenav p.state {
+    font-size: 17pt;
+    width: 100%;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
+    /*margin-top: 4px;*/
+    margin-bottom: 8px;
+    text-color: blue;
+    background-color: #919191;
+    float: left;
+
 }
 
 /* The navigation menu links */
 .sidenav a.button {
-    /*position: relative;*/
+    font-size: 15pt;
     width: 100%;
-    /*padding: 8px 8px 8px 8px;*/
-    margin: auto;
-    padding:auto;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-left: 8px;
+    float: left;
     text-decoration: none;
-    font-size: 17px;
     transition: 0.3s
-    display: block;
 }
 
 .sidenav a.button.active {
     background-color: #ccc;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-left: 16px;
     width: 100%;
+    float: left;
 }
 
 /* When you mouse over the navigation links, change their color */
 .sidenav a.button:hover, .offcanvas a:focus {
-    position:relative;
-    width: 10%;
+    width: 100%;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 12px;
+    float: left;
     background-color: #aaa
 }
 
 
 /*for HWDescription form*/
  div.BeBoard {
+     /*position: relative;*/
      font-size: 10 pt;
-     margin-top: 5px;
-     margin-bottom: 5px;
-     margin-left: 0px;
-     margin-right: 50px;
-     padding-top: 5px;
-     padding-bottom: 5px;
-     padding-left: 10px;
-     padding-right: 10px;
+     /*height: 100vh;*/
+     /*margin-top: 5px;*/
+     /*margin-bottom: 5px;*/
+     /*margin-left: 0px;*/
+     /*margin-right: 50px;*/
+     /*padding-top: 5px;*/
+     /*padding-bottom: 5px;*/
+     /*padding-left: 10px;*/
+     /*padding-right: 10px;*/
 
-     overflow: hidden;
+     /*overflow: scroll;*/
      border: none
      solid: #ccc;
      /*background-color: #424242;*/
      background-color: inherit;
-     color: #34495e
+     /*float: top;*/
+     /*color: #34495e*/
  }
 
  div.General {
@@ -157,7 +233,7 @@ textarea:hover, input:hover {
      padding-bottom: 5px;
      padding-left: 15px;
      padding-right: 15px;
-     overflow: hidden;
+     /*overflow: hidden;*/
      border: none
      solid: #ddd;
      background-color: #ebedef
@@ -172,7 +248,7 @@ textarea:hover, input:hover {
      padding-bottom: 5px;
      padding-left: 15px;
      padding-right: 15px;
-     overflow: hidden;
+     /*overflow: hidden;*/
      border: none
      solid: #ddd;
      background-color: #d5d8dc;
@@ -187,7 +263,7 @@ textarea:hover, input:hover {
      padding-bottom: 5px;
      padding-left: 20px;
      padding-right: 20px;
-     overflow: hidden;
+     /*overflow: hidden;*/
      border: none
      solid: #ddd;
      background-color: #ebedef;
@@ -203,7 +279,7 @@ textarea:hover, input:hover {
      padding-bottom: 5px;
      padding-left: 20px;
      padding-right: 20px;
-     overflow: hidden;
+     /*overflow: hidden;*/
      border: none
      solid: #ddd;
      background-color: #ccc;
@@ -219,7 +295,7 @@ textarea:hover, input:hover {
      padding-bottom: 5px;
      padding-left: 10px;
      padding-right: 10px;
-     overflow: hidden;
+     /*overflow: hidden;*/
      border: 1px
      solid: #ddd;
      background-color: #ebedef
@@ -234,35 +310,9 @@ textarea:hover, input:hover {
      padding-bottom: 5px;
      padding-left: 10px;
      padding-right: 10px;
-     overflow: hidden;
+     /*overflow: hidden;*/
      border: 1px
      solid: #ddd;
      background-color: #d5d8dc
  }
 
- /*#billdesc{*/
-    /*padding-top: 50px;*/
-/*}*/
-/*#test{*/
-    /*width: 100%;*/
-    /*height: 30px;*/
-/*}*/
-/*option {*/
-    /*height: 30px;*/
-    /*line-height: 30px;*/
-/*}*/
-
-/*.editOption{*/
-    /*width: 90%;*/
-    /*height: 24px;*/
-    /*position: relative;*/
-    /*top: -30px*/
-
-/*}*/
-
-/**out << "body {font-family: \"Lato\", sans-serif;\nbackground-color: #f1f1f1\n}" << std::endl;*/
-/*-    *out << "div.title {\noverflow: hidden;\nborder: none solid #ccc;\nbackground-color: inherit;\n}" << std::endl;*/
-/*-    *out << "div.tab {\noverflow: hidden;\nborder: 1px solid #ccc;\nbackground-color: #e1e1e1;\n}" << std::endl;*/
-/*-    *out << "a.button {\nbackground-color: inherit;\nfloat: left;\nborder: none;\noutline: none;\ncursor: pointer;\npadding: 8px 16px;\ntransition:0.3s;\nfont-size:17px;\n}" << std::endl;*/
-/*-    *out << "a.button:hover {\nbackground-color: #aaa;\n}" << std::endl;*/
-/*-    *out << "a.button.active {\nbackground-color: #ccc;\n}" << std::endl;*/
