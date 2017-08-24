@@ -154,10 +154,12 @@ namespace Ph2TkDAQ {
         if (attribute == nullptr) // attribute is called name instead
             attribute = nodeElement->get_attribute ("name");
 
-        std::cout << BOLDYELLOW << "Attribute: " << attribute->get_name() << " was: " << attribute->get_value() << " & will be: " << pValue << std::endl;
-        attribute->set_value ( pValue);
-        std::cout << "Check: " << attribute->get_value() << RESET <<  std::endl;
-        //}
+        if (attribute->get_value() != pValue)
+        {
+            std::cout << BOLDYELLOW << "Attribute: " << attribute->get_name() << " was: " << attribute->get_value() << " & will be: " << pValue << std::endl;
+            attribute->set_value ( pValue);
+            std::cout << "Check: " << attribute->get_value() << RESET <<  std::endl;
+        }
     }
 
     void handle_input_node (xmlpp::Node* node, const std::string& pValue)
@@ -171,16 +173,19 @@ namespace Ph2TkDAQ {
         {
             std::string cType  = attribute->get_value();
 
-            if (cType == "text")
+            if (cType == "text" || cType == "number")
             {
                 attribute = nodeElement->get_attribute ("value");
 
                 //text input
                 if (attribute != nullptr) //check required for empty hidden text boxes
                 {
-                    std::cout << BOLDYELLOW << "Attribute: " << attribute->get_name() << " was: " << attribute->get_value() << " & will be: " << pValue << std::endl;
-                    attribute->set_value ( pValue);
-                    std::cout << "Check: " << attribute->get_value() << RESET <<  std::endl;
+                    if (attribute->get_value() != pValue)
+                    {
+                        std::cout << BOLDYELLOW << "Attribute: " << attribute->get_name() << " was: " << attribute->get_value() << " & will be: " << pValue << std::endl;
+                        attribute->set_value ( pValue);
+                        std::cout << "Check: " << attribute->get_value() << RESET <<  std::endl;
+                    }
                 }
             }
             else
@@ -201,10 +206,10 @@ namespace Ph2TkDAQ {
 
 
 
-    void updateHTMLForm (std::string& cFormString, std::vector<std::pair<std::string, std::string>> pFormData, std::ostringstream& pStream)
+    void updateHTMLForm (std::string& pFormString, std::vector<std::pair<std::string, std::string>> pFormData, std::ostringstream& pStream)
     {
         // Parse HTML and create a DOM tree
-        xmlDoc* doc = htmlReadDoc ( (xmlChar*) cFormString.c_str(), NULL, NULL, HTML_PARSE_RECOVER | HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
+        xmlDoc* doc = htmlReadDoc ( (xmlChar*) pFormString.c_str(), NULL, NULL, HTML_PARSE_RECOVER | HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
 
         if (doc == nullptr)
             pStream << RED << "HTML HW Form string not parsed successfully." << RESET << std::endl;
@@ -236,13 +241,16 @@ namespace Ph2TkDAQ {
                     handle_node (element, cPair.second);
                 }
 
+                xmlChar* buff;
+                int buffersize;
+                //pFormData = doc->write_to_string ("utf-8");
+                xmlDocDumpFormatMemory (doc, &buff, &buffersize, 1);
+                pFormString = reinterpret_cast<char*> (buff);
             }
-            catch (const xmlpp::exception& e)
+            catch (const std::exception& e)
             {
                 pStream << RED << "Exception: " << e.what() << RESET << std::endl;
             }
-
-            //std::cout << dynamic_cast<xmlpp::ContentNode*> (elements[0])->get_content() << std::endl;
         }
 
         delete root;
