@@ -67,28 +67,20 @@ throw (xgi::exception::Exception)
 
 void Ph2TkDAQ::DTCSupervisor::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
 {
+    std::string url = "/" + getApplicationDescriptor()->getURN() + "/" + "reloadHWFile";
+
+    // stream for logger
+    std::ostringstream cLogStream;
+
     //define view and create header
     fCurrentPageView = Tab::MAIN;
     this->createHtmlHeader (in, out, fCurrentPageView);
 
-    std::string url = "/" + getApplicationDescriptor()->getURN() + "/" + "reloadHWFile";
-
-    // stream for logger
-    //std::ostringstream cLogStream;
-
     // generate the page content
     *out << cgicc::h3 ("DTCSupervisor Main Page") << std::endl;
-    *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on") << std::endl;
-    *out << "<label for=\"HwDescriptionFile\">Hw Descritpion FilePath: </label>" << std::endl;
-    //if(state==halted)
-    *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile.toString() ) << std::endl;
-    *out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load") << std::endl;
-    //else
-    //*out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile.toString() ).set ("disabled", "disabled") << std::endl;
-    //*out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load").set ("disabled", "disabled") << std::endl;
-    *out << cgicc::form() << std::endl;
+    this->displayLoadForm (in, out);
 
-    //LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
+    LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
     this->createHtmlFooter (in, out);
 }
 
@@ -101,12 +93,18 @@ void Ph2TkDAQ::DTCSupervisor::ConfigPage (xgi::Input* in, xgi::Output* out) thro
     //string defining action
     std::string url = "/" + getApplicationDescriptor()->getURN() + "/" + "handleHWFormData";
 
+    this->displayLoadForm (in, out);
     // Display the HwDescription HTML form
     *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
+    //*out << cgicc::div().set ("class", "fixed") << std::endl;
+    *out << cgicc::input().set ("type", "submit").set ("title", "Update the Form Values").set ("value", "Update") << std::endl;
     *out << cgicc::input().set ("type", "submit").set ("title", "submit the entered values").set ("value", "Submit") << std::endl;
     *out << cgicc::input().set ("type", "reset").set ("title", "reset the form").set ("value", "Reset") << std::endl;
+    //*out << cgicc::div() << std::endl;
 
+    //*out << cgicc::div() << std::endl;
     *out << fHWFormString << std::endl;
+    //*out << cgicc::div() << std::endl;
     *out << cgicc::form() << std::endl;
 
 
@@ -253,9 +251,22 @@ void Ph2TkDAQ::DTCSupervisor::handleHWFormData (xgi::Input* in, xgi::Output* out
 
     Ph2TkDAQ::updateHTMLForm (fHWFormString, fHWFormVector, cLogStream);
 
-    //for (auto cPair : fHWFormVector)
-    //std::cout << cPair.first << " " << cPair.second << std::endl;
-
     LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
     this->lastPage (in, out);
+}
+
+void Ph2TkDAQ::DTCSupervisor::displayLoadForm (xgi::Input* in, xgi::Output* out)
+{
+    std::string url = "/" + getApplicationDescriptor()->getURN() + "/" + "reloadHWFile";
+    *out << cgicc::div().set ("padding", "10px") << std::endl;
+    *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on") << std::endl;
+    *out << "<label for=\"HwDescriptionFile\">Hw Descritpion FilePath: </label>" << std::endl;
+    //if(state==halted)
+    *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile.toString() ) << std::endl;
+    *out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load") << std::endl;
+    //else
+    //*out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile.toString() ).set ("disabled", "disabled") << std::endl;
+    //*out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load").set ("disabled", "disabled") << std::endl;
+    *out << cgicc::form() << std::endl;
+    *out << cgicc::div() << std::endl;
 }

@@ -49,6 +49,8 @@ namespace Ph2TkDAQ {
         ///HTML header & footer for Hyperdaq interface
         void createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab);
         void createHtmlFooter (xgi::Input* in, xgi::Output* out);
+        // Form to load HWDescription File
+        void displayLoadForm (xgi::Input* in, xgi::Output* out);
 
         ///Show FSM status and available transition in an HTML table
         void showStateMachineStatus (xgi::Output* out) throw (xgi::exception::Exception);

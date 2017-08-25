@@ -145,6 +145,12 @@ option {
     background-color: inherit;
 }
 
+.content div.fixed {
+    /*position: absolute;*/
+    /*float: top;*/
+    padding: 10px;
+}
+
 /*Sidebar with FSM diagram*/
 .sidenav {
     font-size: 15pt;
