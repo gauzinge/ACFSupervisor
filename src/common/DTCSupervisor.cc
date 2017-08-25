@@ -17,6 +17,8 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     xgi::bind (this, &DTCSupervisor::Default, "Default");
     xgi::bind (this, &DTCSupervisor::MainPage, "MainPage");
     xgi::bind (this, &DTCSupervisor::ConfigPage, "ConfigPage");
+    xgi::bind (this, &DTCSupervisor::CalibrationPage, "CalibrationPage");
+    xgi::bind (this, &DTCSupervisor::DAQPage, "DAQPage");
 
     //helper methods for buttons etc
     xgi::bind (this, &DTCSupervisor::reloadHWFile, "reloadHWFile");
@@ -96,15 +98,9 @@ void Ph2TkDAQ::DTCSupervisor::ConfigPage (xgi::Input* in, xgi::Output* out) thro
     this->displayLoadForm (in, out);
     // Display the HwDescription HTML form
     *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
-    //*out << cgicc::div().set ("class", "fixed") << std::endl;
-    *out << cgicc::input().set ("type", "submit").set ("title", "Update the Form Values").set ("value", "Update") << std::endl;
     *out << cgicc::input().set ("type", "submit").set ("title", "submit the entered values").set ("value", "Submit") << std::endl;
     *out << cgicc::input().set ("type", "reset").set ("title", "reset the form").set ("value", "Reset") << std::endl;
-    //*out << cgicc::div() << std::endl;
-
-    //*out << cgicc::div() << std::endl;
     *out << fHWFormString << std::endl;
-    //*out << cgicc::div() << std::endl;
     *out << cgicc::form() << std::endl;
 
 
@@ -221,7 +217,7 @@ void Ph2TkDAQ::DTCSupervisor::reloadHWFile (xgi::Input* in, xgi::Output* out) th
         {
             fHWDescriptionFile = cHWDescriptionFile;
             cLogStream << BLUE << "Changed HW Description File to: " << fHWDescriptionFile.toString() << RESET << std::endl;
-            fHWFormString = Ph2TkDAQ::transformXmlDocument (fHWDescriptionFile.toString(), fXLSStylesheet.toString(), cLogStream);
+            fHWFormString = Ph2TkDAQ::XMLUtils::transformXmlDocument (fHWDescriptionFile.toString(), fXLSStylesheet.toString(), cLogStream);
         }
         else
         {
@@ -236,6 +232,8 @@ void Ph2TkDAQ::DTCSupervisor::reloadHWFile (xgi::Input* in, xgi::Output* out) th
 
 void Ph2TkDAQ::DTCSupervisor::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
 {
+    fHWFormVector.clear();
+    std::cout << fHWFormVector.size() << std::endl;
     //stream for logger
     std::ostringstream cLogStream;
 
@@ -249,7 +247,13 @@ void Ph2TkDAQ::DTCSupervisor::handleHWFormData (xgi::Input* in, xgi::Output* out
             fHWFormVector.push_back (std::make_pair (cIt.getName(), cIt.getValue() ) );
         }
 
-    Ph2TkDAQ::updateHTMLForm (fHWFormString, fHWFormVector, cLogStream);
+
+    //set this to true once the HWDescription object is initialized to get a reduced set of form input pairs to modify existing HWDescription objects
+    bool cStripUnchanged = true;
+    Ph2TkDAQ::XMLUtils::updateHTMLForm (fHWFormString, fHWFormVector, cLogStream, cStripUnchanged );
+
+    for (auto cPair : fHWFormVector)
+        std::cout << cPair.first << " " << cPair.second << std::endl;
 
     LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
     this->lastPage (in, out);

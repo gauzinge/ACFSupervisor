@@ -43,8 +43,8 @@ namespace Ph2TkDAQ {
         void Default (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         void MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         void ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
-        //void CalibrationPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
-        //void DAQPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        void CalibrationPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception) {}
+        void DAQPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception) {}
 
         ///HTML header & footer for Hyperdaq interface
         void createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab);
@@ -78,13 +78,13 @@ namespace Ph2TkDAQ {
                     this->ConfigPage (in, out);
                     break;
 
-                    //case Tab::CALIBRATION:
-                    //this->CalibrationPage (in, out);
-                    //break;
+                case Tab::CALIBRATION:
+                    this->CalibrationPage (in, out);
+                    break;
 
-                    //case Tab::DAQ:
-                    //this->DAQPage (in, out);
-                    //break;
+                case Tab::DAQ:
+                    this->DAQPage (in, out);
+                    break;
             }
         }
 

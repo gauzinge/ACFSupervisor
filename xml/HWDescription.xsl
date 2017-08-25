@@ -171,7 +171,7 @@
     <!--Template for BeBoard nodes-->
     <xsl:template match="BeBoard">
         <div class="BeBoard">
-        <h4> BeBoard Id: <xsl:value-of select="@Id"/> </h4>
+            <h4> BeBoard Id: <input type="number" name="beboard_id_{@Id}" value="{@Id}"/></h4>
             <div class="General">
             <li>
             BoardType: 
@@ -228,12 +228,13 @@
     <!--Template for Module nodes-->
     <xsl:template match="Module">
         <div class="Module">
-        <h4> Module Id: <xsl:value-of select="@FeId"/></h4>
-             FMCId: <xsl:value-of select="@FMCId"/>
-             ModuleId: <xsl:value-of select="@ModuleId"/>
-             Status:
-             <input type="text" name="module_status" size="1" value="{@Status}"/>
-            <br></br>
+            <h4> Module</h4>
+             <tr>
+                 <td>  FeId: <input type="number" name="fe_id{@FeId}" size="2" value="{@FeId}"/></td>
+                 <td>  FMCId: <input type="number" name="fmc_id{@FeId}" size="2" value="{@FMCId}" min="0" max="1"/></td>
+                 <td>  ModuleId: <input type="number" name="module_id{@FeId}" size="2" value="{@ModuleId}"/></td>
+                 <td>  Status: <input type="number" name="module_status{@FeId}" size="2" value="{@Status}" min="0" max="1"/></td>
+             </tr>
             <div>
                 CBC FilePath: <input type="text" name="cbc_filepath" size="20" value="{CBC_Files/@path}"/>
             <!--</input>-->
