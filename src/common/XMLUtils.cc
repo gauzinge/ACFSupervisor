@@ -60,8 +60,6 @@ const  void XMLUtils::updateHTMLForm (std::string& pFormString, std::vector<std:
 
     xmlpp::Element* root = new xmlpp::Element (r);
 
-    int paircounter = 0;
-
     auto cPair = std::begin (pFormData);
 
     while (cPair != std::end (pFormData) )

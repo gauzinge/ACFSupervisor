@@ -4,7 +4,7 @@ include $(XDAQ_ROOT)/config/mfDefs.$(XDAQ_OS)
 
 #Project=Ph2_TkDAQ
 Package=DTCSupervisor
-Sources= DTCSupervisor.cc version.cc XMLUtils.cc
+Sources= DTCSupervisor.cc SupervisorGUI.cc version.cc XMLUtils.cc
 
 IncludeDirs = \
      $(XDAQ_ROOT)/include \

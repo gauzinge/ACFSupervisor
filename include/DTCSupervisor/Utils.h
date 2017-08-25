@@ -1,5 +1,5 @@
-#ifndef __DTCSupervisorUtils_H__
-#define __DTCSupervisorUtils_H__
+#ifndef __Utils_H__
+#define __Utils_H__
 
 #include <cstdlib>
 #include <string>
@@ -63,7 +63,7 @@ namespace Ph2TkDAQ {
         return (stat (name.c_str(), &buffer) == 0);
     }
 
-    std::string parseStylesheetCSS (std::string pStylesheet, std::ostringstream& pStream)
+    inline std::string parseStylesheetCSS (std::string pStylesheet, std::ostringstream& pStream)
     {
         std::string cResult;
 
