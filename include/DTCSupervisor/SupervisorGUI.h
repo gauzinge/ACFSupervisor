@@ -3,7 +3,6 @@
 
 #include "xdaq/exception/Exception.h"
 #include "xdaq/NamespaceURI.h"
-//#include "xdaq/WebApplication.h"
 #include "toolbox/lang/Class.h"
 #include "toolbox/lang/Method.h"
 
@@ -48,9 +47,7 @@ namespace Ph2TkDAQ {
         void showStateMachineStatus (xgi::Output* out) throw (xgi::exception::Exception);
 
 
-      private:
-        void reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
-        void handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+      public:
         void lastPage (xgi::Input* in, xgi::Output* out)
         {
             switch (fCurrentPageView)
@@ -83,7 +80,6 @@ namespace Ph2TkDAQ {
         xdata::String fXLSStylesheet;
 
         std::string fHWFormString;
-        std::vector<std::pair<std::string, std::string>> fHWFormVector;
 
         Tab fCurrentPageView;
     };

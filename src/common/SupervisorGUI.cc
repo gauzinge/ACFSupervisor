@@ -12,15 +12,16 @@ SupervisorGUI::SupervisorGUI (xgi::framework::UIManager pManager, std::string pU
 {
     //bind xgi and xoap commands to methods
     //methods for tab navigation
-    xgi::bind (this, &SupervisorGUI::Default, "Default");
+    //xgi::bind (this, &SupervisorGUI::Default, "Default");
     xgi::bind (this, &SupervisorGUI::MainPage, "MainPage");
     xgi::bind (this, &SupervisorGUI::ConfigPage, "ConfigPage");
     xgi::bind (this, &SupervisorGUI::CalibrationPage, "CalibrationPage");
     xgi::bind (this, &SupervisorGUI::DAQPage, "DAQPage");
 
     //helper methods for buttons etc
-    xgi::bind (this, &SupervisorGUI::reloadHWFile, "reloadHWFile");
-    xgi::bind (this, &SupervisorGUI::handleHWFormData, "handleHWFormData");
+    //xgi::bind (this, &SupervisorGUI::reloadHWFile, "reloadHWFile");
+    //xgi::bind (this, &SupervisorGUI::handleHWFormData, "handleHWFormData");
+    xgi::bind (this, &SupervisorGUI::lastPage, "lastPage");
 }
 
 void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
@@ -35,7 +36,7 @@ void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exce
     this->createHtmlHeader (in, out, fCurrentPageView);
 
     // generate the page content
-    *out << cgicc::h3 ("SupervisorGUI Main Page") << std::endl;
+    *out << cgicc::h3 ("DTC Supervisor Main Page") << std::endl;
     this->displayLoadForm (in, out);
 
     //LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
@@ -69,18 +70,12 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     std::ostringstream cLogStream;
 
     fManager.getHTMLHeader (in, out);
-    //out->getHTTPResponseHeader().addHeader ("Content-Type", "text/html");
-    //*out << html().set ("lang", "en").set ("dir", "ltr") << std::endl;
-    //*out << HTMLDoctype (HTMLDoctype::eStrict) << std::endl;
-
-    //*out << head() << std::endl;
     //Style this thing
     *out << cgicc::style() << std::endl;
     *out << parseStylesheetCSS (expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/html/Stylesheet.css"), cLogStream) << std::endl;
     *out << cgicc::style() << std::endl;
 
     *out << cgicc::title ("DTC Supervisor")  << std::endl;
-    //*out << head() << std::endl;
 
     std::ostringstream cTabBarString;
     std::string url = fURN;
@@ -105,7 +100,6 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
             break;
     }
 
-    //*out << "<div class=\"title\"> <h2> DTC Supervisor </h2></div>" << std::endl;
     *out << "<div class=\"tab\">" << std::endl;
     *out << cTabBarString.str() << std::endl;
     *out << "</div>" << std::endl;
@@ -154,66 +148,6 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
     }
 }
 
-void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
-{
-    // stream for logger
-    std::ostringstream cLogStream;
-
-    //parse the form input
-    cgicc::Cgicc cgi (in);
-    std::string cHWDescriptionFile;
-    cgicc::form_iterator cIt = cgi.getElement ("HwDescriptionFile");
-
-    if (!cIt->isEmpty() && cIt != (*cgi).end() )
-    {
-        cHWDescriptionFile = cIt->getValue();
-
-        //take action
-        if (!cHWDescriptionFile.empty() && checkFile (cHWDescriptionFile) )
-        {
-            fHWDescriptionFile = cHWDescriptionFile;
-            cLogStream << BLUE << "Changed HW Description File to: " << fHWDescriptionFile.toString() << RESET << std::endl;
-            fHWFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile.toString(), fXLSStylesheet.toString(), cLogStream);
-        }
-        else
-        {
-            cLogStream << RED << "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist!" << RESET << std::endl;
-            //*out << "<span style=\"color:red\">The selected file " << cHWDescriptionFile << " does not exist!</span>" << std::endl;
-        }
-    }
-
-    //LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
-    this->lastPage (in, out);
-}
-
-void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
-{
-    fHWFormVector.clear();
-    std::cout << fHWFormVector.size() << std::endl;
-    //stream for logger
-    std::ostringstream cLogStream;
-
-    // get the form input
-    cgicc::Cgicc cgi (in);
-
-    for (auto cIt : *cgi)
-        if (cIt.getValue() != "")
-        {
-            //fHWFormVector.push_back (std::make_pair (removeDot (cIt.getName() ), cIt.getValue() ) );
-            fHWFormVector.push_back (std::make_pair (cIt.getName(), cIt.getValue() ) );
-        }
-
-
-    //set this to true once the HWDescription object is initialized to get a reduced set of form input pairs to modify existing HWDescription objects
-    bool cStripUnchanged = true;
-    XMLUtils::updateHTMLForm (fHWFormString, fHWFormVector, cLogStream, cStripUnchanged );
-
-    for (auto cPair : fHWFormVector)
-        std::cout << cPair.first << " " << cPair.second << std::endl;
-
-    //LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
-    this->lastPage (in, out);
-}
 
 void SupervisorGUI::displayLoadForm (xgi::Input* in, xgi::Output* out)
 {

@@ -17,13 +17,9 @@
 #include "xdata/ActionListener.h"
 #include "xdata/String.h"
 
-//#include "Utils.h"
-//#include "XMLUtils.h"
-//#include "ConsoleColor.h"
 
 #include "SupervisorGUI.h"
 
-//enum class Tab {CONFIG, MAIN, CALIBRATION, DAQ};
 
 namespace Ph2TkDAQ {
 
@@ -34,7 +30,7 @@ namespace Ph2TkDAQ {
         XDAQ_INSTANTIATOR();
         xgi::framework::UIManager fManager;
         //the GUI object
-        toolbox::lang::Class* fGUI;
+        SupervisorGUI* fGUI;
 
         DTCSupervisor (xdaq::ApplicationStub* s) throw (xdaq::exception::Exception);
         ~DTCSupervisor();
@@ -44,56 +40,17 @@ namespace Ph2TkDAQ {
 
         //views
         void Default (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
-        //void MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
-        //void ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
-        //void CalibrationPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception) {}
-        //void DAQPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception) {}
-
-        ///HTML header & footer for Hyperdaq interface
-        //void createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab);
-        //void createHtmlFooter (xgi::Input* in, xgi::Output* out);
-        // Form to load HWDescription File
-        //void displayLoadForm (xgi::Input* in, xgi::Output* out);
-
-        ///Show FSM status and available transition in an HTML table
-        //void showStateMachineStatus (xgi::Output* out) throw (xgi::exception::Exception);
 
       protected:
         xdata::String fHWDescriptionFile;
         xdata::String fXLSStylesheet;
-        //std::string fHWFormString;
 
       private:
-        //void reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
-        //void handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
-
-
-
-        //void lastPage (xgi::Input* in, xgi::Output* out)
-        //{
-        //switch (fCurrentPageView)
-        //{
-        //case Tab::MAIN:
-        //this->MainPage (in, out);
-        //break;
-
-        //case Tab::CONFIG:
-        //this->ConfigPage (in, out);
-        //break;
-
-        //case Tab::CALIBRATION:
-        //this->CalibrationPage (in, out);
-        //break;
-
-        //case Tab::DAQ:
-        //this->DAQPage (in, out);
-        //break;
-        //}
-        //}
-
+        void reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        void handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
 
         //Tab fCurrentPageView;
-        //std::vector<std::pair<std::string, std::string>> fHWFormVector;
+        std::vector<std::pair<std::string, std::string>> fHWFormVector;
 
     };
 
