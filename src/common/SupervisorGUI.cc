@@ -2,11 +2,11 @@
 
 using namespace Ph2TkDAQ;
 
-SupervisorGUI::SupervisorGUI (xgi::framework::UIManager pManager, std::string pURN) :
+SupervisorGUI::SupervisorGUI (xgi::framework::UIManager* pManager, std::string& pURN) :
     fManager (pManager),
     fURN (pURN),
-    fHWDescriptionFile (""),
-    fXLSStylesheet (""),
+    fHWDescriptionFile (nullptr),
+    fXLSStylesheet (nullptr),
     fHWFormString (""),
     fCurrentPageView (Tab::MAIN)
 {
@@ -69,7 +69,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     // Create the Title, Tab bar
     std::ostringstream cLogStream;
 
-    fManager.getHTMLHeader (in, out);
+    fManager->getHTMLHeader (in, out);
     //Style this thing
     *out << cgicc::style() << std::endl;
     *out << parseStylesheetCSS (expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/html/Stylesheet.css"), cLogStream) << std::endl;
@@ -114,7 +114,7 @@ void SupervisorGUI::createHtmlFooter (xgi::Input* in, xgi::Output* out)
 {
     //close the main and content div
     *out << "</div class=\"content\"></div class=\"main\">" << std::endl;
-    fManager.getHTMLFooter (in, out);
+    fManager->getHTMLFooter (in, out);
 
 }
 
@@ -156,7 +156,7 @@ void SupervisorGUI::displayLoadForm (xgi::Input* in, xgi::Output* out)
     *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on") << std::endl;
     *out << "<label for=\"HwDescriptionFile\">Hw Descritpion FilePath: </label>" << std::endl;
     //if(state==halted)
-    *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile.toString() ) << std::endl;
+    *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ) << std::endl;
     *out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load") << std::endl;
     //else
     //*out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile.toString() ).set ("disabled", "disabled") << std::endl;

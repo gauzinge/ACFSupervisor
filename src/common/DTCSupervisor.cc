@@ -14,7 +14,7 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     //instance of my GUI object
     //maybe need to pass some parameters
     std::string url = "/" + getApplicationDescriptor()->getURN() + "/";
-    fGUI = new SupervisorGUI (fManager, url);
+    fGUI = new SupervisorGUI (&fManager, url);
     //programatically binld all GUI methods to the Default method of this piece of code
     std::vector<toolbox::lang::Method*> v = fGUI->getMethods();
     std::vector<toolbox::lang::Method*>::iterator cMethod;
@@ -57,8 +57,8 @@ void Ph2TkDAQ::DTCSupervisor::actionPerformed (xdata::Event& e)
         fXLSStylesheet = Ph2TkDAQ::removeFilePrefix (fXLSStylesheet.toString() );
 
         //need to nofify the GUI of these variables
-        fGUI->fHWDescriptionFile = fHWDescriptionFile;
-        fGUI->fXLSStylesheet = fXLSStylesheet;
+        fGUI->fHWDescriptionFile = &fHWDescriptionFile;
+        fGUI->fXLSStylesheet = &fXLSStylesheet;
 
         std::stringstream ss;
 
@@ -77,7 +77,7 @@ throw (xgi::exception::Exception)
 {
     std::string name = in->getenv ("PATH_INFO");
     static_cast<xgi::MethodSignature*> (fGUI->getMethod (name) )->invoke (in, out);
-    fGUI->MainPage (in, out);
+    fGUI->lastPage (in, out);
 }
 
 

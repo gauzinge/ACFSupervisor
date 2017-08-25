@@ -29,7 +29,7 @@ namespace Ph2TkDAQ {
     class SupervisorGUI : public toolbox::lang::Class
     {
       public:
-        SupervisorGUI (xgi::framework::UIManager pManager, std::string pURN);
+        SupervisorGUI (xgi::framework::UIManager* pManager, std::string& pURN);
 
         //views
         void Default (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
@@ -73,11 +73,11 @@ namespace Ph2TkDAQ {
 
         //members
       protected:
-        xgi::framework::UIManager fManager;
+        xgi::framework::UIManager* fManager;
         std::string fURN;
       public:
-        xdata::String fHWDescriptionFile;
-        xdata::String fXLSStylesheet;
+        xdata::String* fHWDescriptionFile;
+        xdata::String* fXLSStylesheet;
 
         std::string fHWFormString;
 
