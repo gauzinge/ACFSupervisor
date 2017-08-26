@@ -20,6 +20,7 @@
 
 #include "SupervisorGUI.h"
 
+using FormData = std::map<std::string, std::string>;
 
 namespace Ph2TkDAQ {
 
@@ -46,11 +47,8 @@ namespace Ph2TkDAQ {
         xdata::String fXLSStylesheet;
 
       private:
-        void reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
-        void handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
-
-        //Tab fCurrentPageView;
-        std::vector<std::pair<std::string, std::string>> fHWFormVector;
+        FormData fHWFormData;
+        FormData fSettingsFormData;
 
     };
 

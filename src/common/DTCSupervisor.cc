@@ -1,11 +1,11 @@
 #include "DTCSupervisor/DTCSupervisor.h"
 
-//using namespace cgicc;
+using namespace Ph2TkDAQ;
 
 //constructor
 XDAQ_INSTANTIATOR_IMPL (Ph2TkDAQ::DTCSupervisor)
 
-Ph2TkDAQ::DTCSupervisor::DTCSupervisor (xdaq::ApplicationStub* s)
+DTCSupervisor::DTCSupervisor (xdaq::ApplicationStub* s)
 throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     fManager (this),
     fHWDescriptionFile (""),
@@ -14,7 +14,7 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     //instance of my GUI object
     //maybe need to pass some parameters
     std::string url = "/" + getApplicationDescriptor()->getURN() + "/";
-    fGUI = new SupervisorGUI (&fManager, url);
+    fGUI = new SupervisorGUI (&fManager, &this->getApplicationLogger(), url);
     //programatically binld all GUI methods to the Default method of this piece of code
     std::vector<toolbox::lang::Method*> v = fGUI->getMethods();
     std::vector<toolbox::lang::Method*>::iterator cMethod;
@@ -32,21 +32,25 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     //xgi::bind (this, &DTCSupervisor::Default, "Default");
 
     //helper methods for buttons etc
-    xgi::bind (this, &DTCSupervisor::reloadHWFile, "reloadHWFile");
-    xgi::bind (this, &DTCSupervisor::handleHWFormData, "handleHWFormData");
+    //xgi::bind (this, &DTCSupervisor::reloadHWFile, "reloadHWFile");
+    //xgi::bind (this, &DTCSupervisor::handleHWFormData, "handleHWFormData");
 
     //make configurable variapbles available in the Application Info Space
     this->getApplicationInfoSpace()->fireItemAvailable ("HWDescriptionFile", &fHWDescriptionFile);
     this->getApplicationInfoSpace()->fireItemAvailable ("XSLStylesheet", &fXLSStylesheet);
     //detect when default values have been set
     this->getApplicationInfoSpace()->addListener (this, "urn:xdaq-event:setDefaultValues");
+
+    //pass the form data members to the GUI
+    fGUI->setHWFormData (&fHWFormData);
+    fGUI->setSettingsFormData (&fSettingsFormData);
 }
 
 //Destructor
-Ph2TkDAQ::DTCSupervisor::~DTCSupervisor() {}
+DTCSupervisor::~DTCSupervisor() {}
 
 //configure action listener
-void Ph2TkDAQ::DTCSupervisor::actionPerformed (xdata::Event& e)
+void DTCSupervisor::actionPerformed (xdata::Event& e)
 {
     if (e.type() == "urn:xdaq-event:setDefaultValues")
     {
@@ -62,7 +66,7 @@ void Ph2TkDAQ::DTCSupervisor::actionPerformed (xdata::Event& e)
 
         std::stringstream ss;
 
-        ss << BLUE << "HW Description file: " << fHWDescriptionFile.toString() << " set!" << std::endl;
+        ss << std::endl << BLUE << "HW Description file: " << fHWDescriptionFile.toString() << " set!" << std::endl;
         ss << "XSL HW Description Stylesheet: " << fXLSStylesheet.toString() << " set!" << std::endl;
         ss << "All Default Values set!" << RESET << std::endl;
         LOG4CPLUS_INFO (this->getApplicationLogger(), ss.str() );
@@ -72,70 +76,10 @@ void Ph2TkDAQ::DTCSupervisor::actionPerformed (xdata::Event& e)
     }
 }
 
-void Ph2TkDAQ::DTCSupervisor::Default (xgi::Input* in, xgi::Output* out)
+void DTCSupervisor::Default (xgi::Input* in, xgi::Output* out)
 throw (xgi::exception::Exception)
 {
     std::string name = in->getenv ("PATH_INFO");
     static_cast<xgi::MethodSignature*> (fGUI->getMethod (name) )->invoke (in, out);
-    fGUI->lastPage (in, out);
-}
-
-
-void Ph2TkDAQ::DTCSupervisor::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
-{
-    // stream for logger
-    std::ostringstream cLogStream;
-
-    //parse the form input
-    cgicc::Cgicc cgi (in);
-    std::string cHWDescriptionFile;
-    cgicc::form_iterator cIt = cgi.getElement ("HwDescriptionFile");
-
-    if (!cIt->isEmpty() && cIt != (*cgi).end() )
-    {
-        cHWDescriptionFile = cIt->getValue();
-
-        //take action
-        if (!cHWDescriptionFile.empty() && Ph2TkDAQ::checkFile (cHWDescriptionFile) )
-        {
-            fHWDescriptionFile = cHWDescriptionFile;
-            cLogStream << BLUE << "Changed HW Description File to: " << fHWDescriptionFile.toString() << RESET << std::endl;
-            fGUI->fHWFormString = Ph2TkDAQ::XMLUtils::transformXmlDocument (fHWDescriptionFile.toString(), fXLSStylesheet.toString(), cLogStream);
-        }
-        else
-            cLogStream << RED << "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist!" << RESET << std::endl;
-    }
-
-    LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
-    fGUI->lastPage (in, out);
-}
-
-void Ph2TkDAQ::DTCSupervisor::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
-{
-    fHWFormVector.clear();
-    std::cout << fHWFormVector.size() << std::endl;
-    //stream for logger
-    std::ostringstream cLogStream;
-
-    // get the form input
-    cgicc::Cgicc cgi (in);
-
-    for (auto cIt : *cgi)
-    {
-        if (cIt.getValue() != "")
-        {
-            //fHWFormVector.push_back (std::make_pair (Ph2TkDAQ::removeDot (cIt.getName() ), cIt.getValue() ) );
-            fHWFormVector.push_back (std::make_pair (cIt.getName(), cIt.getValue() ) );
-        }
-    }
-
-    //set this to true once the HWDescription object is initialized to get a reduced set of form input pairs to modify existing HWDescription objects
-    bool cStripUnchanged = true;
-    Ph2TkDAQ::XMLUtils::updateHTMLForm (fGUI->fHWFormString, fHWFormVector, cLogStream, cStripUnchanged );
-
-    for (auto cPair : fHWFormVector)
-        std::cout << cPair.first << " " << cPair.second << std::endl;
-
-    LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
     fGUI->lastPage (in, out);
 }

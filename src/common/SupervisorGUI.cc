@@ -2,8 +2,9 @@
 
 using namespace Ph2TkDAQ;
 
-SupervisorGUI::SupervisorGUI (xgi::framework::UIManager* pManager, std::string& pURN) :
+SupervisorGUI::SupervisorGUI (xgi::framework::UIManager* pManager, log4cplus::Logger* pLogger, std::string& pURN) :
     fManager (pManager),
+    fLogger (pLogger),
     fURN (pURN),
     fHWDescriptionFile (nullptr),
     fXLSStylesheet (nullptr),
@@ -19,8 +20,8 @@ SupervisorGUI::SupervisorGUI (xgi::framework::UIManager* pManager, std::string& 
     xgi::bind (this, &SupervisorGUI::DAQPage, "DAQPage");
 
     //helper methods for buttons etc
-    //xgi::bind (this, &SupervisorGUI::reloadHWFile, "reloadHWFile");
-    //xgi::bind (this, &SupervisorGUI::handleHWFormData, "handleHWFormData");
+    xgi::bind (this, &SupervisorGUI::reloadHWFile, "reloadHWFile");
+    xgi::bind (this, &SupervisorGUI::handleHWFormData, "handleHWFormData");
     xgi::bind (this, &SupervisorGUI::lastPage, "lastPage");
 }
 
@@ -39,7 +40,7 @@ void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exce
     *out << cgicc::h3 ("DTC Supervisor Main Page") << std::endl;
     this->displayLoadForm (in, out);
 
-    //LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
+    LOG4CPLUS_INFO (*fLogger, cLogStream.str() );
     this->createHtmlFooter (in, out);
 }
 
@@ -107,7 +108,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     this->showStateMachineStatus (out);
     *out << "<div class=\"content\">" << std::endl;
 
-    //LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
+    LOG4CPLUS_INFO (*fLogger, cLogStream.str() );
 }
 
 void SupervisorGUI::createHtmlFooter (xgi::Input* in, xgi::Output* out)
@@ -163,4 +164,61 @@ void SupervisorGUI::displayLoadForm (xgi::Input* in, xgi::Output* out)
     //*out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load").set ("disabled", "disabled") << std::endl;
     *out << cgicc::form() << std::endl;
     *out << cgicc::div() << std::endl;
+}
+
+void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    // stream for logger
+    std::ostringstream cLogStream;
+
+    //parse the form input
+    cgicc::Cgicc cgi (in);
+    std::string cHWDescriptionFile;
+    cgicc::form_iterator cIt = cgi.getElement ("HwDescriptionFile");
+
+    if (!cIt->isEmpty() && cIt != (*cgi).end() )
+    {
+        cHWDescriptionFile = cIt->getValue();
+
+        //take action
+        if (!cHWDescriptionFile.empty() && Ph2TkDAQ::checkFile (cHWDescriptionFile) )
+        {
+            *fHWDescriptionFile = cHWDescriptionFile;
+            cLogStream << BLUE << std::endl << "Changed HW Description File to: " << fHWDescriptionFile->toString() << RESET << std::endl;
+            fHWFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), fXLSStylesheet->toString(), cLogStream);
+        }
+        else
+            cLogStream << RED << "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist!" << RESET << std::endl;
+    }
+
+    LOG4CPLUS_INFO (*fLogger, cLogStream.str() );
+    this->lastPage (in, out);
+}
+
+void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    //stream for logger
+    std::ostringstream cLogStream;
+
+    //vector of pair of string to hold values
+    std::vector<std::pair<std::string, std::string>> cHWFormPairs;
+    // get the form input
+    cgicc::Cgicc cgi (in);
+
+    for (auto cIt : *cgi)
+    {
+        if (cIt.getValue() != "")
+            cHWFormPairs.push_back (std::make_pair (cIt.getName(), cIt.getValue() ) );
+    }
+
+    //set this to true once the HWDescription object is initialized to get a reduced set of form input pairs to modify existing HWDescription objects
+    bool cStripUnchanged = true;
+    XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormPairs, cLogStream, cStripUnchanged );
+    //fHWFormData = XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormData, cLogStream, cStripUnchanged );
+
+    for (auto cPair : cHWFormPairs)
+        std::cout << cPair.first << " " << cPair.second << std::endl;
+
+    LOG4CPLUS_INFO (*fLogger, cLogStream.str() );
+    this->lastPage (in, out);
 }

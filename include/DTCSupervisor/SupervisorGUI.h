@@ -18,9 +18,14 @@
 #include "xdata/ActionListener.h"
 #include "xdata/String.h"
 
+#include "log4cplus/logger.h"
+#include "log4cplus/loggingmacros.h"
+
 #include "Utils.h"
 #include "XMLUtils.h"
 #include "ConsoleColor.h"
+
+using FormData = std::map<std::string, std::string>;
 
 enum class Tab {CONFIG, MAIN, CALIBRATION, DAQ};
 
@@ -29,7 +34,7 @@ namespace Ph2TkDAQ {
     class SupervisorGUI : public toolbox::lang::Class
     {
       public:
-        SupervisorGUI (xgi::framework::UIManager* pManager, std::string& pURN);
+        SupervisorGUI (xgi::framework::UIManager* pManager, log4cplus::Logger* pLogger, std::string& pURN);
 
         //views
         void Default (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
@@ -41,10 +46,14 @@ namespace Ph2TkDAQ {
         ///HTML header & footer for Hyperdaq interface
         void createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab);
         void createHtmlFooter (xgi::Input* in, xgi::Output* out);
-        // Form to load HWDescription File
-        void displayLoadForm (xgi::Input* in, xgi::Output* out);
         ///Show FSM status and available transition in an HTML table
         void showStateMachineStatus (xgi::Output* out) throw (xgi::exception::Exception);
+
+        //response to various user input forms
+        // Form to load HWDescription File
+        void displayLoadForm (xgi::Input* in, xgi::Output* out);
+        void reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        void handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
 
 
       public:
@@ -70,14 +79,26 @@ namespace Ph2TkDAQ {
             }
         }
 
+        void setHWFormData (FormData* pFormData)
+        {
+            fHWFormData = pFormData;
+        }
+
+        void setSettingsFormData (FormData* pFormData)
+        {
+            fSettingsFormData = pFormData;
+        }
 
         //members
       protected:
         xgi::framework::UIManager* fManager;
+        log4cplus::Logger* fLogger;
         std::string fURN;
       public:
         xdata::String* fHWDescriptionFile;
         xdata::String* fXLSStylesheet;
+        FormData* fHWFormData;
+        FormData* fSettingsFormData;
 
         std::string fHWFormString;
 
