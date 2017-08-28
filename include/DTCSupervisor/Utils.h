@@ -36,6 +36,18 @@ namespace Ph2TkDAQ {
         return cWord;
     }
 
+    inline void cleanupHTMLString (std::string& pHTMLString, std::string search, std::string replace)
+    {
+        size_t pos = 0;
+
+        while ( (pos = pHTMLString.find (search, pos) ) != std::string::npos)
+        {
+            std::cout << "Found instance" << std::endl;
+            pHTMLString.replace (pos, search.length(), replace );
+            pos += replace.length();
+        }
+    }
+
     static std::string expandEnvironmentVariables (  std::string s )
     {
         s.erase (std::remove_if (s.begin(), s.end(), ::isspace), s.end() );

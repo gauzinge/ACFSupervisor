@@ -199,12 +199,12 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
             this->reloadHWFile (in, out);
 
             if (!fHWFormData->size() )
-                cLogStream << BOLDYELLOW << "HW Description File " << fHWDescriptionFile->toString() << " not changed by the user - thus initializing from XML" << REST << std::endl;
+                cLogStream << BOLDYELLOW << "HW Description File " << fHWDescriptionFile->toString() << " not changed by the user - thus initializing from XML" << RESET << std::endl;
         }
 
         // if the transition is Configure, and the HWForm data has not been submitted get the hwForm Data
         if ( cTransition == "Configure" && !fHWFormData->size() )
-            cLogStream << BOLDYELLOW << "HW Description File " << fHWDescriptionFile->toString() << " not changed by the user - thus configuring from values parsed from XML" << REST << std::endl;
+            cLogStream << BOLDYELLOW << "HW Description File " << fHWDescriptionFile->toString() << " not changed by the user - thus configuring from values parsed from XML" << RESET << std::endl;
 
         if (cTransition == "Refresh")
             this->lastPage (in, out);
@@ -278,7 +278,11 @@ void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::
     }
 
     if (checkFile (fHWDescriptionFile->toString() ) )
+    {
         fHWFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), fXLSStylesheet->toString(), cLogStream);
+        cleanupHTMLString (fHWFormString, "&lt;", "<");
+        cleanupHTMLString (fHWFormString, "<?xml version=\"1.0\"?>", "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\" \"http://www.w3.org/TR/REC-html40/loose.dtd\">");
+    }
     else
         cLogStream << RED << "Error, HW Description File " << fHWDescriptionFile->toString() << " is an empty string or does not exist!" << RESET << std::endl;
 

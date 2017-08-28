@@ -317,18 +317,14 @@ option {
  }
 
  div.Config {
-     margin-top: 5px;
-     margin-bottom: 5px;
      margin-left: 5px;
      margin-right: 5px;
-     padding-top: 5px;
-     padding-bottom: 5px;
      padding-left: 20px;
      padding-right: 20px;
      /*overflow: hidden;*/
      border: none
      solid: #ddd;
-     background-color: #ccc;
+     background-color: inherit;
      color: #616161
  }
 

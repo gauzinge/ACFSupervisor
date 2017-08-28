@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-    <xsl:output method="html" indent="yes"/>
+    <xsl:output method="xml" indent="yes" version='1.0'/>
 
     <!--now parse the whole thing-->
     <xsl:template match="/*">
+        <!--<html>-->
+            <div>
             <body onload='DisplayFieldsOnload();'>
                 <h3>HWDescription</h3>
                 <xsl:apply-templates select="BeBoard"/>
@@ -140,13 +142,13 @@
                     var RegEx = /^conddata_\d$/;
                     var ConditionDataIds = [];
                     var els=document.querySelectorAll('*[id^="conddata_"]');
-                    for(var i=0; i&lt;els.length;i++){
+                    for(var i=0; i &lt; els.length;i++){
                         if(RegEx.test(els[i].id)) {
                             ConditionDataIds.push(els[i].id);
                         }
                     }
 
-                    for(var i=0; i&lt;ConditionDataIds.length;i++) {
+                    for(var i=0; i &lt; ConditionDataIds.length;i++) {
                         var elem = document.getElementById(ConditionDataIds[i]);
                         console.log(elem)
                         if(elem != null)
@@ -166,12 +168,14 @@
                 
                  window.onload = DisplayFieldsOnload();
                 </script> 
+            </div>
+            <!--</html>-->
     </xsl:template>
 
     <!--Template for BeBoard nodes-->
     <xsl:template match="BeBoard">
         <div class="BeBoard">
-            <h4> BeBoard Id: <input type="number" name="beboard_id_{@Id}" value="{@Id}"/></h4>
+            <h4> BeBoard Id: <input type="number" name="beboard_id_{@Id}" value="{@Id}"> </input></h4>
             <div class="General">
             <li>
             BoardType: 
@@ -195,8 +199,7 @@
             </li>
             <li>
             Connection Id:
-            <input type="text" name="connection_id" size="10" value="{connection/@id}">
-                </input>
+            <input type="text" name="connection_id" size="10" value="{connection/@id}"> </input>
             </li>
             <li>
             URI: 
@@ -266,14 +269,14 @@
                     <option value="Cbc_default_irrad.txt">Cbc_default_irrad.txt</option>
                     <option value="FE0CBC{@Id}">FE0CBC<xsl:value-of select="@Id"/></option>
                     <option value="other">other</option>
-                </select>
+            </select>
             </td>
             <td>
                 <input type="text" name="configfile{@Id}" id="configfile{@Id}" style="display:none;" placeholder="your filename"/>
             </td>
         </tr>
         </li>
-        <!--<div class="Config">-->
+        <div class="Config">
         <ul>
             <xsl:apply-templates select="Settings"/>
             <xsl:apply-templates select="TestPulse"/>
@@ -282,12 +285,12 @@
             <xsl:apply-templates select="ChannelMask"/>
             <xsl:if test="Register">
             <li> CBCRegisters: </li>
-            <!--<ul>-->
+            <ul>
                 <xsl:apply-templates select="Register"/>
-            <!--</ul>-->
+            </ul>
             </xsl:if>
         </ul>
-        <!--</div>-->
+        </div>
     </xsl:template>
 
     <!--Template for Global|CBC Settings node-->
