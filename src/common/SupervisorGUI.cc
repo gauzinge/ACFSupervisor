@@ -120,6 +120,10 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
             break;
     }
 
+    std::string link = url + "MainPage";
+    *out << cgicc::div().set ("class", "title") << std::endl;
+    *out << cgicc::h1 (cgicc::a ("DTC Supervisor").set ("href", url) ) << std::endl;
+    *out << cgicc::div() << std::endl;
     *out << "<div class=\"tab\">" << std::endl;
     *out << cTabBarString.str() << std::endl;
     *out << "</div>" << std::endl;
