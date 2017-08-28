@@ -25,7 +25,7 @@ namespace Ph2TkDAQ {
     {
       public:
         static std::string transformXmlDocument (const std::string& pInputDocument, const std::string& pStylesheet, std::ostringstream& pStream);
-        const static void updateHTMLForm (std::string& pFormString, std::vector<std::pair<std::string, std::string>>& pFormData, std::ostringstream& pStream, bool pStripUnchanged = false);
+        const static std::map<std::string, std::string> updateHTMLForm (std::string& pFormString, std::vector<std::pair<std::string, std::string>>& pFormData, std::ostringstream& pStream, bool pStripUnchanged = false);
       private:
         //these return true if pValue is different form what is in the form
         static bool handle_node (xmlpp::Node* node, std::string& pOldValue, const std::string& pValue);

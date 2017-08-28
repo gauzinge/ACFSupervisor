@@ -213,10 +213,9 @@ void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (x
 
     //set this to true once the HWDescription object is initialized to get a reduced set of form input pairs to modify existing HWDescription objects
     bool cStripUnchanged = true;
-    XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormPairs, cLogStream, cStripUnchanged );
-    //fHWFormData = XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormData, cLogStream, cStripUnchanged );
+    *fHWFormData = XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormPairs, cLogStream, cStripUnchanged );
 
-    for (auto cPair : cHWFormPairs)
+    for (auto cPair : *fHWFormData)
         std::cout << cPair.first << " " << cPair.second << std::endl;
 
     LOG4CPLUS_INFO (*fLogger, cLogStream.str() );

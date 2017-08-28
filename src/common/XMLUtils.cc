@@ -43,8 +43,10 @@ std::string XMLUtils::transformXmlDocument (const std::string& pInputDocument, c
     return cHtmlResult.str();
 }
 
-const  void XMLUtils::updateHTMLForm (std::string& pFormString, std::vector<std::pair<std::string, std::string>>& pFormData, std::ostringstream& pStream, bool pStripUnchanged)
+const std::map<std::string, std::string> XMLUtils::updateHTMLForm (std::string& pFormString, std::vector<std::pair<std::string, std::string>>& pFormData, std::ostringstream& pStream, bool pStripUnchanged)
 {
+    //map to return containing unique pairs of strings with the settings from the form
+    std::map<std::string, std::string> cFormData;
     pStream << std::endl;
     // Parse HTML and create a DOM tree
     xmlDoc* doc = htmlReadDoc ( (xmlChar*) pFormString.c_str(), NULL, NULL, HTML_PARSE_RECOVER | HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
@@ -83,15 +85,29 @@ const  void XMLUtils::updateHTMLForm (std::string& pFormString, std::vector<std:
 
                 if (cIsChanged)
                 {
-                    pStream << BOLDYELLOW << "Node " << BOLDBLUE << cPair->first << BOLDYELLOW << " has changed to " << BOLDBLUE << cPair->second << BOLDYELLOW << " original value was: " << BOLDRED << cOldValue << RESET << std::endl;
+                    pStream << BOLDYELLOW << "Node " << BOLDBLUE << cPair->first << BOLDYELLOW << " has changed from " << BOLDBLUE << cOldValue << BOLDYELLOW << " new value is: " << BOLDRED << cPair->second << RESET << std::endl;
                     break;
                 }
             }
 
-            if (!cIsChanged && pStripUnchanged)
-                cPair = pFormData.erase (cPair);
-            else cPair++;
-
+            //if the node has  not changed and i want to strip the unchanged ones
+            //erase it from the input vector
+            if (pStripUnchanged)
+            {
+                if (!cIsChanged)
+                    cPair = pFormData.erase (cPair);
+                // the node has changed and i want to strip unchanged
+                else
+                {
+                    cFormData[cPair->first] = cPair->second;
+                    cPair++;
+                }
+            }
+            else
+            {
+                cFormData[cPair->first] = cPair->second;
+                cPair++;
+            }
         }
         catch (const std::exception& e)
         {
@@ -105,7 +121,7 @@ const  void XMLUtils::updateHTMLForm (std::string& pFormString, std::vector<std:
     if (buffer == nullptr)
     {
         pStream << RED << "Error creating buffer for updated HTML form" << RESET << std::endl;
-        return;
+        //return;
     }
 
     xmlSaveCtxtPtr saveCtxtPtr = xmlSaveToBuffer (buffer, NULL, XML_SAVE_NO_DECL);
@@ -113,7 +129,7 @@ const  void XMLUtils::updateHTMLForm (std::string& pFormString, std::vector<std:
     if (xmlSaveDoc (saveCtxtPtr, doc) < 0)
     {
         pStream << RED << "Error saving updated HTML form" << RESET << std::endl;
-        return;
+        //return;
     }
 
     xmlSaveClose (saveCtxtPtr);
@@ -125,6 +141,8 @@ const  void XMLUtils::updateHTMLForm (std::string& pFormString, std::vector<std:
     delete root;
     xmlFreeDoc (doc);
     xmlCleanupParser();    // Free globals
+
+    return cFormData;
 }
 
 bool XMLUtils::handle_select_node (xmlpp::Node* node, std::string& pOldValue, const std::string& pValue)
