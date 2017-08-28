@@ -182,6 +182,8 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
 
 void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
 {
+    std::ostringstream cLogStream;
+
     try
     {
         //get the state transition tirggered by the button in the sidebar and propagate to the main DTC supervisor application
@@ -193,11 +195,16 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
 
         // if the transition is Initialise and the HW Form String is still empty, trigger the callback otherwise triggered by the load button
         if (cTransition == "Initialise" && fHWFormString.empty() )
+        {
             this->reloadHWFile (in, out);
+
+            if (!fHWFormData->size() )
+                cLogStream << BOLDYELLOW << "HW Description File " << fHWDescriptionFile->toString() << " not changed by the user - thus initializing from XML" << REST << std::endl;
+        }
 
         // if the transition is Configure, and the HWForm data has not been submitted get the hwForm Data
         if ( cTransition == "Configure" && !fHWFormData->size() )
-            this->handleHWFormData (in, out);
+            cLogStream << BOLDYELLOW << "HW Description File " << fHWDescriptionFile->toString() << " not changed by the user - thus configuring from values parsed from XML" << REST << std::endl;
 
         if (cTransition == "Refresh")
             this->lastPage (in, out);
@@ -209,6 +216,7 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
         XCEPT_RAISE (xgi::exception::Exception, e.what() );
     }
 
+    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
     this->lastPage (in, out);
 }
 
@@ -300,11 +308,12 @@ void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (x
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (fLogger, e.what() );
-    }
 
-    //TODO
-    //if the above does not work because the client does not sumit the form, I need to parse the html form and get all values manually which is painfull but hey!
-    //cHWFormPairs = XMLUtils::queryHTMLForm (this->fHWFormString, cLogStream);
+        //TODO
+        //if the above does not work because the client does not sumit the form, I need to parse the html form and get all values manually which is painfull but hey!
+        //alternatively I could just configure from the blank xml if the user has not submitted any input! in this case the the internal fFormData of this and the Supervisor is empty - if that is the case, so be it - we just roll with the xml
+        //cHWFormPairs = XMLUtils::queryHTMLForm (this->fHWFormString, cLogStream);
+    }
 
     //set this to true once the HWDescription object is initialized to get a reduced set of form input pairs to modify existing HWDescription objects
     bool cStripUnchanged = false;
