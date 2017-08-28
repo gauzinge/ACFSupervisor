@@ -264,20 +264,22 @@ void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::
         if (!cIt->isEmpty() && cIt != (*cgi).end() )
             cHWDescriptionFile = cIt->getValue();
 
-        if (!cHWDescriptionFile.empty() && Ph2TkDAQ::checkFile (cHWDescriptionFile) )
+        //if (Ph2TkDAQ::checkFile (cHWDescriptionFile) )
+        if (!cHWDescriptionFile.empty() )
         {
             *fHWDescriptionFile = cHWDescriptionFile;
             cLogStream << BLUE << std::endl << "Changed HW Description File to: " << fHWDescriptionFile->toString() << RESET << std::endl;
         }
-        else
-            LOG4CPLUS_ERROR (fLogger, "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist!" );
+
+        //else
+        //LOG4CPLUS_ERROR (fLogger, "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist! inner" );
     }
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (fLogger, e.what() );
     }
 
-    if (checkFile (fHWDescriptionFile->toString() ) )
+    if (!fHWDescriptionFile->toString().empty() && checkFile (fHWDescriptionFile->toString() ) )
     {
         fHWFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), expandEnvironmentVariables (XSLSTYLESHEET), cLogStream);
         cleanupHTMLString (fHWFormString, "&lt;", "<");
