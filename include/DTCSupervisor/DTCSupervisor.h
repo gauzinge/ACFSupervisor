@@ -18,7 +18,8 @@
 #include "xdata/String.h"
 
 
-#include "SupervisorGUI.h"
+#include "DTCSupervisor/SupervisorGUI.h"
+#include "DTCSupervisor/DTCStateMachine.h"
 
 using FormData = std::map<std::string, std::string>;
 
@@ -31,6 +32,7 @@ namespace Ph2TkDAQ {
         XDAQ_INSTANTIATOR();
         //the GUI object
         SupervisorGUI* fGUI;
+        DTCStateMachine fFSM;
 
         DTCSupervisor (xdaq::ApplicationStub* s) throw (xdaq::exception::Exception);
         ~DTCSupervisor();
@@ -48,6 +50,30 @@ namespace Ph2TkDAQ {
       private:
         FormData fHWFormData;
         FormData fSettingsFormData;
+
+        //callbacks for FSM states
+      public:
+        bool initialising (toolbox::task::WorkLoop* wl);
+        ///Perform configure transition
+        bool configuring (toolbox::task::WorkLoop* wl);
+        ///Perform enable transition
+        bool enabling (toolbox::task::WorkLoop* wl);
+        ///Perform halt transition
+        bool halting (toolbox::task::WorkLoop* wl);
+        ///perform pause transition
+        bool pausing (toolbox::task::WorkLoop* wl);
+        ///Perform resume transition
+        bool resuming (toolbox::task::WorkLoop* wl);
+        ///Perform stop transition
+        bool stopping (toolbox::task::WorkLoop* wl);
+        ///Perform destroy transition
+        bool destroying (toolbox::task::WorkLoop* wl);
+
+        /** FSM call back   */
+        xoap::MessageReference fsmCallback (xoap::MessageReference msg) throw (xoap::exception::Exception)
+        {
+            return fFSM.commandCallback (msg);
+        }
 
     };
 

@@ -79,7 +79,7 @@ option {
 .tab {
     position: fixed;
     left: 0;
-    padding-left: 10%;
+    padding-left: 13%;
     height: 40px;
     width: 100%;
     z-index: 999;
@@ -135,7 +135,7 @@ option {
     float: right;
     float: top;
     height: 100%;
-    width: 90%;
+    width: 87%;
     /*z-index: 1;*/
     right: 0;
     padding-top: 3%;
@@ -158,7 +158,7 @@ option {
     padding-top: 20px;
     float: left;
     height: 100%;
-    width: 10%;
+    width: 13%;
     z-index: 999;
     left: 0;
     border: none solid #ccc;
@@ -175,15 +175,32 @@ option {
     padding-left: 8px;
     padding-right: 8px;
     /*margin-top: 4px;*/
-    margin-bottom: 8px;
+    margin-bottom: 20px;
     text-color: blue;
-    background-color: #919191;
+    background-color: #F39C12;
     float: left;
 
 }
 
+.sidenav div.current_file {
+    font-size: 11pt;
+    width: 100%;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
+    /*margin-top: 4px;*/
+    margin-bottom: 20px;
+    margin-top: 20px;
+    text-color: blue;
+    background-color: #919191;
+    float: left;
+    word-wrap: break-word;
+}
+
 /* The navigation menu links */
-.sidenav a.button {
+/*.sidenav a.button {*/
+.sidenav input[type=submit] {
     font-size: 15pt;
     width: 100%;
     padding-top: 4px;
@@ -191,10 +208,12 @@ option {
     padding-left: 8px;
     float: left;
     text-decoration: none;
-    transition: 0.3s
+    transition: 0.3s;
+    text-align: left;
 }
 
-.sidenav a.button.active {
+/*.sidenav a.button.active {*/
+.sidenav input[type=submit].active {
     background-color: #ccc;
     padding-top: 4px;
     padding-bottom: 4px;
@@ -204,7 +223,8 @@ option {
 }
 
 /* When you mouse over the navigation links, change their color */
-.sidenav a.button:hover, .offcanvas a:focus {
+/*.sidenav a.button:hover, .offcanvas a:focus {*/
+.sidenav input[type=submit]:hover, .offcanvas a:focus {
     width: 100%;
     padding-top: 5px;
     padding-bottom: 5px;
@@ -213,6 +233,19 @@ option {
     background-color: #aaa
 }
 
+.sidenav input[type=submit].refresh {
+    font-size: 15pt;
+    margin-bottom: 20px;
+    width: 100%;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-left: 8px;
+    float: left;
+    text-decoration: none;
+    transition: 0.3s;
+    text-align: left;
+    background-color: #58D68D;
+}
 
 /*for HWDescription form*/
  div.BeBoard {

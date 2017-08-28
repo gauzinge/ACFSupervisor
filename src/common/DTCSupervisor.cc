@@ -7,11 +7,13 @@ XDAQ_INSTANTIATOR_IMPL (Ph2TkDAQ::DTCSupervisor)
 
 DTCSupervisor::DTCSupervisor (xdaq::ApplicationStub* s)
 throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
+    fFSM (this),
     fHWDescriptionFile (""),
     fXLSStylesheet ("")
 {
     //instance of my GUI object
-    fGUI = new SupervisorGUI (this);
+    fGUI = new SupervisorGUI (this, &fFSM);
+
     //programatically binld all GUI methods to the Default method of this piece of code
     std::vector<toolbox::lang::Method*> v = fGUI->getMethods();
     std::vector<toolbox::lang::Method*>::iterator cMethod;
@@ -41,6 +43,9 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     //pass the form data members to the GUI
     fGUI->setHWFormData (&fHWFormData);
     fGUI->setSettingsFormData (&fSettingsFormData);
+
+    //initialize the FSM
+    fFSM.initialize<Ph2TkDAQ::DTCSupervisor> (this);
 }
 
 //Destructor
@@ -80,3 +85,61 @@ throw (xgi::exception::Exception)
     static_cast<xgi::MethodSignature*> (fGUI->getMethod (name) )->invoke (in, out);
     fGUI->lastPage (in, out);
 }
+
+bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
+{
+    try
+    {
+
+    }
+    catch (std::exception& e)
+    {
+        LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
+    }
+
+    //fGUI->handleHWFormData();
+    fFSM.fireEvent ("InitialiseDone", this);
+    return false;
+}
+///Perform configure transition
+bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
+{
+    try
+    {
+
+    }
+    catch (std::exception& e)
+    {
+        LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
+    }
+
+    //fGUI->handleHWFormData();
+    fFSM.fireEvent ("ConfigureDone", this);
+    return false;
+}
+///Perform enable transition
+bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl) {}
+///Perform halt transition
+bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
+{
+    try
+    {
+
+    }
+    catch (std::exception& e)
+    {
+        LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
+    }
+
+    //fGUI->handleHWFormData();
+    fFSM.fireEvent ("HaltDone", this);
+    return false;
+}
+///perform pause transition
+bool DTCSupervisor::pausing (toolbox::task::WorkLoop* wl) {}
+///Perform resume transition
+bool DTCSupervisor::resuming (toolbox::task::WorkLoop* wl) {}
+///Perform stop transition
+bool DTCSupervisor::stopping (toolbox::task::WorkLoop* wl) {}
+///Perform destroy transition
+bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl) {}

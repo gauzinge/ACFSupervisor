@@ -2,8 +2,10 @@
 
 using namespace Ph2TkDAQ;
 
-SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp) :
+SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp, DTCStateMachine* pStateMachine) :
+    fApp (pApp),
     fManager (pApp),
+    fFSM (pStateMachine),
     fHWDescriptionFile (nullptr),
     fXLSStylesheet (nullptr),
     fHWFormString ("")
@@ -21,6 +23,7 @@ SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp) :
 
     //helper methods for buttons etc
     xgi::bind (this, &SupervisorGUI::reloadHWFile, "reloadHWFile");
+    xgi::bind (this, &SupervisorGUI::fsmTransition, "fsmTransition");
     xgi::bind (this, &SupervisorGUI::handleHWFormData, "handleHWFormData");
     xgi::bind (this, &SupervisorGUI::lastPage, "lastPage");
 
@@ -42,7 +45,7 @@ void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exce
     *out << cgicc::h3 ("DTC Supervisor Main Page") << std::endl;
     this->displayLoadForm (in, out);
 
-    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+    //LOG4CPLUS_INFO (fLogger, cLogStream.str() );
     this->createHtmlFooter (in, out);
 }
 
@@ -52,14 +55,28 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
     fCurrentPageView = Tab::CONFIG;
     this->createHtmlHeader (in, out, fCurrentPageView);
 
+    char cState = fFSM->getCurrentState();
+
     //string defining action
     std::string url = fURN + "handleHWFormData";
 
     this->displayLoadForm (in, out);
+
     // Display the HwDescription HTML form
+    // only allow changes in Initial and Configured
     *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
-    *out << cgicc::input().set ("type", "submit").set ("title", "submit the entered values").set ("value", "Submit") << std::endl;
-    *out << cgicc::input().set ("type", "reset").set ("title", "reset the form").set ("value", "Reset") << std::endl;
+
+    if (cState != 'E')
+    {
+        *out << cgicc::input().set ("type", "submit").set ("title", "submit the entered values").set ("value", "Submit") << std::endl;
+        *out << cgicc::input().set ("type", "reset").set ("title", "reset the form").set ("value", "Reset") << std::endl;
+    }
+    else
+    {
+        *out << cgicc::input().set ("type", "submit").set ("title", "submit the entered values").set ("value", "Submit").set ("disabled", "true") << std::endl;
+        *out << cgicc::input().set ("type", "reset").set ("title", "reset the form").set ("value", "Reset").set ("disabled", "true") << std::endl;
+    }
+
     *out << fHWFormString << std::endl;
     *out << cgicc::form() << std::endl;
 
@@ -126,25 +143,35 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
     // create the FSM Status bar showing the current state
     try
     {
-        //std::string action = toolbox::toString ("/%s/fsmTransition", getApplicationDescriptor()->getURN().c_str() );
+        //the action is the fsmTransitionHandler
+        std::string url = fURN + "fsmTransition";
+
+
+        //display the sidenav with the FSM controls
+        *out << "<div class=\"sidenav\">" << std::endl;
+        *out << "<p class=\"state\">Current State: " << fFSM->getStateName (fFSM->getCurrentState() ) << "/" << fFSM->getCurrentState() << "</p>" << std::endl;
+        *out << cgicc::br() << std::endl;
 
         // display FSM
-        //std::set<std::string> possibleInputs = fsm_.getInputs (fsm_.getCurrentState() );
-        //std::set<std::string> allInputs = fsm_.getInputs();
+        // I could loop all possible transitions and check if they are allowed but that does not put the commands sequentially
+        // https://gitlab.cern.ch/cms_tk_ph2/BoardSupervisor/blob/master/src/common/BoardSupervisor.cc
 
-        *out << "<div class=\"sidenav\">" << std::endl;
-        *out << "<p class=\"state\">Current State: " << "Somestate" << "</p>" << std::endl;
+        *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
+        //first the refresh button
+        *out << cgicc::input().set ("type", "submit").set ("name", "transition").set ("value", "Refresh" ).set ("class", "refresh") << std::endl;
         *out << cgicc::br() << std::endl;
-        *out << "<a href=\"#\" class=\"button\"> Initialize </a>" << cgicc::br() << std::endl;
-        *out << "<a href=\"#\" class=\"button\"> Configure </a>" << cgicc::br() << std::endl;
-        *out << "<a href=\"#\" class=\"button\"> Start </a>" << cgicc::br() << std::endl;
-        *out << "<a href=\"#\" class=\"button\"> Stop </a>" << cgicc::br() << std::endl;
-        *out << "<a href=\"#\" class=\"button\"> Pause </a>" << cgicc::br() << std::endl;
-        *out << "<a href=\"#\" class=\"button\"> Resume </a>" << cgicc::br() << std::endl;
-        *out << "<a href=\"#\" class=\"button\"> Halt </a>" << cgicc::br() << std::endl;
-        *out << "<a href=\"#\" class=\"button\"> Destroy </a>" << cgicc::br() << std::endl;
+        this->createStateTransitionButton ("Initialise", out);
+        this->createStateTransitionButton ("Configure", out);
+        this->createStateTransitionButton ("Enable", out);
+        this->createStateTransitionButton ("Stop", out);
+        this->createStateTransitionButton ("Pause", out);
+        this->createStateTransitionButton ("Resume", out);
+        this->createStateTransitionButton ("Halt", out);
+        this->createStateTransitionButton ("Destroy", out);
+        *out << cgicc::form() << std::endl;
+
         *out << cgicc::br() << std::endl;
-        *out << cgicc::div().set ("font-size", "10pt") << "Current HW Description File: " << fHWDescriptionFile->toString() << cgicc::div()  << std::endl;
+        *out << cgicc::div().set ("class", "current_file") << "Current HW File: " << fHWDescriptionFile->toString() << cgicc::div()  << std::endl;
         *out << "</div>" << std::endl;
     }
     catch (xgi::exception::Exception& e)
@@ -153,19 +180,63 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
     }
 }
 
+void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    try
+    {
+        //get the state transition tirggered by the button in the sidebar and propagate to the main DTC supervisor application
+        //before take action as required by the state transition on any GUI elements
+        cgicc::Cgicc cgi (in);
+        std::string cTransition = cgi["transition"]->getValue();
+
+        //here handle whatever action is necessary on the gui before handing over to the main application
+
+        // if the transition is Initialise and the HW Form String is still empty, trigger the callback otherwise triggered by the load button
+        if (cTransition == "Initialise" && fHWFormString.empty() )
+            this->reloadHWFile (in, out);
+
+        // if the transition is Configure, and the HWForm data has not been submitted get the hwForm Data
+        if ( cTransition == "Configure" && !fHWFormData->size() )
+            this->handleHWFormData (in, out);
+
+        if (cTransition == "Refresh")
+            this->lastPage (in, out);
+        else
+            fFSM->fireEvent (cTransition, fApp);
+    }
+    catch (const std::exception& e)
+    {
+        XCEPT_RAISE (xgi::exception::Exception, e.what() );
+    }
+
+    this->lastPage (in, out);
+}
+
 
 void SupervisorGUI::displayLoadForm (xgi::Input* in, xgi::Output* out)
 {
+    //get FSM state
+    char cState = fFSM->getCurrentState();
+
     std::string url = fURN + "reloadHWFile";
+
     *out << cgicc::div().set ("padding", "10px") << std::endl;
+
+    //only allow changing the HW Description File in state initial
     *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on") << std::endl;
     *out << "<label for=\"HwDescriptionFile\">Hw Descritpion FilePath: </label>" << std::endl;
-    //if(state==halted)
-    *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ) << std::endl;
-    *out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load") << std::endl;
-    //else
-    //*out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile.toString() ).set ("disabled", "disabled") << std::endl;
-    //*out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load").set ("disabled", "disabled") << std::endl;
+
+    if (cState == 'I' )
+    {
+        *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ) << std::endl;
+        *out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load") << std::endl;
+    }
+    else
+    {
+        *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ).set ("disabled", "true") << std::endl;
+        *out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load").set ("disabled", "true") << std::endl;
+    }
+
     *out << cgicc::form() << std::endl;
     *out << cgicc::div() << std::endl;
 }
@@ -174,26 +245,34 @@ void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::
 {
     // stream for logger
     std::ostringstream cLogStream;
-
-    //parse the form input
-    cgicc::Cgicc cgi (in);
     std::string cHWDescriptionFile;
-    cgicc::form_iterator cIt = cgi.getElement ("HwDescriptionFile");
 
-    if (!cIt->isEmpty() && cIt != (*cgi).end() )
+    try
     {
-        cHWDescriptionFile = cIt->getValue();
+        //parse the form input
+        cgicc::Cgicc cgi (in);
+        cgicc::form_iterator cIt = cgi.getElement ("HwDescriptionFile");
 
-        //take action
+        if (!cIt->isEmpty() && cIt != (*cgi).end() )
+            cHWDescriptionFile = cIt->getValue();
+
         if (!cHWDescriptionFile.empty() && Ph2TkDAQ::checkFile (cHWDescriptionFile) )
         {
             *fHWDescriptionFile = cHWDescriptionFile;
             cLogStream << BLUE << std::endl << "Changed HW Description File to: " << fHWDescriptionFile->toString() << RESET << std::endl;
-            fHWFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), fXLSStylesheet->toString(), cLogStream);
         }
         else
             cLogStream << RED << "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist!" << RESET << std::endl;
     }
+    catch (std::exception& e)
+    {
+        LOG4CPLUS_ERROR (fLogger, e.what() );
+    }
+
+    if (checkFile (fHWDescriptionFile->toString() ) )
+        fHWFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), fXLSStylesheet->toString(), cLogStream);
+    else
+        cLogStream << RED << "Error, HW Description File " << fHWDescriptionFile->toString() << " is an empty string or does not exist!" << RESET << std::endl;
 
     LOG4CPLUS_INFO (fLogger, cLogStream.str() );
     this->lastPage (in, out);
@@ -206,17 +285,32 @@ void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (x
 
     //vector of pair of string to hold values
     std::vector<std::pair<std::string, std::string>> cHWFormPairs;
-    // get the form input
-    cgicc::Cgicc cgi (in);
 
-    for (auto cIt : *cgi)
+    // get the form input
+    try
     {
-        if (cIt.getValue() != "")
-            cHWFormPairs.push_back (std::make_pair (cIt.getName(), cIt.getValue() ) );
+        cgicc::Cgicc cgi (in);
+
+        for (auto cIt : *cgi)
+        {
+            if (cIt.getValue() != "")
+                cHWFormPairs.push_back (std::make_pair (cIt.getName(), cIt.getValue() ) );
+        }
+    }
+    catch (std::exception& e)
+    {
+        LOG4CPLUS_ERROR (fLogger, e.what() );
     }
 
+    //TODO
+    //if the above does not work because the client does not sumit the form, I need to parse the html form and get all values manually which is painfull but hey!
+    //cHWFormPairs = XMLUtils::queryHTMLForm (this->fHWFormString, cLogStream);
+
     //set this to true once the HWDescription object is initialized to get a reduced set of form input pairs to modify existing HWDescription objects
-    bool cStripUnchanged = true;
+    bool cStripUnchanged = false;
+
+    if (fFSM->getCurrentState() != 'I') cStripUnchanged = true;
+
     *fHWFormData = XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormPairs, cLogStream, cStripUnchanged );
 
     for (auto cPair : *fHWFormData)

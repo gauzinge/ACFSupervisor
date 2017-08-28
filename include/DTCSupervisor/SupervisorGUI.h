@@ -22,6 +22,8 @@
 #include "log4cplus/logger.h"
 #include "log4cplus/loggingmacros.h"
 
+#include "DTCSupervisor/DTCStateMachine.h"
+
 #include "Utils.h"
 #include "XMLUtils.h"
 #include "ConsoleColor.h"
@@ -35,8 +37,7 @@ namespace Ph2TkDAQ {
     class SupervisorGUI : public toolbox::lang::Class
     {
       public:
-        //SupervisorGUI (xgi::framework::UIManager* pManager, log4cplus::Logger* pLogger, std::string& pURN);
-        SupervisorGUI (xdaq::WebApplication* pApp);
+        SupervisorGUI (xdaq::WebApplication* pApp, DTCStateMachine* pStateMachine);
 
         //views
         void Default (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
@@ -51,14 +52,18 @@ namespace Ph2TkDAQ {
         ///Show FSM status and available transition in an HTML table
         void showStateMachineStatus (xgi::Output* out) throw (xgi::exception::Exception);
 
-        //response to various user input forms
         // Form to load HWDescription File
         void displayLoadForm (xgi::Input* in, xgi::Output* out);
+        //action taken on submit of new HWFile
         void reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        //parsing of HWConfig form on submit
         void handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        //GUI handler for FSM transitions
+        void fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
 
 
       public:
+        //helper to display the last page
         void lastPage (xgi::Input* in, xgi::Output* out)
         {
             switch (fCurrentPageView)
@@ -90,12 +95,27 @@ namespace Ph2TkDAQ {
         {
             fSettingsFormData = pFormData;
         }
+      private:
+        //determines allowed state transitions
+        void createStateTransitionButton (std::string pTransition, xgi::Output* out)
+        {
+            // display FSM
+            std::set<std::string> cPossibleInputs = fFSM->getInputs (fFSM->getCurrentState() );
+
+            if (cPossibleInputs.find (pTransition) != std::end (cPossibleInputs) )
+                *out << cgicc::input().set ("type", "submit").set ("name", "transition").set ("value", (pTransition) ) << std::endl;
+            //the item is not in the list of possible transitions
+            else
+                *out << cgicc::input().set ("type", "submit").set ("name", "transition").set ("value", (pTransition) ).set ("disabled", "true") << std::endl;
+        }
 
         //members
       private:
+        xdaq::WebApplication* fApp;
         xgi::framework::UIManager fManager;
         log4cplus::Logger fLogger;
         std::string fURN;
+        DTCStateMachine* fFSM;
 
       public:
         xdata::String* fHWDescriptionFile;
