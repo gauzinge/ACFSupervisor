@@ -29,7 +29,6 @@ namespace Ph2TkDAQ {
     {
       public:
         XDAQ_INSTANTIATOR();
-        xgi::framework::UIManager fManager;
         //the GUI object
         SupervisorGUI* fGUI;
 

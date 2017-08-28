@@ -79,6 +79,7 @@ option {
 .tab {
     position: fixed;
     left: 0;
+    padding-left: 10%;
     height: 40px;
     width: 100%;
     z-index: 999;
@@ -154,7 +155,7 @@ option {
 /*Sidebar with FSM diagram*/
 .sidenav {
     font-size: 15pt;
-    padding-top: 60px;
+    padding-top: 20px;
     float: left;
     height: 100%;
     width: 10%;
@@ -167,7 +168,7 @@ option {
 }
 
 .sidenav p.state {
-    font-size: 17pt;
+    font-size: 14pt;
     width: 100%;
     padding-top: 8px;
     padding-bottom: 8px;

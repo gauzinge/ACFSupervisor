@@ -2,15 +2,15 @@
 
 using namespace Ph2TkDAQ;
 
-SupervisorGUI::SupervisorGUI (xgi::framework::UIManager* pManager, log4cplus::Logger* pLogger, std::string& pURN) :
-    fManager (pManager),
-    fLogger (pLogger),
-    fURN (pURN),
+SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp) :
+    fManager (pApp),
     fHWDescriptionFile (nullptr),
     fXLSStylesheet (nullptr),
-    fHWFormString (""),
-    fCurrentPageView (Tab::MAIN)
+    fHWFormString ("")
 {
+    fLogger = pApp->getApplicationLogger();
+    fURN =  pApp->getApplicationDescriptor()->getContextDescriptor()->getURL() + "/" + pApp->getApplicationDescriptor()->getURN() + "/";
+
     //bind xgi and xoap commands to methods
     //methods for tab navigation
     //xgi::bind (this, &SupervisorGUI::Default, "Default");
@@ -23,6 +23,8 @@ SupervisorGUI::SupervisorGUI (xgi::framework::UIManager* pManager, log4cplus::Lo
     xgi::bind (this, &SupervisorGUI::reloadHWFile, "reloadHWFile");
     xgi::bind (this, &SupervisorGUI::handleHWFormData, "handleHWFormData");
     xgi::bind (this, &SupervisorGUI::lastPage, "lastPage");
+
+    fCurrentPageView = Tab::MAIN;
 }
 
 void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
@@ -40,7 +42,7 @@ void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exce
     *out << cgicc::h3 ("DTC Supervisor Main Page") << std::endl;
     this->displayLoadForm (in, out);
 
-    LOG4CPLUS_INFO (*fLogger, cLogStream.str() );
+    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
     this->createHtmlFooter (in, out);
 }
 
@@ -70,7 +72,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     // Create the Title, Tab bar
     std::ostringstream cLogStream;
 
-    fManager->getHTMLHeader (in, out);
+    fManager.getHTMLHeader (in, out);
     //Style this thing
     *out << cgicc::style() << std::endl;
     *out << parseStylesheetCSS (expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/html/Stylesheet.css"), cLogStream) << std::endl;
@@ -108,14 +110,14 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     this->showStateMachineStatus (out);
     *out << "<div class=\"content\">" << std::endl;
 
-    LOG4CPLUS_INFO (*fLogger, cLogStream.str() );
+    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 }
 
 void SupervisorGUI::createHtmlFooter (xgi::Input* in, xgi::Output* out)
 {
     //close the main and content div
     *out << "</div class=\"content\"></div class=\"main\">" << std::endl;
-    fManager->getHTMLFooter (in, out);
+    fManager.getHTMLFooter (in, out);
 
 }
 
@@ -141,6 +143,8 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
         *out << "<a href=\"#\" class=\"button\"> Resume </a>" << cgicc::br() << std::endl;
         *out << "<a href=\"#\" class=\"button\"> Halt </a>" << cgicc::br() << std::endl;
         *out << "<a href=\"#\" class=\"button\"> Destroy </a>" << cgicc::br() << std::endl;
+        *out << cgicc::br() << std::endl;
+        *out << cgicc::div().set ("font-size", "10pt") << "Current HW Description File: " << fHWDescriptionFile->toString() << cgicc::div()  << std::endl;
         *out << "</div>" << std::endl;
     }
     catch (xgi::exception::Exception& e)
@@ -191,7 +195,7 @@ void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::
             cLogStream << RED << "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist!" << RESET << std::endl;
     }
 
-    LOG4CPLUS_INFO (*fLogger, cLogStream.str() );
+    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
     this->lastPage (in, out);
 }
 
@@ -218,6 +222,6 @@ void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (x
     for (auto cPair : *fHWFormData)
         std::cout << cPair.first << " " << cPair.second << std::endl;
 
-    LOG4CPLUS_INFO (*fLogger, cLogStream.str() );
+    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
     this->lastPage (in, out);
 }

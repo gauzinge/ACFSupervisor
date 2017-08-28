@@ -1,6 +1,7 @@
 #ifndef __SupervisorGUI_H__
 #define __SupervisorGUI_H__
 
+#include "xdaq/WebApplication.h"
 #include "xdaq/exception/Exception.h"
 #include "xdaq/NamespaceURI.h"
 #include "toolbox/lang/Class.h"
@@ -34,7 +35,8 @@ namespace Ph2TkDAQ {
     class SupervisorGUI : public toolbox::lang::Class
     {
       public:
-        SupervisorGUI (xgi::framework::UIManager* pManager, log4cplus::Logger* pLogger, std::string& pURN);
+        //SupervisorGUI (xgi::framework::UIManager* pManager, log4cplus::Logger* pLogger, std::string& pURN);
+        SupervisorGUI (xdaq::WebApplication* pApp);
 
         //views
         void Default (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
@@ -90,18 +92,17 @@ namespace Ph2TkDAQ {
         }
 
         //members
-      protected:
-        xgi::framework::UIManager* fManager;
-        log4cplus::Logger* fLogger;
+      private:
+        xgi::framework::UIManager fManager;
+        log4cplus::Logger fLogger;
         std::string fURN;
+
       public:
         xdata::String* fHWDescriptionFile;
         xdata::String* fXLSStylesheet;
         FormData* fHWFormData;
         FormData* fSettingsFormData;
-
         std::string fHWFormString;
-
         Tab fCurrentPageView;
     };
 }

@@ -7,14 +7,11 @@ XDAQ_INSTANTIATOR_IMPL (Ph2TkDAQ::DTCSupervisor)
 
 DTCSupervisor::DTCSupervisor (xdaq::ApplicationStub* s)
 throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
-    fManager (this),
     fHWDescriptionFile (""),
     fXLSStylesheet ("")
 {
     //instance of my GUI object
-    //maybe need to pass some parameters
-    std::string url = "/" + getApplicationDescriptor()->getURN() + "/";
-    fGUI = new SupervisorGUI (&fManager, &this->getApplicationLogger(), url);
+    fGUI = new SupervisorGUI (this);
     //programatically binld all GUI methods to the Default method of this piece of code
     std::vector<toolbox::lang::Method*> v = fGUI->getMethods();
     std::vector<toolbox::lang::Method*>::iterator cMethod;
