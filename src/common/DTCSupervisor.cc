@@ -8,8 +8,8 @@ XDAQ_INSTANTIATOR_IMPL (Ph2TkDAQ::DTCSupervisor)
 DTCSupervisor::DTCSupervisor (xdaq::ApplicationStub* s)
 throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     fFSM (this),
-    fHWDescriptionFile (""),
-    fXLSStylesheet ("")
+    fHWDescriptionFile ("")
+    //fXLSStylesheet ("")
 {
     //instance of my GUI object
     fGUI = new SupervisorGUI (this, &fFSM);
@@ -36,7 +36,7 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
 
     //make configurable variapbles available in the Application Info Space
     this->getApplicationInfoSpace()->fireItemAvailable ("HWDescriptionFile", &fHWDescriptionFile);
-    this->getApplicationInfoSpace()->fireItemAvailable ("XSLStylesheet", &fXLSStylesheet);
+    //this->getApplicationInfoSpace()->fireItemAvailable ("XSLStylesheet", &fXLSStylesheet);
     //detect when default values have been set
     this->getApplicationInfoSpace()->addListener (this, "urn:xdaq-event:setDefaultValues");
 
@@ -57,19 +57,19 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
     if (e.type() == "urn:xdaq-event:setDefaultValues")
     {
         fHWDescriptionFile = Ph2TkDAQ::expandEnvironmentVariables (fHWDescriptionFile.toString() );
-        fXLSStylesheet = Ph2TkDAQ::expandEnvironmentVariables (fXLSStylesheet.toString() );
+        //fXLSStylesheet = Ph2TkDAQ::expandEnvironmentVariables (fXLSStylesheet.toString() );
 
         fHWDescriptionFile = Ph2TkDAQ::removeFilePrefix (fHWDescriptionFile.toString() );
-        fXLSStylesheet = Ph2TkDAQ::removeFilePrefix (fXLSStylesheet.toString() );
+        //fXLSStylesheet = Ph2TkDAQ::removeFilePrefix (fXLSStylesheet.toString() );
 
         //need to nofify the GUI of these variables
         fGUI->fHWDescriptionFile = &fHWDescriptionFile;
-        fGUI->fXLSStylesheet = &fXLSStylesheet;
+        //fGUI->fXLSStylesheet = &fXLSStylesheet;
 
         std::stringstream ss;
 
         ss << std::endl << BLUE << "HW Description file: " << fHWDescriptionFile.toString() << " set!" << std::endl;
-        ss << "XSL HW Description Stylesheet: " << fXLSStylesheet.toString() << " set!" << std::endl;
+        //ss << "XSL HW Description Stylesheet: " << fXLSStylesheet.toString() << " set!" << std::endl;
         ss << "All Default Values set!" << RESET << std::endl;
         LOG4CPLUS_INFO (this->getApplicationLogger(), ss.str() );
         //here is the listener for FSM state transition commands via xoap

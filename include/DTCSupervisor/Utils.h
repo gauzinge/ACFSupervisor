@@ -42,7 +42,7 @@ namespace Ph2TkDAQ {
 
         while ( (pos = pHTMLString.find (search, pos) ) != std::string::npos)
         {
-            std::cout << "Found instance" << std::endl;
+            //std::cout << "Found instance" << std::endl;
             pHTMLString.replace (pos, search.length(), replace );
             pos += replace.length();
         }

@@ -7,7 +7,7 @@ SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp, DTCStateMachine* pStat
     fManager (pApp),
     fFSM (pStateMachine),
     fHWDescriptionFile (nullptr),
-    fXLSStylesheet (nullptr),
+    //fXLSStylesheet (nullptr),
     fHWFormString ("")
 {
     fLogger = pApp->getApplicationLogger();
@@ -92,7 +92,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     fManager.getHTMLHeader (in, out);
     //Style this thing
     *out << cgicc::style() << std::endl;
-    *out << parseStylesheetCSS (expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/html/Stylesheet.css"), cLogStream) << std::endl;
+    *out << parseStylesheetCSS (expandEnvironmentVariables (CSSSTYLESHEET), cLogStream) << std::endl;
     *out << cgicc::style() << std::endl;
 
     *out << cgicc::title ("DTC Supervisor")  << std::endl;
@@ -270,7 +270,7 @@ void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::
             cLogStream << BLUE << std::endl << "Changed HW Description File to: " << fHWDescriptionFile->toString() << RESET << std::endl;
         }
         else
-            cLogStream << RED << "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist!" << RESET << std::endl;
+            LOG4CPLUS_ERROR (fLogger, "Error, HW Description File " << cHWDescriptionFile << " is an empty string or does not exist!" );
     }
     catch (std::exception& e)
     {
@@ -279,12 +279,12 @@ void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::
 
     if (checkFile (fHWDescriptionFile->toString() ) )
     {
-        fHWFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), fXLSStylesheet->toString(), cLogStream);
+        fHWFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), expandEnvironmentVariables (XSLSTYLESHEET), cLogStream);
         cleanupHTMLString (fHWFormString, "&lt;", "<");
         cleanupHTMLString (fHWFormString, "<?xml version=\"1.0\"?>", "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\" \"http://www.w3.org/TR/REC-html40/loose.dtd\">");
     }
     else
-        cLogStream << RED << "Error, HW Description File " << fHWDescriptionFile->toString() << " is an empty string or does not exist!" << RESET << std::endl;
+        LOG4CPLUS_ERROR (fLogger, "Error, HW Description File " << fHWDescriptionFile->toString() << " is an empty string or does not exist!");
 
     LOG4CPLUS_INFO (fLogger, cLogStream.str() );
     this->lastPage (in, out);

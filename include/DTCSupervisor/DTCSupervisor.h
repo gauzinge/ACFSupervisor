@@ -45,7 +45,7 @@ namespace Ph2TkDAQ {
 
       protected:
         xdata::String fHWDescriptionFile;
-        xdata::String fXLSStylesheet;
+        //xdata::String fXLSStylesheet;
 
       private:
         FormData fHWFormData;

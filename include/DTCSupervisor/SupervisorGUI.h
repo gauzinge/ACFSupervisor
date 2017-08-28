@@ -23,6 +23,7 @@
 #include "log4cplus/loggingmacros.h"
 
 #include "DTCSupervisor/DTCStateMachine.h"
+#include "DTCSupervisor/FilePaths.h"
 
 #include "Utils.h"
 #include "XMLUtils.h"
@@ -119,7 +120,7 @@ namespace Ph2TkDAQ {
 
       public:
         xdata::String* fHWDescriptionFile;
-        xdata::String* fXLSStylesheet;
+        //xdata::String* fXLSStylesheet;
         FormData* fHWFormData;
         FormData* fSettingsFormData;
         std::string fHWFormString;
