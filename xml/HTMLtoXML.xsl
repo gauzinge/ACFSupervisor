@@ -93,6 +93,18 @@
     </xsl:choose>
 </xsl:template>
 
-<!--eventType="{.//select[@name='eventType']//@value}"-->
+
+<xsl:template match="//div[@class='BeBoardRegisters']//input[contains(@name,'Register')]" name="Registers">
+    <xsl:choose>
+        <xsl:when test="starts-with(@name,'Register_.')">
+            <Register name="{substring-after(@name,'Register_.')}"><xsl:value-of select="@value"/></Register>
+        </xsl:when>
+        <xsl:when test="starts-with(@name,'Register_')">
+            <Register name="{substring-after(@name,'Register_')}"><xsl:value-of select="@value"/></Register>
+        </xsl:when>
+    </xsl:choose>
+</xsl:template>
+
 <xsl:template match="text()"/>
+
 </xsl:stylesheet>
