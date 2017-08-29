@@ -1,7 +1,8 @@
 #ifndef _FILEPATHS_H__
 #define _FILEPATHS_H__
 
-#define XSLSTYLESHEET "${DTCSUPERVISOR_ROOT}/xml/HWDescription.xsl"
+#define XSLSTYLESHEET "${DTCSUPERVISOR_ROOT}/xml/XMLtoHTML.xsl"
+#define XMLSTYLESHEET "${DTCSUPERVISOR_ROOT}/xml/HTMLtoXML.xsl"
 #define CSSSTYLESHEET "${DTCSUPERVISOR_ROOT}/html/Stylesheet.css"
 
 #endif
