@@ -277,8 +277,8 @@
             </td>
         </tr>
         </li>
-        <div class="CBCConfig">
-        <ul>
+        <!--<div class="CBCConfig">-->
+            <ul> <p style="display:none">Sometext</p>
             <xsl:apply-templates select="Settings"/>
             <xsl:apply-templates select="TestPulse"/>
             <xsl:apply-templates select="ClusterStub"/>
@@ -291,7 +291,7 @@
             </ul>
             </xsl:if>
         </ul>
-        </div>
+        <!--</div>-->
     </div>
     </xsl:template>
 
