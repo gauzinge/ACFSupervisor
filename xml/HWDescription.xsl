@@ -256,6 +256,7 @@
 
     <!--Template for CBC nodes-->
     <xsl:template match="CBC">
+        <div class="CBC">
         <li>
             <tr>
                 <td>CBC Id: <xsl:value-of select="@Id"/></td>
@@ -276,7 +277,7 @@
             </td>
         </tr>
         </li>
-        <div class="Config">
+        <div class="CBCConfig">
         <ul>
             <xsl:apply-templates select="Settings"/>
             <xsl:apply-templates select="TestPulse"/>
@@ -291,6 +292,7 @@
             </xsl:if>
         </ul>
         </div>
+    </div>
     </xsl:template>
 
     <!--Template for Global|CBC Settings node-->
