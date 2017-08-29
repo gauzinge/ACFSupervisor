@@ -124,6 +124,7 @@ namespace Ph2TkDAQ {
         FormData* fHWFormData;
         FormData* fSettingsFormData;
         std::string fHWFormString;
+        std::string fHwXMLString;
         Tab fCurrentPageView;
     };
 }

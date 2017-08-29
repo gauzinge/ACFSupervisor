@@ -8,7 +8,8 @@ SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp, DTCStateMachine* pStat
     fFSM (pStateMachine),
     fHWDescriptionFile (nullptr),
     //fXLSStylesheet (nullptr),
-    fHWFormString ("")
+    fHWFormString (""),
+    fHwXMLString ("")
 {
     fLogger = pApp->getApplicationLogger();
     fURN =  pApp->getApplicationDescriptor()->getContextDescriptor()->getURL() + "/" + pApp->getApplicationDescriptor()->getURN() + "/";
@@ -198,12 +199,16 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
         //here handle whatever action is necessary on the gui before handing over to the main application
 
         // if the transition is Initialise and the HW Form String is still empty, trigger the callback otherwise triggered by the load button
-        if (cTransition == "Initialise" && fHWFormString.empty() )
+        if (cTransition == "Initialise" )
         {
-            this->reloadHWFile (in, out);
+            if ( fHWFormString.empty() )
+                this->reloadHWFile (in, out);
 
-            if (!fHWFormData->size() )
-                cLogStream << BOLDYELLOW << "HW Description File " << fHWDescriptionFile->toString() << " not changed by the user - thus initializing from XML" << RESET << std::endl;
+            //now convert the HTMLString to an xml string for Initialize of Ph2ACF
+            fHwXMLString = XMLUtils::transformXmlDocument (fHWFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
+            std::cout << fHwXMLString << std::endl;
+            //cleanupHTMLString (fHWFormString, "&lt;", "<");
+            //cleanupHTMLString (fHWFormString, "<?xml version=\"1.0\"?>", "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\" \"http://www.w3.org/TR/REC-html40/loose.dtd\">");
         }
 
         // if the transition is Configure, and the HWForm data has not been submitted get the hwForm Data
@@ -314,21 +319,15 @@ void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (x
             if (cIt.getValue() != "")
                 cHWFormPairs.push_back (std::make_pair (cIt.getName(), cIt.getValue() ) );
         }
+
     }
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (fLogger, e.what() );
-
-        //TODO
-        //if the above does not work because the client does not sumit the form, I need to parse the html form and get all values manually which is painfull but hey!
-        //alternatively I could just configure from the blank xml if the user has not submitted any input! in this case the the internal fFormData of this and the Supervisor is empty - if that is the case, so be it - we just roll with the xml
-        //cHWFormPairs = XMLUtils::queryHTMLForm (this->fHWFormString, cLogStream);
     }
 
     //set this to true once the HWDescription object is initialized to get a reduced set of form input pairs to modify existing HWDescription objects
-    bool cStripUnchanged = false;
-
-    if (fFSM->getCurrentState() != 'I') cStripUnchanged = true;
+    bool cStripUnchanged = true;
 
     *fHWFormData = XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormPairs, cLogStream, cStripUnchanged );
 

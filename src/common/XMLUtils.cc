@@ -2,7 +2,7 @@
 
 using namespace Ph2TkDAQ;
 
-std::string XMLUtils::transformXmlDocument (const std::string& pInputDocument, const std::string& pStylesheet, std::ostringstream& pStream)
+std::string XMLUtils::transformXmlDocument (const std::string& pInputDocument, const std::string& pStylesheet, std::ostringstream& pStream, bool pIsFile)
 {
     pStream << std::endl;
     //for the namespaces
@@ -20,7 +20,21 @@ std::string XMLUtils::transformXmlDocument (const std::string& pInputDocument, c
 
     try
     {
-        xalanc_1_11::XSLTInputSource xmlIn (pInputDocument.c_str() );
+        xalanc_1_11::XSLTInputSource xmlIn;
+
+        if (!pIsFile)
+        {
+            std::stringstream cInputStream;
+            cInputStream << pInputDocument << std::endl;
+            xalanc_1_11::XSLTInputSource stringIn (cInputStream );
+            xmlIn = stringIn;
+        }
+        else
+        {
+            xalanc_1_11::XSLTInputSource fileIn (pInputDocument.c_str() );
+            xmlIn = fileIn;
+        }
+
         xalanc_1_11::XSLTInputSource xslIn (pStylesheet.c_str() );
         xalanc_1_11::XSLTResultTarget xmlOut (cHtmlResult);
         int cResult = cXalanTransformer.transform (xmlIn, xslIn, xmlOut);
@@ -74,7 +88,6 @@ const std::map<std::string, std::string> XMLUtils::updateHTMLForm (std::string& 
         try
         {
             auto elements = root->find (xpath.str() );
-
 
             bool cIsChanged;
 
@@ -147,35 +160,75 @@ const std::map<std::string, std::string> XMLUtils::updateHTMLForm (std::string& 
 
 bool XMLUtils::handle_select_node (xmlpp::Node* node, std::string& pOldValue, const std::string& pValue)
 {
+    bool cIsChanged = false;
     //in the form as it is implemented, the current value will always be shown as the first option
     //thus all we need to to is get the first option tag, change it's value and corresponding node text
     xmlpp::Node::NodeList list = node->get_children();
     xmlpp::Node::NodeList::iterator iter = list.begin();
+
     //now iter points to the first <option> tag: we need to modify it's value and node text
-    xmlpp::Element* nodeElement = dynamic_cast<xmlpp::Element*> (*iter);
-    xmlpp::TextNode* nodeText;
+    for (; iter != std::end (list); iter++)
+    {
+        if ( (*iter)->get_name() == "option")
+        {
+            xmlpp::Element* nodeElement = dynamic_cast<xmlpp::Element*> (*iter);
+
+            if (nodeElement != nullptr)
+            {
+                xmlpp::TextNode* nodeText;
+                xmlpp::Attribute* attribute = nodeElement->get_attribute ("value");
+
+                if (attribute == nullptr) // attribute is called name instead
+                    attribute = nodeElement->get_attribute ("name");
+
+                if (attribute != nullptr && attribute->get_value() != pValue)
+                {
+                    cIsChanged = true;
+
+                    if (nodeElement->has_child_text() )
+                    {
+                        nodeText = nodeElement->get_child_text();
+                        nodeText->set_content (pValue);
+                    }
+
+                    pOldValue = attribute->get_value();
+                    attribute->set_value ( pValue);
+                }
+            }
+
+            //since I just need to treat the first option
+            break;
+        }
+    }
+
+    return cIsChanged;
 
 
-    xmlpp::Attribute* attribute = nodeElement->get_attribute ("value");
+
+    //if (nodeElement != nullptr)
+    //{
+    //std::cout << "survived3" << std::endl;
     //std::cout << nodeText->get_content() << std::endl;
 
-    if (attribute == nullptr) // attribute is called name instead
-        attribute = nodeElement->get_attribute ("name");
+    //if (attribute == nullptr) // attribute is called name instead
+    //attribute = nodeElement->get_attribute ("name");
 
 
-    if (attribute->get_value() != pValue)
-    {
-        if (nodeElement->has_child_text() )
-        {
-            nodeText = nodeElement->get_child_text();
-            nodeText->set_content (pValue);
-        }
+    //if (attribute->get_value() != pValue)
+    //{
+    //if (nodeElement->has_child_text() )
+    //{
+    //nodeText = nodeElement->get_child_text();
+    //nodeText->set_content (pValue);
+    //}
 
-        pOldValue = attribute->get_value();
-        attribute->set_value ( pValue);
-        return true;
-    }
-    else return false;
+    //pOldValue = attribute->get_value();
+    //attribute->set_value ( pValue);
+    //return true;
+    //}
+    //else return false;
+    //}
+    //else return false;
 }
 
 bool XMLUtils::handle_input_node (xmlpp::Node* node, std::string& pOldValue, const std::string& pValue)
