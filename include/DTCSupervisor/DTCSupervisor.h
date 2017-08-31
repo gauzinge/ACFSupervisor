@@ -46,7 +46,8 @@ namespace Ph2TkDAQ {
 
       protected:
         xdata::String fHWDescriptionFile;
-        xdata::String fDirectory;
+        xdata::String fDataDirectory;
+        xdata::String fResultDirectory;
         xdata::Integer fRunNumber;
         xdata::Integer fNEvents;
 

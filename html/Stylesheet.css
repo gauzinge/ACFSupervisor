@@ -165,11 +165,13 @@ option {
 
 .content div.acf_left{
     float: left;
-    width: 30%;
+    width: 38%;
+    /*height: 330px;*/
 }
 .content div.acf_right{
     float: right;
-    width: 70%;
+    width: 62%;
+    /*height: 330px;*/
 }
 
 /*Sidebar with FSM diagram*/
@@ -184,7 +186,7 @@ option {
     border: none solid #ccc;
     background-color: #e1e1e1;
     overflow: hidden;
-    transition: 0.3s;
+    transition: 0.15s;
 }
 
 .sidenav p.state {

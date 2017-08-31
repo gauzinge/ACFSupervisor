@@ -7,11 +7,19 @@ SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp, DTCStateMachine* pStat
     fApp (pApp),
     fManager (pApp),
     fFSM (pStateMachine),
-    fHWDescriptionFile (nullptr),
     //fXLSStylesheet (nullptr),
+    fLatency (true),
+    fStubLatency (false),
+    fLatencyStartValue (0),
+    fLatencyRange (10),
+    fHWDescriptionFile (nullptr),
     fHWFormString (""),
+    fSettingsFormString (""),
     fHwXMLString ("")
 {
+    for (auto cString : fProcedures)
+        fProcedureMap[cString] = (cString == "Data Taking") ? true : false;
+
     fLogger = pApp->getApplicationLogger();
     fURN =  pApp->getApplicationDescriptor()->getContextDescriptor()->getURL() + "/" + pApp->getApplicationDescriptor()->getURN() + "/";
 
@@ -27,6 +35,7 @@ SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp, DTCStateMachine* pStat
     xgi::bind (this, &SupervisorGUI::reloadHWFile, "reloadHWFile");
     xgi::bind (this, &SupervisorGUI::dumpHWDescription, "dumpHWDescription");
     xgi::bind (this, &SupervisorGUI::fsmTransition, "fsmTransition");
+    xgi::bind (this, &SupervisorGUI::processPh2_ACFForm, "processPh2_ACFForm");
     xgi::bind (this, &SupervisorGUI::handleHWFormData, "handleHWFormData");
     xgi::bind (this, &SupervisorGUI::lastPage, "lastPage");
 
@@ -94,7 +103,8 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
 
 
     this->createHtmlFooter (in, out);
-    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+
+    if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 }
 
 void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab)
@@ -144,7 +154,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     this->showStateMachineStatus (out);
     *out << "<div class=\"content\">" << std::endl;
 
-    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+    if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 }
 
 void SupervisorGUI::createHtmlFooter (xgi::Input* in, xgi::Output* out)
@@ -160,9 +170,6 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
     // create the FSM Status bar showing the current state
     try
     {
-        //the action is the fsmTransitionHandler
-        std::string url = fURN + "fsmTransition";
-
         //display the sidenav with the FSM controls
         *out << "<div class=\"sidenav\">" << std::endl;
         *out << "<p class=\"state\">Current State: " << fFSM->getStateName (fFSM->getCurrentState() ) << "/" << fFSM->getCurrentState() << "</p>" << std::endl;
@@ -172,10 +179,11 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
         // I could loop all possible transitions and check if they are allowed but that does not put the commands sequentially
         // https://gitlab.cern.ch/cms_tk_ph2/BoardSupervisor/blob/master/src/common/BoardSupervisor.cc
 
+        //the action is the fsmTransitionHandler
+        std::string url = fURN + "fsmTransition";
         *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
         //first the refresh button
         *out << cgicc::input().set ("type", "submit").set ("name", "transition").set ("value", "Refresh" ).set ("class", "refresh") << std::endl;
-        *out << cgicc::br() << std::endl;
         this->createStateTransitionButton ("Initialise", out);
         this->createStateTransitionButton ("Configure", out);
         this->createStateTransitionButton ("Enable", out);
@@ -211,15 +219,19 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
         //here handle whatever action is necessary on the gui before handing over to the main application
 
         // if the transition is Initialise and the HW Form String is still empty, trigger the callback otherwise triggered by the load button
+        // this also populates the fSettingsFormString but not the fSettingsFormData map
+        // the easiest solution is to convert the fSettingsFormString back to an xml string and initialize from that
+        // then, the fSettingsFormData can also be stripped
         if (cTransition == "Initialise" )
         {
             if ( fHWFormString.empty() )
                 this->reloadHWFile (in, out);
 
-            //now convert the HTMLString to an xml string for Initialize of Ph2ACF
+            //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
             std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
             fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
             std::cout << fHwXMLString << std::endl;
+            //now do the same for the Settings
         }
 
 
@@ -233,7 +245,8 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
         XCEPT_RAISE (xgi::exception::Exception, e.what() );
     }
 
-    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+    if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+
     this->lastPage (in, out);
 }
 
@@ -308,7 +321,8 @@ void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::
     else
         LOG4CPLUS_ERROR (fLogger, "Error, HW Description File " << fHWDescriptionFile->toString() << " is an empty string or does not exist!");
 
-    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+    if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+
     this->lastPage (in, out);
 }
 
@@ -355,7 +369,8 @@ void SupervisorGUI::dumpHWDescription (xgi::Input* in, xgi::Output* out) throw (
                 std::ofstream cOutFile (cFileDumpPath.c_str() );
                 cOutFile << cHwXMLString << std::endl;
                 cOutFile.close();
-                LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+
+                if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
             }
             else
                 LOG4CPLUS_ERROR (fLogger, RED << "Error: no path provided to dump to!" << RESET);
@@ -369,32 +384,38 @@ void SupervisorGUI::dumpHWDescription (xgi::Input* in, xgi::Output* out) throw (
 
 void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
 {
+    //get FSM state
+    char cState = fFSM->getCurrentState();
+
     std::ostringstream cLogStream;
 
-    std::string url = fURN + "handle_Ph2_ACFForm";
+    std::string url = fURN + "processPh2_ACFForm";
 
     std::string JSfile = expandEnvironmentVariables (HOME);
     JSfile += "/html/formfields.js";
 
-    *out << cgicc::script().set ("type", "text/javascript") << std::endl;
-    *out << parseExternalResource (JSfile, cLogStream) << std::endl;
-    *out << cgicc::script() << std::endl;
-    *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onclick", "displayACFfields();") << std::endl;
+    if (cState != 'E')
+        *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onclick", "displayACFfields();").set ("onsubmit", "displayACFfields();") << std::endl;
+    else
+        *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onclick", "displayACFfields();").set ("onsubmit", "displayACFfields();").set ("disabled", "disabled") << std::endl;
+
     //left form part
-    *out << cgicc::div().set ("class", "acf_left") << std::endl;
+    *out << cgicc::div().set ("class", "acf_left").set ("onload", "displayACFfields();") << std::endl;
     *out << cgicc::fieldset().set ("style", "margin-top:20px") << cgicc::legend ("Ph2_ACF Main Settings") << std::endl;
-    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Data Taking").set ("checked", "checked") << "Data Taking" << cgicc::label() << cgicc::br() << std::endl;
-    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Calibration") << "Calibration" << cgicc::label() << cgicc::br() << std::endl;
-    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Pedestal & Noise") << "Pedestal&Noise" << cgicc::label() << cgicc::br() << std::endl;
-    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Commission") << "Commission" << cgicc::label() << cgicc::br() << std::endl;
-    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Pulseshape") << "Pulseshape" << cgicc::label() << cgicc::br() << std::endl;
-    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Hybridtest") << "Hybridtest" << cgicc::label() << cgicc::br() << std::endl;
-    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Systemtest") << "Systemtest" << cgicc::label() << cgicc::br() << std::endl;
+    this->createProcedureInput (out);
     *out << cgicc::fieldset() << std::endl;
+
+    //Main Settings parsed from file!
+    *out << cgicc::fieldset().set ("style", "margin-top:10px").set ("style", "display:none").set ("id", "settings_fieldset") << cgicc::legend ("Application Settings").set ("id", "settings_fieldset_legend").set ("style", "display:none") << std::endl;
+    *out << cgicc::table().set ("name", "settings_table").set ("id", "settings_table").set ("style", "display:none") << std::endl;
+    *out << fSettingsFormString << std::endl;
+    *out << cgicc::table() << std::endl;
+    *out << cgicc::fieldset() << std::endl;
+
     *out << cgicc::div() << std::endl;
 
     //right form part
-    *out << cgicc::div().set ("class", "acf_right") << std::endl;
+    *out << cgicc::div().set ("class", "acf_right").set ("onload", "displayACFfields();") << std::endl;
 
     *out << cgicc::fieldset().set ("style", "margin-top:20px") << cgicc::legend ("Main Run Settings") << std::endl;
     *out << cgicc::table() << std::endl;
@@ -405,39 +426,133 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     *out << cgicc::td() << cgicc::label() << "Number of Events: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "nevents").set ("size", "20").set ("placeholder", "number of events to take").set ("value", fNEvents->toString() ) << cgicc::td() << std::endl;
     *out << cgicc::tr() << std::endl;
     *out << cgicc::tr() << std::endl;
-    *out << cgicc::td() << cgicc::label() << "Result Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "result_directory").set ("size", "50").set ("value", expandEnvironmentVariables (fDirectory->toString() ) )  <<  cgicc::td() << std::endl;
+    *out << cgicc::td() << cgicc::label() << "Data Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "data_directory").set ("size", "50").set ("value", expandEnvironmentVariables (fDataDirectory->toString() ) )   << cgicc::td() << std::endl;
     *out << cgicc::tr() << std::endl;
     *out << cgicc::tr() << std::endl;
-    *out << cgicc::td() << cgicc::label() << "Data Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "data_directory").set ("size", "50").set ("value", expandEnvironmentVariables (fDirectory->toString() ) )   << cgicc::td() << std::endl;
+    *out << cgicc::td() << cgicc::label().set ("style", "display:none").set ("id", "result_directory_label") << "Result Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "result_directory").set ("id", "result_directory").set ("size", "50").set ("value", expandEnvironmentVariables (fResultDirectory->toString() ) ).set ("style", "display:none")  <<  cgicc::td() << std::endl;
     *out << cgicc::tr() << std::endl;
     *out << cgicc::table() << std::endl;
 
-    *out << cgicc::fieldset().set ("style", "margin-top:20px").set ("style", "display:none") << cgicc::legend ("Commissioning Settings").set ("style", "display:none") << std::endl;
-    *out << cgicc::table().set ("style", "display:none") << std::endl;
+    *out << cgicc::fieldset().set ("id", "commission_fieldset").set ("style", "margin-top:20px") << cgicc::legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
+    *out << cgicc::table().set ("style", "display:none").set ("id", "commission_table") << std::endl;
     *out << cgicc::tr() << std::endl;
-    *out << cgicc::td() << cgicc::label() << "Latency Scan" << cgicc::input().set ("type", "checkbox").set ("name", "latency").set ("value", "latency").set ("checked", "checked") << cgicc::label() << cgicc::td() << std::endl;
-    *out << cgicc::td() << cgicc::label() << "Stub Latency Scan" << cgicc::input().set ("type", "checkbox").set ("name", "stublatency").set ("value", "stublatency") << cgicc::label() << cgicc::td() << std::endl;
+
+    if (fLatency)
+        *out << cgicc::td() << cgicc::label() << "Latency Scan" << cgicc::input().set ("type", "checkbox").set ("name", "latency").set ("value", "on").set ("checked", "checked") << cgicc::label() << cgicc::td() << std::endl;
+    else
+        *out << cgicc::td() << cgicc::label() << "Latency Scan" << cgicc::input().set ("type", "checkbox").set ("name", "latency").set ("value", "on") << cgicc::label() << cgicc::td() << std::endl;
+
+    if (fStubLatency)
+        *out << cgicc::td() << cgicc::label() << "Stub Latency Scan" << cgicc::input().set ("type", "checkbox").set ("name", "stublatency").set ("value", "on").set ("checked", "checked") << cgicc::label() << cgicc::td() << std::endl;
+    else
+        *out << cgicc::td() << cgicc::label() << "Stub Latency Scan" << cgicc::input().set ("type", "checkbox").set ("name", "stublatency").set ("value", "on") << cgicc::label() << cgicc::td() << std::endl;
+
     *out << cgicc::tr() << std::endl;
     *out << cgicc::tr() << std::endl;
-    *out << cgicc::td() << cgicc::label() << "Minimum Latency: " << cgicc::input().set ("type", "text").set ("name", "minimum_latency").set ("size", "5").set ("value", "0") << cgicc::label() << cgicc::td() << std::endl;
-    *out << cgicc::td() << cgicc::label() << "Latency Range: " << cgicc::input().set ("type", "text").set ("name", "latency_range").set ("size", "5").set ("value", "10") << cgicc::label() << cgicc::td() << std::endl;
+    *out << cgicc::td() << cgicc::label() << "Minimum Latency: " << cgicc::input().set ("type", "text").set ("name", "minimum_latency").set ("size", "5").set ("value", inttostring (fLatencyStartValue) ) << cgicc::label() << cgicc::td() << std::endl;
+    *out << cgicc::td() << cgicc::label() << "Latency Range: " << cgicc::input().set ("type", "text").set ("name", "latency_range").set ("size", "5").set ("value", inttostring (fLatencyRange) ) << cgicc::label() << cgicc::td() << std::endl;
     *out << cgicc::tr() << std::endl;
     *out << cgicc::table() << std::endl;
     *out << cgicc::fieldset() << std::endl;
 
     *out << cgicc::fieldset() << std::endl;
+
+    if (cState != 'E')
+        *out << cgicc::input().set ("type", "submit").set ("name", "Submit").set ("value", "Submit") << std::endl;
+    else
+        *out << cgicc::input().set ("type", "submit").set ("name", "Submit").set ("value", "Submit").set ("disabled", "disabled") << std::endl;
 
     *out << cgicc::div() << std::endl;
 
-    //Main Settings parsed from file!
-    *out << cgicc::fieldset().set ("style", "margin-top:40px").set ("style", "display:none") << cgicc::legend ("Application Settings").set ("style", "display:none") << std::endl;
-    *out << cgicc::table().set ("name", "settings_table").set ("style", "display:none") << std::endl;
-    *out << fSettingsFormString << std::endl;
-    *out << cgicc::fieldset() << std::endl;
-    *out << cgicc::table() << std::endl;
-    *out << cgicc::form() << std::endl;
 
-    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+    *out << cgicc::form() << std::endl;
+    *out << cgicc::script().set ("type", "text/javascript") << std::endl;
+    *out << parseExternalResource (JSfile, cLogStream) << std::endl;
+    *out << cgicc::script() << std::endl;
+
+    if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+}
+
+void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    // stream for logger
+    std::ostringstream cLogStream;
+    std::string cHWDescriptionFile;
+
+    try
+    {
+        std::vector<std::pair<std::string, std::string>> cSettingFormPairs;
+        //parse the form input
+        cgicc::Cgicc cgi (in);
+
+        for (auto cProc : fProcedures)
+        {
+            bool cOn = cgi.queryCheckbox (cProc);
+            fProcedureMap[cProc] = cOn;
+        }
+
+        fLatency = cgi.queryCheckbox ("latency");
+        fStubLatency = cgi.queryCheckbox ("stublatency");
+
+        for (auto cIt : *cgi)
+        {
+            if (cIt.getValue() != "")
+            {
+
+                if (cIt.getName() == "runnumber") *fRunNumber = atoi (cIt.getValue().c_str() ); //atoi since I have to potentially deal with negative numbers
+                else if (cIt.getName() == "nevents") *fNEvents = stringtoint (cIt.getValue().c_str() );
+                else if (cIt.getName() == "data_directory") *fDataDirectory = cIt.getValue();
+                else if (cIt.getName() == "result_directory") *fResultDirectory = cIt.getValue();
+                else if (cIt.getName() == "minimum_latency") fLatencyStartValue = stringtoint (cIt.getValue().c_str() );
+                else if (cIt.getName() == "latency_range") fLatencyRange = stringtoint (cIt.getValue().c_str() );
+                else if (cIt.getName() == "Submit" || cIt.getValue() == "on") continue; //if the input is the submit button or one of the checkboxes I already queried
+                else
+                {
+                    //this is setting data
+                    cSettingFormPairs.push_back (std::make_pair (cIt.getName(), cIt.getValue() ) );
+                }
+            }
+        }
+
+        //last argument stripps the unchanged fields
+
+        FormData cSettingsFormData = XMLUtils::updateHTMLForm (this->fSettingsFormString, cSettingFormPairs, cLogStream, true );
+
+        //now I have settings form Data but Ideally I want to change it to key-value pairs containing setting:value
+        if (cSettingsFormData.size() % 2 == 0)
+        {
+            auto cFormIterator = cSettingsFormData.begin();
+
+            while (cFormIterator != std::end (cSettingsFormData) )
+            {
+                std::string cKey = cFormIterator->second;
+
+                if (cFormIterator != std::end (cSettingsFormData) )
+                    cFormIterator++;
+
+                std::string cValue = cFormIterator->second;
+
+                *fSettingsFormData[cKey] = cValue;
+
+                if (cFormIterator != std::end (cSettingsFormData) )
+                    cFormIterator++;
+            }
+        }
+        else
+            LOG4CPLUS_ERROR (fLogger, RED << "Error, settings map parsed from the input form has the wrong size!" << RESET );
+
+        for (auto cPair : fSettingsFormData)
+            std::cout << cPair.first << " : " << cPair.second << std::endl;
+
+    }
+    catch (std::exception& e)
+    {
+        LOG4CPLUS_ERROR (fLogger, e.what() );
+    }
+
+    if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+
+    this->lastPage (in, out);
 }
 
 void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
@@ -473,7 +588,7 @@ void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (x
     //for (auto cPair : *fHWFormData)
     //std::cout << cPair.first << " " << cPair.second << std::endl;
 
-    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+    if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 
     this->lastPage (in, out);
 }

@@ -32,7 +32,8 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
 
     //make configurable variapbles available in the Application Info Space
     this->getApplicationInfoSpace()->fireItemAvailable ("HWDescriptionFile", &fHWDescriptionFile);
-    this->getApplicationInfoSpace()->fireItemAvailable ("OutputDirectory", &fDirectory);
+    this->getApplicationInfoSpace()->fireItemAvailable ("DataDirectory", &fDataDirectory);
+    this->getApplicationInfoSpace()->fireItemAvailable ("ResultDirectory", &fResultDirectory);
     this->getApplicationInfoSpace()->fireItemAvailable ("RunNumber", &fRunNumber);
     this->getApplicationInfoSpace()->fireItemAvailable ("NEvents", &fNEvents);
 
@@ -56,14 +57,17 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
     if (e.type() == "urn:xdaq-event:setDefaultValues")
     {
         fHWDescriptionFile = Ph2TkDAQ::expandEnvironmentVariables (fHWDescriptionFile.toString() );
-        fDirectory = Ph2TkDAQ::expandEnvironmentVariables (fDirectory.toString() );
+        fDataDirectory = Ph2TkDAQ::expandEnvironmentVariables (fDataDirectory.toString() );
+        fResultDirectory = Ph2TkDAQ::expandEnvironmentVariables (fResultDirectory.toString() );
 
         fHWDescriptionFile = Ph2TkDAQ::removeFilePrefix (fHWDescriptionFile.toString() );
-        fDirectory = Ph2TkDAQ::removeFilePrefix (fDirectory.toString() );
+        fDataDirectory = Ph2TkDAQ::removeFilePrefix (fDataDirectory.toString() );
+        fResultDirectory = Ph2TkDAQ::removeFilePrefix (fResultDirectory.toString() );
 
         //need to nofify the GUI of these variables
         fGUI->fHWDescriptionFile = &fHWDescriptionFile;
-        fGUI->fDirectory = &fDirectory;
+        fGUI->fDataDirectory = &fDataDirectory;
+        fGUI->fResultDirectory = &fResultDirectory;
         fGUI->fRunNumber = &fRunNumber;
         fGUI->fNEvents = &fNEvents;
 
@@ -71,7 +75,8 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
 
         ss << std::endl << BOLDYELLOW << "***********************************************************" << std::endl;
         ss <<  GREEN << "HW Description file: " << fHWDescriptionFile.toString() << " set!" << std::endl;
-        ss << "Output Directory: " << fDirectory.toString() << " set!" << std::endl;
+        ss << "Data Directory: " << fDataDirectory.toString() << " set!" << std::endl;
+        ss << "Result Directory: " << fResultDirectory.toString() << " set!" << std::endl;
         ss << "Run Number: " << fRunNumber << " set!" << std::endl;
         ss << "N Events: " << fNEvents << " set!" << std::endl;
         ss << "All Default Values set!" << std::endl;

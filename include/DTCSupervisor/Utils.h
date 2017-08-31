@@ -57,8 +57,10 @@ namespace Ph2TkDAQ {
 
     inline void remove_xml_header (std::string& pString, std::string pPattern)
     {
-        if (pString.rfind (pPattern) != 0 )
-            pString.erase (0, pString.rfind (pPattern) );
+        //if (pString.rfind (pPattern) != 0 )
+        //pString.erase (0, pString.rfind (pPattern) );
+        if (pString.find (pPattern) != std::string::npos )
+            pString.erase (0, pString.find (pPattern) );
     }
 
     inline void cleanup_after_XSLT (std::string& pString)
@@ -67,7 +69,11 @@ namespace Ph2TkDAQ {
     }
     inline void cleanup_after_Update (std::string& pString)
     {
-        remove_xml_header (pString, "<div onload");
+        if (pString.find ("<div onload") != std::string::npos)
+            remove_xml_header (pString, "<div onload");
+        else if (pString.find ("<tr>") != std::string::npos)
+            remove_xml_header (pString, "<tr");
+
         cleanupHTMLString (pString, "<html>", "");
         cleanupHTMLString (pString, "</html>", "");
         cleanupHTMLString (pString, "<body>", "");
@@ -129,6 +135,20 @@ namespace Ph2TkDAQ {
             std::cout << RED << "Error, CSS Stylesheet " << pStylesheet << " could not be opened!" << RESET << std::endl;
 
         return cResult;
+    }
+
+    inline std::string inttostring (const int& pInt)
+    {
+        return std::to_string (pInt);
+    }
+    inline int stringtoint (const char* pString)
+    {
+        int val = 0;
+
+        while ( *pString )
+            val = val * 10 + (*pString++ - '0');
+
+        return val;
     }
 
 }

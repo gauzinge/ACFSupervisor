@@ -63,6 +63,8 @@ namespace Ph2TkDAQ {
         void dumpHWDescription (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         //action taken on submit of new HWFile
         void reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        //process the main Ph2 ACF form
+        void processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         //parsing of HWConfig form on submit
         void handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         //GUI handler for FSM transitions
@@ -116,6 +118,23 @@ namespace Ph2TkDAQ {
                 *out << cgicc::input().set ("type", "submit").set ("name", "transition").set ("value", (pTransition) ).set ("disabled", "true") << std::endl;
         }
 
+        void createProcedureInput (xgi::Output* out)
+        {
+            for (auto cString : fProcedures)
+            {
+                auto cProc = fProcedureMap.find (cString);
+
+                if (cProc != std::end (fProcedureMap) )
+                {
+                    //if true
+                    if (cProc->second)
+                        * out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", cProc->first).set ("id", cProc->first).set ("value", "on").set ("checked", "checked") << cProc->first << cgicc::label() << cgicc::br() << std::endl;
+                    else
+                        * out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", cProc->first).set ("id", cProc->first).set ("value", "on") << cProc->first <<  cgicc::label() << cgicc::br() << std::endl;
+                }
+            }
+        }
+
         //members
       private:
         xdaq::WebApplication* fApp;
@@ -123,10 +142,17 @@ namespace Ph2TkDAQ {
         log4cplus::Logger fLogger;
         std::string fURN;
         DTCStateMachine* fFSM;
+        const std::vector<std::string> fProcedures{"Data Taking", "Calibration", "Pedestal&Noise", "Commissioning", "Pulseshape", "Hybridtest", "Systemtest"};
+        std::map<std::string, bool> fProcedureMap;
+        bool fLatency;
+        bool fStubLatency;
+        int fLatencyStartValue;
+        int fLatencyRange;
 
       public:
         xdata::String* fHWDescriptionFile;
-        xdata::String* fDirectory;
+        xdata::String* fDataDirectory;
+        xdata::String* fResultDirectory;
         xdata::Integer* fRunNumber;
         xdata::Integer* fNEvents;
 
@@ -135,6 +161,7 @@ namespace Ph2TkDAQ {
         std::string fHWFormString;
         std::string fSettingsFormString;
         std::string fHwXMLString;
+        std::string fSettingsXMLString;
         Tab fCurrentPageView;
     };
 }

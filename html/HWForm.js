@@ -1,6 +1,6 @@
 function SelectFile(val, Id){
     var element=document.getElementById('configfile'+Id.toString());
-    console.log(val, Id)
+    //console.log(val, Id)
     if(val=='other')
       element.style.display='inline';
     else  
@@ -10,7 +10,7 @@ function SelectFile(val, Id){
 
 function SelectDefaultOption(id, val)
 {    
-    console.log(id, val)
+    //console.log(id, val)
     var element = document.getElementById(id);
     if(element != null)
     {
@@ -24,14 +24,14 @@ function SelectDefaultOption(id, val)
 }
 
 function SetEventType(val) {
-    <!--console.log(val)-->
+    //<!--console.log(val)-->
     <!--Get all options within <select id='foo'>...</select>-->
     var op = document.getElementById('eventType').getElementsByTagName('option');
     <!--if the value of boardType is not D19C, disable ZS -->
     if(val != 'D19C') {
         for(var i = 0; i < op.length; i++) {
             if(op[i].value=='ZS'){ op[i].disabled = true;
-            <!--console.log(op[i])-->
+            //<!--console.log(op[i])-->
             }
         }
     }
@@ -40,7 +40,7 @@ function SetEventType(val) {
         for (var i = 0; i < op.length; i++) {
             if(op[i].value == 'ZS') op[i].disabled = false;
             else op[i].disabled = false;
-            <!--console.log(op[i])-->
+            //<!--console.log(op[i])-->
          }
     }
 }
@@ -137,7 +137,6 @@ function DisplayFieldsOnload(){
 
     for(var i=0; i < ConditionDataIds.length;i++) {
         var elem = document.getElementById(ConditionDataIds[i]);
-        console.log(elem)
         if(elem != null) {
             var selected_node = elem.options[elem.selectedIndex].value;
             DisplayFields(selected_node, i+1);
