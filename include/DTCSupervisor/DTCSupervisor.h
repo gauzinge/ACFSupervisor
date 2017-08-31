@@ -16,6 +16,7 @@
 
 #include "xdata/ActionListener.h"
 #include "xdata/String.h"
+#include "xdata/Integer.h"
 
 
 #include "DTCSupervisor/SupervisorGUI.h"
@@ -45,7 +46,9 @@ namespace Ph2TkDAQ {
 
       protected:
         xdata::String fHWDescriptionFile;
-        //xdata::String fXLSStylesheet;
+        xdata::String fDirectory;
+        xdata::Integer fRunNumber;
+        xdata::Integer fNEvents;
 
       private:
         FormData fHWFormData;

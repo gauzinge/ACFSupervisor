@@ -54,6 +54,7 @@ namespace Ph2TkDAQ {
         for (size_t i = 0; i < pNLines; i++)
             pString.erase (0, pString.find ("\n") + 1);
     }
+
     inline void remove_xml_header (std::string& pString, std::string pPattern)
     {
         if (pString.rfind (pPattern) != 0 )
@@ -62,9 +63,7 @@ namespace Ph2TkDAQ {
 
     inline void cleanup_after_XSLT (std::string& pString)
     {
-        //removeLeadingLines (pString, 1);
         remove_xml_header (pString, "<div onload");
-        cleanupHTMLString (pString, "&lt;", "<");
     }
     inline void cleanup_after_Update (std::string& pString)
     {
@@ -81,17 +80,6 @@ namespace Ph2TkDAQ {
     {
         std::string cString = pString;
         remove_xml_header (cString, "<div onload");
-        //cString.insert (0, "<!DOCTYPE html>\n");
-
-        auto begin = cString.find ("<script");
-        auto end = cString.rfind ("</script>");
-
-        //remove the javascript part so I dont have to worry about character entities
-        if (std::string::npos != begin && std::string::npos != end && begin <= end)
-            cString.erase (begin, end - begin);
-
-        cleanupHTMLString (cString, "</script>\n", "");
-
         return cString;
     }
 
@@ -122,7 +110,7 @@ namespace Ph2TkDAQ {
         return (stat (name.c_str(), &buffer) == 0);
     }
 
-    inline std::string parseStylesheetCSS (std::string pStylesheet, std::ostringstream& pStream)
+    inline std::string parseExternalResource (std::string pStylesheet, std::ostringstream& pStream)
     {
         std::string cResult;
 

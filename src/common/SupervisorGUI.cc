@@ -25,6 +25,7 @@ SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp, DTCStateMachine* pStat
 
     //helper methods for buttons etc
     xgi::bind (this, &SupervisorGUI::reloadHWFile, "reloadHWFile");
+    xgi::bind (this, &SupervisorGUI::dumpHWDescription, "dumpHWDescription");
     xgi::bind (this, &SupervisorGUI::fsmTransition, "fsmTransition");
     xgi::bind (this, &SupervisorGUI::handleHWFormData, "handleHWFormData");
     xgi::bind (this, &SupervisorGUI::lastPage, "lastPage");
@@ -46,6 +47,7 @@ void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exce
     // generate the page content
     *out << cgicc::h3 ("DTC Supervisor Main Page") << std::endl;
     this->displayLoadForm (in, out);
+    this->displayPh2_ACFForm (in, out);
 
     //LOG4CPLUS_INFO (fLogger, cLogStream.str() );
     this->createHtmlFooter (in, out);
@@ -53,20 +55,27 @@ void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exce
 
 void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
 {
+    std::ostringstream cLogStream;
     //define view and create header
     fCurrentPageView = Tab::CONFIG;
     this->createHtmlHeader (in, out, fCurrentPageView);
 
     char cState = fFSM->getCurrentState();
 
-    //string defining action
-    std::string url = fURN + "handleHWFormData";
-
     this->displayLoadForm (in, out);
+    this->displayDumpForm (in, out);
 
     // Display the HwDescription HTML form
     // only allow changes in Initial and Configured
-    *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
+    std::string url = fURN + "handleHWFormData";
+
+    std::string JSfile = expandEnvironmentVariables (HOME);
+    JSfile += "/html/HWForm.js";
+
+    *out << cgicc::script().set ("type", "text/javascript") << std::endl;
+    *out << parseExternalResource (JSfile, cLogStream) << std::endl;
+    *out << cgicc::script() << std::endl;
+    *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onload", "DisplayFieldsOnload();") << std::endl;
 
     if (cState != 'E')
     {
@@ -79,11 +88,13 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
         *out << cgicc::input().set ("type", "reset").set ("title", "reset the form").set ("value", "Reset").set ("disabled", "true") << std::endl;
     }
 
+
     *out << fHWFormString << std::endl;
     *out << cgicc::form() << std::endl;
 
 
     this->createHtmlFooter (in, out);
+    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 }
 
 void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab)
@@ -94,7 +105,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     fManager.getHTMLHeader (in, out);
     //Style this thing
     *out << cgicc::style() << std::endl;
-    *out << parseStylesheetCSS (expandEnvironmentVariables (CSSSTYLESHEET), cLogStream) << std::endl;
+    *out << parseExternalResource (expandEnvironmentVariables (CSSSTYLESHEET), cLogStream) << std::endl;
     *out << cgicc::style() << std::endl;
 
     *out << cgicc::title ("DTC Supervisor")  << std::endl;
@@ -175,8 +186,9 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
         this->createStateTransitionButton ("Destroy", out);
         *out << cgicc::form() << std::endl;
 
+        std::string cFilename = fHWDescriptionFile->toString().substr (fHWDescriptionFile->toString().find_last_of ("/") + 1);
         *out << cgicc::br() << std::endl;
-        *out << cgicc::div().set ("class", "current_file") << "Current HW File: " << fHWDescriptionFile->toString() << cgicc::div()  << std::endl;
+        *out << cgicc::div().set ("class", "current_file") << "Current HW File: " << cFilename << cgicc::div()  << std::endl;
         *out << "</div>" << std::endl;
     }
     catch (xgi::exception::Exception& e)
@@ -288,12 +300,144 @@ void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::
     {
         fHWFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), expandEnvironmentVariables (XSLSTYLESHEET), cLogStream);
         cleanup_after_XSLT (fHWFormString);
+        fSettingsFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), expandEnvironmentVariables (SETTINGSSTYLESHEET), cLogStream);
+
+        if (fSettingsFormString.empty() )
+            LOG4CPLUS_ERROR (fLogger, "Error, HW Description File " << fHWDescriptionFile->toString() << " does not contain any run settings!");
     }
     else
         LOG4CPLUS_ERROR (fLogger, "Error, HW Description File " << fHWDescriptionFile->toString() << " is an empty string or does not exist!");
 
     LOG4CPLUS_INFO (fLogger, cLogStream.str() );
     this->lastPage (in, out);
+}
+
+void SupervisorGUI::displayDumpForm (xgi::Input* in, xgi::Output* out)
+{
+    //string defining action
+    std::string url = fURN + "dumpHWDescription";
+    *out << cgicc::form().set ("style", "padding-top:10px").set ("style", "padding-bottom:10px").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
+    *out << "<label for=\"fileDumpPath\">Path for Hw File dump:  </label>" << std::endl;
+    *out << cgicc::input().set ("type", "text").set ("name", "fileDumpPath").set ("title", "file path to dump HW Description File").set ("value", expandEnvironmentVariables (HOME) ).set ("size", "70") << std::endl;
+    *out << cgicc::input().set ("type", "submit").set ("title", "dump HWDescription form to XML File").set ("value", "Dump") << std::endl;
+    *out << cgicc::form() << std::endl;
+}
+
+void SupervisorGUI::dumpHWDescription (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    //check if the form string is empty
+    if ( fHWFormString.empty() )
+        LOG4CPLUS_ERROR (fLogger, RED << "Error: HW description file has not been loaded - thus no changes to dump - refer to the original file!" << RESET);
+    //this->reloadHWFile (in, out);
+    else
+    {
+        try
+        {
+            std::string cFileDumpPath;
+            //parse the form input
+            cgicc::Cgicc cgi (in);
+            cgicc::form_iterator cIt = cgi.getElement ("fileDumpPath");
+
+            if (!cIt->isEmpty() && cIt != (*cgi).end() )
+            {
+                cFileDumpPath = cIt->getValue();
+
+                if (cFileDumpPath.back() != '/')
+                    cFileDumpPath += "/";
+
+                std::string cFilename = fHWDescriptionFile->toString().substr (fHWDescriptionFile->toString().find_last_of ("/") + 1);
+                cFileDumpPath += cFilename;
+
+                //now convert the HTMLString to an xml string for Initialize of Ph2ACF
+                std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
+                std::ostringstream cLogStream;
+                std::string cHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
+                std::ofstream cOutFile (cFileDumpPath.c_str() );
+                cOutFile << cHwXMLString << std::endl;
+                cOutFile.close();
+                LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+            }
+            else
+                LOG4CPLUS_ERROR (fLogger, RED << "Error: no path provided to dump to!" << RESET);
+        }
+        catch (const std::exception& e)
+        {
+            LOG4CPLUS_ERROR (fLogger, RED << e.what() << RESET );
+        }
+    }
+}
+
+void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
+{
+    std::ostringstream cLogStream;
+
+    std::string url = fURN + "handle_Ph2_ACFForm";
+
+    std::string JSfile = expandEnvironmentVariables (HOME);
+    JSfile += "/html/formfields.js";
+
+    *out << cgicc::script().set ("type", "text/javascript") << std::endl;
+    *out << parseExternalResource (JSfile, cLogStream) << std::endl;
+    *out << cgicc::script() << std::endl;
+    *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onclick", "displayACFfields();") << std::endl;
+    //left form part
+    *out << cgicc::div().set ("class", "acf_left") << std::endl;
+    *out << cgicc::fieldset().set ("style", "margin-top:20px") << cgicc::legend ("Ph2_ACF Main Settings") << std::endl;
+    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Data Taking").set ("checked", "checked") << "Data Taking" << cgicc::label() << cgicc::br() << std::endl;
+    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Calibration") << "Calibration" << cgicc::label() << cgicc::br() << std::endl;
+    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Pedestal & Noise") << "Pedestal&Noise" << cgicc::label() << cgicc::br() << std::endl;
+    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Commission") << "Commission" << cgicc::label() << cgicc::br() << std::endl;
+    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Pulseshape") << "Pulseshape" << cgicc::label() << cgicc::br() << std::endl;
+    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Hybridtest") << "Hybridtest" << cgicc::label() << cgicc::br() << std::endl;
+    *out << cgicc::label() << cgicc::input().set ("type", "checkbox").set ("name", "procedure").set ("value", "Systemtest") << "Systemtest" << cgicc::label() << cgicc::br() << std::endl;
+    *out << cgicc::fieldset() << std::endl;
+    *out << cgicc::div() << std::endl;
+
+    //right form part
+    *out << cgicc::div().set ("class", "acf_right") << std::endl;
+
+    *out << cgicc::fieldset().set ("style", "margin-top:20px") << cgicc::legend ("Main Run Settings") << std::endl;
+    *out << cgicc::table() << std::endl;
+    *out << cgicc::tr() << std::endl;
+    *out << cgicc::td() << cgicc::label() << "Runnumber: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "runnumber").set ("size", "20").set ("value", fRunNumber->toString() ) << cgicc::td() << std::endl;
+    *out << cgicc::tr() << std::endl;
+    *out << cgicc::tr() << std::endl;
+    *out << cgicc::td() << cgicc::label() << "Number of Events: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "nevents").set ("size", "20").set ("placeholder", "number of events to take").set ("value", fNEvents->toString() ) << cgicc::td() << std::endl;
+    *out << cgicc::tr() << std::endl;
+    *out << cgicc::tr() << std::endl;
+    *out << cgicc::td() << cgicc::label() << "Result Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "result_directory").set ("size", "50").set ("value", expandEnvironmentVariables (fDirectory->toString() ) )  <<  cgicc::td() << std::endl;
+    *out << cgicc::tr() << std::endl;
+    *out << cgicc::tr() << std::endl;
+    *out << cgicc::td() << cgicc::label() << "Data Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "data_directory").set ("size", "50").set ("value", expandEnvironmentVariables (fDirectory->toString() ) )   << cgicc::td() << std::endl;
+    *out << cgicc::tr() << std::endl;
+    *out << cgicc::table() << std::endl;
+
+    *out << cgicc::fieldset().set ("style", "margin-top:20px").set ("style", "display:none") << cgicc::legend ("Commissioning Settings").set ("style", "display:none") << std::endl;
+    *out << cgicc::table().set ("style", "display:none") << std::endl;
+    *out << cgicc::tr() << std::endl;
+    *out << cgicc::td() << cgicc::label() << "Latency Scan" << cgicc::input().set ("type", "checkbox").set ("name", "latency").set ("value", "latency").set ("checked", "checked") << cgicc::label() << cgicc::td() << std::endl;
+    *out << cgicc::td() << cgicc::label() << "Stub Latency Scan" << cgicc::input().set ("type", "checkbox").set ("name", "stublatency").set ("value", "stublatency") << cgicc::label() << cgicc::td() << std::endl;
+    *out << cgicc::tr() << std::endl;
+    *out << cgicc::tr() << std::endl;
+    *out << cgicc::td() << cgicc::label() << "Minimum Latency: " << cgicc::input().set ("type", "text").set ("name", "minimum_latency").set ("size", "5").set ("value", "0") << cgicc::label() << cgicc::td() << std::endl;
+    *out << cgicc::td() << cgicc::label() << "Latency Range: " << cgicc::input().set ("type", "text").set ("name", "latency_range").set ("size", "5").set ("value", "10") << cgicc::label() << cgicc::td() << std::endl;
+    *out << cgicc::tr() << std::endl;
+    *out << cgicc::table() << std::endl;
+    *out << cgicc::fieldset() << std::endl;
+
+    *out << cgicc::fieldset() << std::endl;
+
+    *out << cgicc::div() << std::endl;
+
+    //Main Settings parsed from file!
+    *out << cgicc::fieldset().set ("style", "margin-top:40px").set ("style", "display:none") << cgicc::legend ("Application Settings").set ("style", "display:none") << std::endl;
+    *out << cgicc::table().set ("name", "settings_table").set ("style", "display:none") << std::endl;
+    *out << fSettingsFormString << std::endl;
+    *out << cgicc::fieldset() << std::endl;
+    *out << cgicc::table() << std::endl;
+    *out << cgicc::form() << std::endl;
+
+    LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 }
 
 void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)

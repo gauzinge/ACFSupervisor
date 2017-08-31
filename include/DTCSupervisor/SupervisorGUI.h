@@ -18,6 +18,7 @@
 
 #include "xdata/ActionListener.h"
 #include "xdata/String.h"
+#include "xdata/Integer.h"
 
 #include "log4cplus/logger.h"
 #include "log4cplus/loggingmacros.h"
@@ -53,8 +54,13 @@ namespace Ph2TkDAQ {
         ///Show FSM status and available transition in an HTML table
         void showStateMachineStatus (xgi::Output* out) throw (xgi::exception::Exception);
 
-        // Form to load HWDescription File
+        // Form to load and dump HWDescription File
         void displayLoadForm (xgi::Input* in, xgi::Output* out);
+        void displayDumpForm (xgi::Input* in, xgi::Output* out);
+        // Form for Ph2 ACF general settings
+        void displayPh2_ACFForm (xgi::Input* in, xgi::Output* out);
+        //handle dump of HWDescription file
+        void dumpHWDescription (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         //action taken on submit of new HWFile
         void reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         //parsing of HWConfig form on submit
@@ -120,10 +126,14 @@ namespace Ph2TkDAQ {
 
       public:
         xdata::String* fHWDescriptionFile;
-        //xdata::String* fXLSStylesheet;
+        xdata::String* fDirectory;
+        xdata::Integer* fRunNumber;
+        xdata::Integer* fNEvents;
+
         FormData* fHWFormData;
         FormData* fSettingsFormData;
         std::string fHWFormString;
+        std::string fSettingsFormString;
         std::string fHwXMLString;
         Tab fCurrentPageView;
     };

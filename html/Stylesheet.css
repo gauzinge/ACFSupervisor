@@ -46,6 +46,14 @@ input[type="number"]
     width: 40px;
 }
 
+input[type=checkbox], input[type=radio] {
+  vertical-align: middle;
+  position: relative;
+  bottom: 1px;
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
 select {
     border:none solid #ccc;
     vertical-align:center;
@@ -153,6 +161,15 @@ option {
     /*position: absolute;*/
     /*float: top;*/
     padding: 10px;
+}
+
+.content div.acf_left{
+    float: left;
+    width: 30%;
+}
+.content div.acf_right{
+    float: right;
+    width: 70%;
 }
 
 /*Sidebar with FSM diagram*/

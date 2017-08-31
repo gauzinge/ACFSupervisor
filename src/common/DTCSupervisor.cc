@@ -30,13 +30,12 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     //bind xgi and xoap commands to methods
     //xgi::bind (this, &DTCSupervisor::Default, "Default");
 
-    //helper methods for buttons etc
-    //xgi::bind (this, &DTCSupervisor::reloadHWFile, "reloadHWFile");
-    //xgi::bind (this, &DTCSupervisor::handleHWFormData, "handleHWFormData");
-
     //make configurable variapbles available in the Application Info Space
     this->getApplicationInfoSpace()->fireItemAvailable ("HWDescriptionFile", &fHWDescriptionFile);
-    //this->getApplicationInfoSpace()->fireItemAvailable ("XSLStylesheet", &fXLSStylesheet);
+    this->getApplicationInfoSpace()->fireItemAvailable ("OutputDirectory", &fDirectory);
+    this->getApplicationInfoSpace()->fireItemAvailable ("RunNumber", &fRunNumber);
+    this->getApplicationInfoSpace()->fireItemAvailable ("NEvents", &fNEvents);
+
     //detect when default values have been set
     this->getApplicationInfoSpace()->addListener (this, "urn:xdaq-event:setDefaultValues");
 
@@ -57,20 +56,26 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
     if (e.type() == "urn:xdaq-event:setDefaultValues")
     {
         fHWDescriptionFile = Ph2TkDAQ::expandEnvironmentVariables (fHWDescriptionFile.toString() );
-        //fXLSStylesheet = Ph2TkDAQ::expandEnvironmentVariables (fXLSStylesheet.toString() );
+        fDirectory = Ph2TkDAQ::expandEnvironmentVariables (fDirectory.toString() );
 
         fHWDescriptionFile = Ph2TkDAQ::removeFilePrefix (fHWDescriptionFile.toString() );
-        //fXLSStylesheet = Ph2TkDAQ::removeFilePrefix (fXLSStylesheet.toString() );
+        fDirectory = Ph2TkDAQ::removeFilePrefix (fDirectory.toString() );
 
         //need to nofify the GUI of these variables
         fGUI->fHWDescriptionFile = &fHWDescriptionFile;
-        //fGUI->fXLSStylesheet = &fXLSStylesheet;
+        fGUI->fDirectory = &fDirectory;
+        fGUI->fRunNumber = &fRunNumber;
+        fGUI->fNEvents = &fNEvents;
 
         std::stringstream ss;
 
-        ss << std::endl << BLUE << "HW Description file: " << fHWDescriptionFile.toString() << " set!" << std::endl;
-        //ss << "XSL HW Description Stylesheet: " << fXLSStylesheet.toString() << " set!" << std::endl;
-        ss << "All Default Values set!" << RESET << std::endl;
+        ss << std::endl << BOLDYELLOW << "***********************************************************" << std::endl;
+        ss <<  GREEN << "HW Description file: " << fHWDescriptionFile.toString() << " set!" << std::endl;
+        ss << "Output Directory: " << fDirectory.toString() << " set!" << std::endl;
+        ss << "Run Number: " << fRunNumber << " set!" << std::endl;
+        ss << "N Events: " << fNEvents << " set!" << std::endl;
+        ss << "All Default Values set!" << std::endl;
+        ss << BOLDYELLOW <<  "***********************************************************" << RESET << std::endl;
         LOG4CPLUS_INFO (this->getApplicationLogger(), ss.str() );
         //here is the listener for FSM state transition commands via xoap
         //have a look at https://gitlab.cern.ch/cms_tk_ph2/BoardSupervisor/blob/master/src/common/BoardSupervisor.cc
