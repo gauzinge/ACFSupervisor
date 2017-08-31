@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-    <xsl:output method="html" indent="yes" />
+    <xsl:output method="xml" indent="yes" />
 
     <xsl:template match="/">
-        <!--<table>-->
+        <div onload="">
         <xsl:apply-templates match="Setting"/>
             <!--<tr>-->
                 <!--<td>-->
@@ -13,7 +13,7 @@
                     <!--<input type="text" name="setting_value_{count(preceding-sibling::Setting)}" value="" size="10"/>-->
                 <!--</td>-->
             <!--</tr>-->
-        <!--</table>-->
+        </div>
     </xsl:template>
 
     <xsl:template match="Setting">

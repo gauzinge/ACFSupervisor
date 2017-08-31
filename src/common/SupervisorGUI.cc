@@ -232,6 +232,9 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
             fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
             std::cout << fHwXMLString << std::endl;
             //now do the same for the Settings
+            cTmpFormString = cleanup_before_XSLT (fSettingsFormString);
+            fSettingsXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (SETTINGSSTYLESHEETINVERSE), cLogStream, false);
+            std::cout << fSettingsXMLString << std::endl;
         }
 
 
@@ -515,35 +518,29 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
         }
 
         //last argument stripps the unchanged fields
-
-        FormData cSettingsFormData = XMLUtils::updateHTMLForm (this->fSettingsFormString, cSettingFormPairs, cLogStream, true );
+        FormData cSettingsFormData = XMLUtils::updateHTMLForm (this->fSettingsFormString, cSettingFormPairs, cLogStream, false );
 
         //now I have settings form Data but Ideally I want to change it to key-value pairs containing setting:value
         if (cSettingsFormData.size() % 2 == 0)
         {
-            auto cFormIterator = cSettingsFormData.begin();
-
-            while (cFormIterator != std::end (cSettingsFormData) )
+            for (auto cPair : cSettingsFormData)
             {
-                std::string cKey = cFormIterator->second;
+                if (cPair.first.length() < 11 ) // the name of the field is "setting_%d" so I have a new key
+                {
+                    size_t pos = cPair.first.find ("_");
+                    std::string cKey = "setting_value_" + cPair.first.substr (pos + 1, cPair.first.length() - pos);
 
-                if (cFormIterator != std::end (cSettingsFormData) )
-                    cFormIterator++;
+                    auto cValuePair = cSettingsFormData.find (cKey);
 
-                std::string cValue = cFormIterator->second;
-
-                *fSettingsFormData[cKey] = cValue;
-
-                if (cFormIterator != std::end (cSettingsFormData) )
-                    cFormIterator++;
+                    if (cValuePair == std::end (cSettingsFormData) )
+                        LOG4CPLUS_ERROR (fLogger, RED << "Error, could not find the value for key " << cPair.second << RESET );
+                    else
+                        (*fSettingsFormData) [cPair.second] = cValuePair->second;
+                }
             }
         }
         else
             LOG4CPLUS_ERROR (fLogger, RED << "Error, settings map parsed from the input form has the wrong size!" << RESET );
-
-        for (auto cPair : fSettingsFormData)
-            std::cout << cPair.first << " : " << cPair.second << std::endl;
-
     }
     catch (std::exception& e)
     {
@@ -580,13 +577,8 @@ void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (x
         LOG4CPLUS_ERROR (fLogger, e.what() );
     }
 
-    //set this to true once the HWDescription object is initialized to get a reduced set of form input pairs to modify existing HWDescription objects
-    bool cStripUnchanged = true;
-
-    *fHWFormData = XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormPairs, cLogStream, cStripUnchanged );
-
-    //for (auto cPair : *fHWFormData)
-    //std::cout << cPair.first << " " << cPair.second << std::endl;
+    //always strip the unchanged since I am only using this info in the fHWFormData to update once the HWTree is initialized
+    *fHWFormData = XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormPairs, cLogStream, true );
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 
