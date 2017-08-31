@@ -1,6 +1,7 @@
 #ifndef __Utils_H__
 #define __Utils_H__
 
+#include <iostream>
 #include <cstdlib>
 #include <string>
 #include <algorithm>
@@ -48,6 +49,52 @@ namespace Ph2TkDAQ {
         }
     }
 
+    inline void removeLeadingLines (std::string& pString, size_t pNLines)
+    {
+        for (size_t i = 0; i < pNLines; i++)
+            pString.erase (0, pString.find ("\n") + 1);
+    }
+    inline void remove_xml_header (std::string& pString, std::string pPattern)
+    {
+        if (pString.rfind (pPattern) != 0 )
+            pString.erase (0, pString.rfind (pPattern) );
+    }
+
+    inline void cleanup_after_XSLT (std::string& pString)
+    {
+        //removeLeadingLines (pString, 1);
+        remove_xml_header (pString, "<div onload");
+        cleanupHTMLString (pString, "&lt;", "<");
+    }
+    inline void cleanup_after_Update (std::string& pString)
+    {
+        remove_xml_header (pString, "<div onload");
+        cleanupHTMLString (pString, "<html>", "");
+        cleanupHTMLString (pString, "</html>", "");
+        cleanupHTMLString (pString, "<body>", "");
+        cleanupHTMLString (pString, "</body>", "");
+        cleanupHTMLString (pString, "<![CDATA[", "");
+        cleanupHTMLString (pString, "]]>", "");
+    }
+
+    inline std::string cleanup_before_XSLT (std::string pString)
+    {
+        std::string cString = pString;
+        remove_xml_header (cString, "<div onload");
+        //cString.insert (0, "<!DOCTYPE html>\n");
+
+        auto begin = cString.find ("<script");
+        auto end = cString.rfind ("</script>");
+
+        //remove the javascript part so I dont have to worry about character entities
+        if (std::string::npos != begin && std::string::npos != end && begin <= end)
+            cString.erase (begin, end - begin);
+
+        cleanupHTMLString (cString, "</script>\n", "");
+
+        return cString;
+    }
+
     static std::string expandEnvironmentVariables (  std::string s )
     {
         s.erase (std::remove_if (s.begin(), s.end(), ::isspace), s.end() );
@@ -91,8 +138,7 @@ namespace Ph2TkDAQ {
             //pStream << "Successfully parsed CSS Stylesheet " << pStylesheet << std::endl;
         }
         else
-            pStream << RED << "Error, CSS Stylesheet " << pStylesheet << " could not be opened!" << RESET << std::endl;
-
+            std::cout << RED << "Error, CSS Stylesheet " << pStylesheet << " could not be opened!" << RESET << std::endl;
 
         return cResult;
     }

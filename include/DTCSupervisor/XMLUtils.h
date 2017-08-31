@@ -9,30 +9,21 @@
 #include <map>
 
 #include "ConsoleColor.h"
+#include "Utils.h"
 
-#include <xalanc/Include/PlatformDefinitions.hpp>
-#include <xercesc/util/PlatformUtils.hpp>
-#include <xalanc/XalanTransformer/XalanTransformer.hpp>
+//#include <xalanc/Include/PlatformDefinitions.hpp>
+//#include <xercesc/util/PlatformUtils.hpp>
+//#include <xalanc/XalanTransformer/XalanTransformer.hpp>
 
 #include <libxml/tree.h>
 #include <libxml/HTMLparser.h>
 #include <libxml/xmlsave.h>
 #include <libxml++/libxml++.h>
+#include <libxslt/transform.h>
+#include <libxslt/xsltutils.h>
 
 
 namespace Ph2TkDAQ {
-    struct LUTEntry
-    {
-        std::string fXPath;
-        std::string fHWTreeLevel;
-        int fBeId, fFeId, fCbcId;
-        LUTEntry (std::string pXPath, std::string pHWTreeLevel, int BeId, int FeId, int CbcId ) :
-            fXPath (pXPath),
-            fHWTreeLevel (pHWTreeLevel),
-            fBeId (BeId),
-            fFeId (FeId),
-            fCbcId (CbcId) {}
-    };
 
     class XMLUtils
     {
@@ -50,21 +41,6 @@ namespace Ph2TkDAQ {
 
         static void print_indentation (unsigned int indentation);
         static void print_node (const xmlpp::Node* node, unsigned int indentation = 0);
-
-      public:
-        //method to get the HWDescription.xml into a string
-        //static std::string getXMLString (const std::string& pFilename, std::ostringstream& pStream);
-        //method to update xml HWDescription string based on LUT
-        //static void updateXMLString (std::string& pFormString, std::map<std::string, std::string> pFormValues, std::ostringstream& pStream);
-        //method to parse an XPath Lut
-        //static std::map<std::string, LUTEntry> parseLUT (const std::string& pFilename, std::ostringstream& pStream);
-        //method to get a LUT entry
-        //static LUTEntry getEntry (const std::map<std::string, LUTEntry>& pMap, const std::string& pFormNodeName)
-        //{
-        //if (pMap.find (pFormNodeName) != std::end (pMap) )
-        //return pMap.find (pFormNodeName);
-        //else return 0;
-        //}
     };
 }
 #endif

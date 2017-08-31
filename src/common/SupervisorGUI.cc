@@ -1,4 +1,5 @@
 #include "DTCSupervisor/SupervisorGUI.h"
+#include <fstream>
 
 using namespace Ph2TkDAQ;
 
@@ -151,7 +152,6 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
         //the action is the fsmTransitionHandler
         std::string url = fURN + "fsmTransition";
 
-
         //display the sidenav with the FSM controls
         *out << "<div class=\"sidenav\">" << std::endl;
         *out << "<p class=\"state\">Current State: " << fFSM->getStateName (fFSM->getCurrentState() ) << "/" << fFSM->getCurrentState() << "</p>" << std::endl;
@@ -205,15 +205,11 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
                 this->reloadHWFile (in, out);
 
             //now convert the HTMLString to an xml string for Initialize of Ph2ACF
-            fHwXMLString = XMLUtils::transformXmlDocument (fHWFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
+            std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
+            fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
             std::cout << fHwXMLString << std::endl;
-            //cleanupHTMLString (fHWFormString, "&lt;", "<");
-            //cleanupHTMLString (fHWFormString, "<?xml version=\"1.0\"?>", "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\" \"http://www.w3.org/TR/REC-html40/loose.dtd\">");
         }
 
-        // if the transition is Configure, and the HWForm data has not been submitted get the hwForm Data
-        if ( cTransition == "Configure" && !fHWFormData->size() )
-            cLogStream << BOLDYELLOW << "HW Description File " << fHWDescriptionFile->toString() << " not changed by the user - thus configuring from values parsed from XML" << RESET << std::endl;
 
         if (cTransition == "Refresh")
             this->lastPage (in, out);
@@ -291,8 +287,7 @@ void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::
     if (!fHWDescriptionFile->toString().empty() && checkFile (fHWDescriptionFile->toString() ) )
     {
         fHWFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), expandEnvironmentVariables (XSLSTYLESHEET), cLogStream);
-        cleanupHTMLString (fHWFormString, "&lt;", "<");
-        cleanupHTMLString (fHWFormString, "<?xml version=\"1.0\"?>", "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\" \"http://www.w3.org/TR/REC-html40/loose.dtd\">");
+        cleanup_after_XSLT (fHWFormString);
     }
     else
         LOG4CPLUS_ERROR (fLogger, "Error, HW Description File " << fHWDescriptionFile->toString() << " is an empty string or does not exist!");
@@ -331,9 +326,10 @@ void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (x
 
     *fHWFormData = XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormPairs, cLogStream, cStripUnchanged );
 
-    for (auto cPair : *fHWFormData)
-        std::cout << cPair.first << " " << cPair.second << std::endl;
+    //for (auto cPair : *fHWFormData)
+    //std::cout << cPair.first << " " << cPair.second << std::endl;
 
     LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+
     this->lastPage (in, out);
 }

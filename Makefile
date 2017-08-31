@@ -18,8 +18,8 @@ LibraryDirs = \
 
 ExeternalObjects =
 
-UserCCFlags = -g -fPIC -std=c++11 -Wcpp -Wno-unused-local-typedefs -O0 $(shell pkg-config --cflags libxml++-2.6) $(shell xml2-config --cflags)
-UserDynamicLinkFlags = -lxalan-c $(shell pkg-config --libs libxml++-2.6) $(shell xml2-config --libs)
+UserCCFlags = -g -fPIC -std=c++11 -Wcpp -Wno-unused-local-typedefs -O0 $(shell pkg-config --cflags libxml++-2.6) $(shell xslt-config --cflags) #$(shell xml2-config --cflags)
+UserDynamicLinkFlags = $(shell pkg-config --libs libxml++-2.6) $(shell xslt-config --libs) # $(shell xml2-config --libs) -lxalan-c 
 
 
 DynamicLibrary=DTCSupervisor

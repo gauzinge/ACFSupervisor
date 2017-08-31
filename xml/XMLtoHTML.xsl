@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-    <xsl:output method="xml" indent="yes" version='1.0'/>
+    <xsl:output method="xml" indent="yes"/>
 
     <!--now parse the whole thing-->
     <xsl:template match="/*">
         <!--<html>-->
-            <div>
-            <body onload='DisplayFieldsOnload();'>
+            <div onload='DisplayFieldsOnload();'>
+            <!--<body >-->
                 <h3>HWDescription</h3>
                 <xsl:apply-templates select="BeBoard"/>
-            </body>
+            <!--</body>-->
                 <script type="text/javascript">
                  function SelectFile(val, Id){
                     var element=document.getElementById('configfile'+Id.toString());
@@ -484,4 +484,5 @@
         </li>
     </xsl:template>
 
+    <xsl:template match="text()"/>
 </xsl:stylesheet>

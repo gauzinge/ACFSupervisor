@@ -4,57 +4,53 @@ using namespace Ph2TkDAQ;
 
 std::string XMLUtils::transformXmlDocument (const std::string& pInputDocument, const std::string& pStylesheet, std::ostringstream& pStream, bool pIsFile)
 {
-    pStream << std::endl;
-    //for the namespaces
-    XALAN_USING_XERCES (XMLPlatformUtils)
-    XALAN_USING_XALAN (XalanTransformer)
+    //extern int xmlLoadExtDtdDefaultValue;
+    //input
+    std::stringstream cInput;
+    //output
+    std::string cHtmlResult;
 
-    //initialize the Xerces and Xalan Platforms
-    XMLPlatformUtils::Initialize();
-    XalanTransformer::initialize();
+    if (pIsFile)
+    {
+        std::ifstream cInFile (pInputDocument.c_str() );
 
-    //declare a transformer
-    XalanTransformer cXalanTransformer;
-
-    std::stringstream cHtmlResult;
+        if (cInFile)
+        {
+            cInput << cInFile.rdbuf();
+            cInFile.close();
+        }
+    }
+    else
+        cInput.str (pInputDocument);
 
     try
     {
-        xalanc_1_11::XSLTInputSource xmlIn;
+        xmlDocPtr cInputDoc = xmlReadMemory (cInput.str().c_str(), cInput.str().length(), "teststring.xsl", 0, 0); //last to arguments are no endcoding (read from header) and no further options
+        //xmlSubstituteEntitiesDefault (1);
+        xmlLoadExtDtdDefaultValue = 1;
+        xsltStylesheetPtr cStylesheet = xsltParseStylesheetFile ( (const xmlChar*) pStylesheet.c_str() );
+        xmlDocPtr cOutput = xsltApplyStylesheet (cStylesheet, cInputDoc, 0);
 
-        if (!pIsFile)
-        {
-            std::stringstream cInputStream;
-            cInputStream << pInputDocument << std::endl;
-            xalanc_1_11::XSLTInputSource stringIn (cInputStream );
-            xmlIn = stringIn;
-        }
-        else
-        {
-            xalanc_1_11::XSLTInputSource fileIn (pInputDocument.c_str() );
-            xmlIn = fileIn;
-        }
+        //save the output to string
+        xmlChar* xmlbuff;
+        int buffersize;
+        xmlDocDumpFormatMemory (cOutput, &xmlbuff, &buffersize, 1);
+        const std::string cTmpString = reinterpret_cast<const char*> (xmlbuff);
+        cHtmlResult = cTmpString;
 
-        xalanc_1_11::XSLTInputSource xslIn (pStylesheet.c_str() );
-        xalanc_1_11::XSLTResultTarget xmlOut (cHtmlResult);
-        int cResult = cXalanTransformer.transform (xmlIn, xslIn, xmlOut);
+        xmlFreeDoc (cInputDoc);
+        xmlFreeDoc (cOutput);
+        xsltFreeStylesheet (cStylesheet);
 
-
-        if (cResult == 0)
-            pStream << BLUE << "Successfully transformed xml file: " << pInputDocument << " to html using stylesheet " << pStylesheet << RESET << std::endl;
-        else
-            pStream << RED << "There was an Error transforming the input xml file: " << pInputDocument << " using the stylesheet " << pStylesheet << RESET << std::endl;
-
-        XalanTransformer::terminate();
-        XMLPlatformUtils::Terminate();
-        XalanTransformer::ICUCleanUp();
     }
-    catch (const std::exception& e)
+    catch (std::exception& e)
     {
-        pStream << RED << "Exception: " << e.what() << RESET << std::endl;
+        pStream << RED << "Error parsing the document with libxslt: " << e.what() << RESET << std::endl;
     }
 
-    return cHtmlResult.str();
+    xmlCleanupParser();
+    xsltCleanupGlobals();
+    return cHtmlResult;
 }
 
 const std::map<std::string, std::string> XMLUtils::updateHTMLForm (std::string& pFormString, std::vector<std::pair<std::string, std::string>>& pFormData, std::ostringstream& pStream, bool pStripUnchanged)
@@ -128,34 +124,44 @@ const std::map<std::string, std::string> XMLUtils::updateHTMLForm (std::string& 
         }
     }
 
+    //proper xhtml output
+    xmlChar* buff;
+    int buffersize;
 
-    xmlBufferPtr buffer = xmlBufferCreate();
+    xmlDocDumpFormatMemory (doc, &buff, &buffersize, 1);
 
-    if (buffer == nullptr)
-    {
-        pStream << RED << "Error creating buffer for updated HTML form" << RESET << std::endl;
-        //return;
-    }
-
-    xmlSaveCtxtPtr saveCtxtPtr = xmlSaveToBuffer (buffer, NULL, XML_SAVE_NO_DECL);
-
-    if (xmlSaveDoc (saveCtxtPtr, doc) < 0)
-    {
-        pStream << RED << "Error saving updated HTML form" << RESET << std::endl;
-        //return;
-    }
-
-    xmlSaveClose (saveCtxtPtr);
-    const xmlChar* xmlCharBuffer = xmlBufferContent (buffer);
-    const std::string cTmpString = reinterpret_cast<const char*> (xmlCharBuffer);
+    const std::string cTmpString = reinterpret_cast<const char*> (buff);
     pFormString = cTmpString;
-    //pFormString = reinterpret_cast<char*> (xmlCharBuffer);
+    cleanup_after_Update (pFormString);
 
     delete root;
     xmlFreeDoc (doc);
     xmlCleanupParser();    // Free globals
 
     return cFormData;
+    //way of retaining the input
+    //https://stackoverflow.com/questions/41576852/write-htmldocptr-to-string
+    //xmlBufferPtr buffer = xmlBufferCreate();
+
+    //if (buffer == nullptr)
+    //{
+    //pStream << RED << "Error creating buffer for updated HTML form" << RESET << std::endl;
+    //return;
+    //}
+
+    //xmlSaveCtxtPtr saveCtxtPtr = xmlSaveToBuffer (buffer, NULL, XML_SAVE_NO_DECL);
+
+    //if (xmlSaveDoc (saveCtxtPtr, doc) < 0)
+    //{
+    //pStream << RED << "Error saving updated HTML form" << RESET << std::endl;
+    //return;
+    //}
+
+    //xmlSaveClose (saveCtxtPtr);
+    //const xmlChar* xmlCharBuffer = xmlBufferContent (buffer);
+    //const std::string cTmpString = reinterpret_cast<const char*> (xmlCharBuffer);
+    //pFormString = cTmpString;
+    //cleanup_after_Update (pFormString);
 }
 
 bool XMLUtils::handle_select_node (xmlpp::Node* node, std::string& pOldValue, const std::string& pValue)
@@ -202,33 +208,6 @@ bool XMLUtils::handle_select_node (xmlpp::Node* node, std::string& pOldValue, co
     }
 
     return cIsChanged;
-
-
-
-    //if (nodeElement != nullptr)
-    //{
-    //std::cout << "survived3" << std::endl;
-    //std::cout << nodeText->get_content() << std::endl;
-
-    //if (attribute == nullptr) // attribute is called name instead
-    //attribute = nodeElement->get_attribute ("name");
-
-
-    //if (attribute->get_value() != pValue)
-    //{
-    //if (nodeElement->has_child_text() )
-    //{
-    //nodeText = nodeElement->get_child_text();
-    //nodeText->set_content (pValue);
-    //}
-
-    //pOldValue = attribute->get_value();
-    //attribute->set_value ( pValue);
-    //return true;
-    //}
-    //else return false;
-    //}
-    //else return false;
 }
 
 bool XMLUtils::handle_input_node (xmlpp::Node* node, std::string& pOldValue, const std::string& pValue)
@@ -361,3 +340,63 @@ void XMLUtils::print_node (const xmlpp::Node* node, unsigned int indentation)
         }
     }
 }
+//implementation of XSLT transform using XDAQ version of XALAN which unfortunately crashes when transformin html to xml
+//std::string XMLUtils::transformXmlDocument (const std::string& pInputDocument, const std::string& pStylesheet, std::ostringstream& pStream, bool pIsFile)
+//{
+//pStream << std::endl;
+////for the namespaces
+//XALAN_USING_XERCES (XMLPlatformUtils)
+//XALAN_USING_XALAN (XalanTransformer)
+
+//std::stringstream cInput;
+//std::stringstream cHtmlResult;
+
+//if (pIsFile)
+//{
+//std::ifstream cInFile (pInputDocument.c_str() );
+
+//if (cInFile)
+//{
+//cInput << cInFile.rdbuf();
+//cInFile.close();
+//}
+//}
+//else
+//cInput.str (pInputDocument);
+
+//try
+//{
+////initialize the Xerces and Xalan Platforms
+//XMLPlatformUtils::Initialize();
+//XalanTransformer::initialize();
+
+////declare a transformer
+//XalanTransformer cXalanTransformer;
+
+//xalanc_1_11::XSLTInputSource xmlIn (&cInput);
+//xalanc_1_11::XSLTInputSource xslIn (pStylesheet.c_str() );
+
+////workaround for segfault caused by input being strinstream
+////https://marc.info/?l=xalan-c-users&m=101177041513073
+//const xalanc_1_11::XalanDOMString theSystemID ("Stream input");
+//xmlIn.setSystemId (c_wstr (theSystemID) );
+////xslIn.setSystemId (c_wstr (theSystemID) );
+
+//xalanc_1_11::XSLTResultTarget xmlOut (cHtmlResult);
+
+//if (cXalanTransformer.transform (xmlIn, xslIn, xmlOut) != 0)
+//pStream << RED << "XSLT Error: " << cXalanTransformer.getLastError() << RESET << std::endl;
+//else
+//pStream << BLUE << "Successfully transformed xml file: " << pInputDocument << " to html using stylesheet " << pStylesheet << RESET << std::endl;
+
+//XalanTransformer::terminate();
+//XMLPlatformUtils::Terminate();
+//XalanTransformer::ICUCleanUp();
+//}
+//catch (const std::exception& e)
+//{
+//pStream << RED << "Exception: " << e.what() << RESET << std::endl;
+//}
+
+//return cHtmlResult.str();
+//}
