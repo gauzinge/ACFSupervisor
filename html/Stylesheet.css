@@ -334,7 +334,7 @@ option {
      /*overflow: hidden;*/
      border: none
      solid: #ddd;
-     background-color: #ebedef;
+     background-color: inherit;
      color: #616161
  }
 
