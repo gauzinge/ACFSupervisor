@@ -72,6 +72,8 @@ namespace Ph2TkDAQ {
 
 
       public:
+        //this loads the HW File from the internal string variables
+        void loadHWFile();
         //helper to display the last page
         void lastPage (xgi::Input* in, xgi::Output* out)
         {

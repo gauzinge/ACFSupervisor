@@ -23,6 +23,7 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
         if ( (*cMethod)->type() == "cgi")
         {
             std::string cMethodName = static_cast<xgi::MethodSignature*> (*cMethod)->name();
+            std::cout << cMethodName << std::endl;
             xgi::bind (this, &DTCSupervisor::Default, cMethodName);
         }
     }
@@ -70,6 +71,8 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         fGUI->fResultDirectory = &fResultDirectory;
         fGUI->fRunNumber = &fRunNumber;
         fGUI->fNEvents = &fNEvents;
+        //load the HWFile we have just set - user can always reload it but this is the default for settings and HWDescription
+        fGUI->loadHWFile();
 
         std::stringstream ss;
 

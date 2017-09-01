@@ -71,8 +71,10 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
 
     char cState = fFSM->getCurrentState();
 
+    *out << cgicc::table() << std::endl;
     this->displayLoadForm (in, out);
     this->displayDumpForm (in, out);
+    *out << cgicc::table() << std::endl;
 
     // Display the HwDescription HTML form
     // only allow changes in Initial and Configured
@@ -225,7 +227,7 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
         if (cTransition == "Initialise" )
         {
             if ( fHWFormString.empty() )
-                this->reloadHWFile (in, out);
+                this->loadHWFile();
 
             //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
             std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
@@ -241,7 +243,10 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
         if (cTransition == "Refresh")
             this->lastPage (in, out);
         else
+        {
             fFSM->fireEvent (cTransition, fApp);
+            this->lastPage (in, out);
+        }
     }
     catch (const std::exception& e)
     {
@@ -250,7 +255,6 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 
-    this->lastPage (in, out);
 }
 
 
@@ -261,25 +265,29 @@ void SupervisorGUI::displayLoadForm (xgi::Input* in, xgi::Output* out)
 
     std::string url = fURN + "reloadHWFile";
 
-    *out << cgicc::div().set ("padding", "10px") << std::endl;
+    //*out << cgicc::div().set ("padding", "10px") << std::endl;
 
     //only allow changing the HW Description File in state initial
-    *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on") << std::endl;
+    *out << cgicc::form().set ("id", "hwForm_load").set ("padding", "10px").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on") << std::endl;
+    *out << cgicc::tr() << cgicc::td() << std::endl;
     *out << "<label for=\"HwDescriptionFile\">Hw Descritpion FilePath: </label>" << std::endl;
+    *out << cgicc::td() << cgicc::td() << std::endl;
 
     if (cState == 'I' )
     {
         *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ) << std::endl;
-        *out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load") << std::endl;
+        *out << cgicc::td() << cgicc::td() << std::endl;
+        *out << cgicc::input().set ("type", "submit").set ("id", "hwForm_load_submit").set ("title", "change the Hw Description File").set ("value", "Reload") << std::endl;
     }
     else
     {
         *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ).set ("disabled", "true") << std::endl;
-        *out << cgicc::input().set ("type", "submit").set ("title", "change the Hw Description File").set ("value", "Load").set ("disabled", "true") << std::endl;
+        *out << cgicc::td() << cgicc::td() << std::endl;
+        *out << cgicc::input().set ("type", "submit").set ("id", "hwForm_load_submit").set ("title", "change the Hw Description File").set ("value", "Reload").set ("disabled", "true") << std::endl;
     }
 
+    *out << cgicc::td() << cgicc::tr() << std::endl;
     *out << cgicc::form() << std::endl;
-    *out << cgicc::div() << std::endl;
 }
 
 void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
@@ -309,8 +317,19 @@ void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::
     }
     catch (std::exception& e)
     {
-        LOG4CPLUS_ERROR (fLogger, e.what() );
+        LOG4CPLUS_ERROR (fLogger, BOLDYELLOW << e.what() << RESET );
     }
+
+    this->loadHWFile();
+
+    if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+
+    this->lastPage (in, out);
+}
+
+void SupervisorGUI::loadHWFile()
+{
+    std::ostringstream cLogStream;
 
     if (!fHWDescriptionFile->toString().empty() && checkFile (fHWDescriptionFile->toString() ) )
     {
@@ -319,24 +338,27 @@ void SupervisorGUI::reloadHWFile (xgi::Input* in, xgi::Output* out) throw (xgi::
         fSettingsFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), expandEnvironmentVariables (SETTINGSSTYLESHEET), cLogStream);
 
         if (fSettingsFormString.empty() )
-            LOG4CPLUS_ERROR (fLogger, "Error, HW Description File " << fHWDescriptionFile->toString() << " does not contain any run settings!");
+            LOG4CPLUS_ERROR (fLogger, RED << "Error, HW Description File " << fHWDescriptionFile->toString() << " does not contain any run settings!" << RESET);
     }
     else
-        LOG4CPLUS_ERROR (fLogger, "Error, HW Description File " << fHWDescriptionFile->toString() << " is an empty string or does not exist!");
+        LOG4CPLUS_ERROR (fLogger, RED << "Error, HW Description File " << fHWDescriptionFile->toString() << " is an empty string or does not exist!" << RESET);
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
-
-    this->lastPage (in, out);
 }
+
 
 void SupervisorGUI::displayDumpForm (xgi::Input* in, xgi::Output* out)
 {
     //string defining action
     std::string url = fURN + "dumpHWDescription";
     *out << cgicc::form().set ("style", "padding-top:10px").set ("style", "padding-bottom:10px").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
+    *out << cgicc::tr() << cgicc::td() << std::endl;
     *out << "<label for=\"fileDumpPath\">Path for Hw File dump:  </label>" << std::endl;
+    *out << cgicc::td() << cgicc::td() << std::endl;
     *out << cgicc::input().set ("type", "text").set ("name", "fileDumpPath").set ("title", "file path to dump HW Description File").set ("value", expandEnvironmentVariables (HOME) ).set ("size", "70") << std::endl;
+    *out << cgicc::td() << cgicc::td() << std::endl;
     *out << cgicc::input().set ("type", "submit").set ("title", "dump HWDescription form to XML File").set ("value", "Dump") << std::endl;
+    *out << cgicc::td() << cgicc::tr() << std::endl;
     *out << cgicc::form() << std::endl;
 }
 
@@ -389,22 +411,26 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
 {
     //get FSM state
     char cState = fFSM->getCurrentState();
-
     std::ostringstream cLogStream;
 
-    std::string url = fURN + "processPh2_ACFForm";
-
+    //some useful javascript
     std::string JSfile = expandEnvironmentVariables (HOME);
     JSfile += "/html/formfields.js";
 
+    *out << cgicc::script().set ("type", "text/javascript") << std::endl;
+    *out << parseExternalResource (JSfile, cLogStream) << std::endl;
+    *out << cgicc::script() << std::endl;
+
+    std::string url = fURN + "processPh2_ACFForm";
+
     if (cState != 'E')
-        *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onclick", "displayACFfields();").set ("onsubmit", "displayACFfields();") << std::endl;
+        *out << cgicc::form().set ("id", "acfform").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onclick", "displayACFfields();") << std::endl;
     else
-        *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onclick", "displayACFfields();").set ("onsubmit", "displayACFfields();").set ("disabled", "disabled") << std::endl;
+        *out << cgicc::form().set ("id", "acfform").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onclick", "displayACFfields();").set ("disabled", "disabled") << std::endl;
 
     //left form part
-    *out << cgicc::div().set ("class", "acf_left").set ("onload", "displayACFfields();") << std::endl;
-    *out << cgicc::fieldset().set ("style", "margin-top:20px") << cgicc::legend ("Ph2_ACF Main Settings") << std::endl;
+    *out << cgicc::div().set ("class", "acf_left") << std::endl;
+    *out << cgicc::fieldset().set ("style", "margin-top:20px").set ("onblur", "submitACFForm();") << cgicc::legend ("Ph2_ACF Main Settings") << std::endl;
     this->createProcedureInput (out);
     *out << cgicc::fieldset() << std::endl;
 
@@ -418,7 +444,7 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     *out << cgicc::div() << std::endl;
 
     //right form part
-    *out << cgicc::div().set ("class", "acf_right").set ("onload", "displayACFfields();") << std::endl;
+    *out << cgicc::div().set ("class", "acf_right") << std::endl;
 
     *out << cgicc::fieldset().set ("style", "margin-top:20px") << cgicc::legend ("Main Run Settings") << std::endl;
     *out << cgicc::table() << std::endl;
@@ -466,12 +492,7 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
         *out << cgicc::input().set ("type", "submit").set ("name", "Submit").set ("value", "Submit").set ("disabled", "disabled") << std::endl;
 
     *out << cgicc::div() << std::endl;
-
-
     *out << cgicc::form() << std::endl;
-    *out << cgicc::script().set ("type", "text/javascript") << std::endl;
-    *out << parseExternalResource (JSfile, cLogStream) << std::endl;
-    *out << cgicc::script() << std::endl;
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 }
@@ -544,7 +565,7 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
     }
     catch (std::exception& e)
     {
-        LOG4CPLUS_ERROR (fLogger, e.what() );
+        LOG4CPLUS_ERROR (fLogger, RED << e.what() << RESET );
     }
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
@@ -574,7 +595,7 @@ void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (x
     }
     catch (std::exception& e)
     {
-        LOG4CPLUS_ERROR (fLogger, e.what() );
+        LOG4CPLUS_ERROR (fLogger, RED << e.what() << RESET );
     }
 
     //always strip the unchanged since I am only using this info in the fHWFormData to update once the HWTree is initialized
