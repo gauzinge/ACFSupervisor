@@ -57,6 +57,7 @@ void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exce
     *out << cgicc::h3 ("DTC Supervisor Main Page") << std::endl;
     this->displayLoadForm (in, out);
     this->displayPh2_ACFForm (in, out);
+    this->displayPh2_ACFLog (out);
 
     //LOG4CPLUS_INFO (fLogger, cLogStream.str() );
     this->createHtmlFooter (in, out);
@@ -232,11 +233,11 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
             //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
             std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
             fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
-            std::cout << fHwXMLString << std::endl;
+            //std::cout << fHwXMLString << std::endl;
             //now do the same for the Settings
             cTmpFormString = cleanup_before_XSLT (fSettingsFormString);
             fSettingsXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (SETTINGSSTYLESHEETINVERSE), cLogStream, false);
-            std::cout << fSettingsXMLString << std::endl;
+            //std::cout << fSettingsXMLString << std::endl;
         }
 
 
@@ -449,6 +450,19 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     *out << cgicc::fieldset().set ("style", "margin-top:20px") << cgicc::legend ("Main Run Settings") << std::endl;
     *out << cgicc::table() << std::endl;
     *out << cgicc::tr() << std::endl;
+
+    if (*fRAWFile)
+        *out << cgicc::td() << cgicc::label() << "Write RAW File" << cgicc::input().set ("type", "checkbox").set ("name", "raw_file").set ("value", "on").set ("checked", "checked") << cgicc::label() << cgicc::td() << std::endl;
+    else
+        *out << cgicc::td() << cgicc::label() << "Write RAW File" << cgicc::input().set ("type", "checkbox").set ("name", "raw_file").set ("value", "on") << cgicc::label() << cgicc::td() << std::endl;
+
+    if (*fDAQFile)
+        *out << cgicc::td() << cgicc::label() << "Write DAQ File" << cgicc::input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("checked", "checked") << cgicc::label() << cgicc::td() << std::endl;
+    else
+        *out << cgicc::td() << cgicc::label() << "Write DAQ File" << cgicc::input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on") << cgicc::label() << cgicc::td() << std::endl;
+
+    *out << cgicc::tr() << std::endl;
+    *out << cgicc::tr() << std::endl;
     *out << cgicc::td() << cgicc::label() << "Runnumber: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "runnumber").set ("size", "20").set ("value", fRunNumber->toString() ) << cgicc::td() << std::endl;
     *out << cgicc::tr() << std::endl;
     *out << cgicc::tr() << std::endl;
@@ -463,6 +477,7 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     *out << cgicc::table() << std::endl;
 
     *out << cgicc::fieldset().set ("id", "commission_fieldset").set ("style", "margin-top:20px") << cgicc::legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
+    //Commissioning Settings
     *out << cgicc::table().set ("style", "display:none").set ("id", "commission_table") << std::endl;
     *out << cgicc::tr() << std::endl;
 
@@ -514,6 +529,9 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
             bool cOn = cgi.queryCheckbox (cProc);
             fProcedureMap[cProc] = cOn;
         }
+
+        *fRAWFile = cgi.queryCheckbox ("raw_file");
+        *fDAQFile = cgi.queryCheckbox ("daq_file");
 
         fLatency = cgi.queryCheckbox ("latency");
         fStubLatency = cgi.queryCheckbox ("stublatency");
@@ -571,6 +589,13 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 
     this->lastPage (in, out);
+}
+
+void SupervisorGUI::displayPh2_ACFLog (xgi::Output* out)
+{
+    *out << cgicc::div().set ("style", "padding:20px") << std::endl;
+    *out << cgicc::p() << fPh2_ACFLog.str() << cgicc::p() << std::endl;
+    *out << cgicc::div() << std::endl;
 }
 
 void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)

@@ -59,6 +59,7 @@ namespace Ph2TkDAQ {
         void displayDumpForm (xgi::Input* in, xgi::Output* out);
         // Form for Ph2 ACF general settings
         void displayPh2_ACFForm (xgi::Input* in, xgi::Output* out);
+        void displayPh2_ACFLog (xgi::Output* out);
         //handle dump of HWDescription file
         void dumpHWDescription (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         //action taken on submit of new HWFile
@@ -106,6 +107,7 @@ namespace Ph2TkDAQ {
         {
             fSettingsFormData = pFormData;
         }
+
       private:
         //determines allowed state transitions
         void createStateTransitionButton (std::string pTransition, xgi::Output* out)
@@ -157,6 +159,8 @@ namespace Ph2TkDAQ {
         xdata::String* fResultDirectory;
         xdata::Integer* fRunNumber;
         xdata::Integer* fNEvents;
+        xdata::Boolean* fRAWFile;
+        xdata::Boolean* fDAQFile;
 
         FormData* fHWFormData;
         FormData* fSettingsFormData;
@@ -164,6 +168,8 @@ namespace Ph2TkDAQ {
         std::string fSettingsFormString;
         std::string fHwXMLString;
         std::string fSettingsXMLString;
+
+        std::ostringstream fPh2_ACFLog;
         Tab fCurrentPageView;
     };
 }

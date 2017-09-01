@@ -14,6 +14,8 @@
                 <ResultDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/</ResultDirectory>
                 <RunNumber xsi:type="xsd:integer">-1</RunNumber>
                 <NEvents xsi:type="xsd:integer">0</NEvents>
+                <WriteRAW xsi:type="xsd:boolean">false</WriteRAW>
+                <WriteDAQ xsi:type="xsd:boolean">false</WriteDAQ>
             </properties>
         </xc:Application>
 

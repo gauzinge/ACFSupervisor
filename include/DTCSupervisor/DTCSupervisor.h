@@ -7,7 +7,6 @@
 
 #include "xgi/Utils.h"
 #include "xgi/Method.h"
-//#include "xgi/framework/UIManager.h"
 
 #include "cgicc/CgiDefs.h"
 #include "cgicc/Cgicc.h"
@@ -17,10 +16,14 @@
 #include "xdata/ActionListener.h"
 #include "xdata/String.h"
 #include "xdata/Integer.h"
-
+#include "xdata/Boolean.h"
 
 #include "DTCSupervisor/SupervisorGUI.h"
 #include "DTCSupervisor/DTCStateMachine.h"
+
+//Ph2 ACF Includes
+#include "System/SystemController.h"
+#include "Utils/Utilities.h"
 
 using FormData = std::map<std::string, std::string>;
 
@@ -50,10 +53,15 @@ namespace Ph2TkDAQ {
         xdata::String fResultDirectory;
         xdata::Integer fRunNumber;
         xdata::Integer fNEvents;
+        xdata::Boolean fRAWFile;
+        xdata::Boolean fDAQFile;
 
       private:
         FormData fHWFormData;
         FormData fSettingsFormData;
+        Ph2_System::SystemController fSystemController;
+        //File Handler for SLINK Data - the one for raw data is part of SystemController
+        FileHandler* fSLinkFileHandler;
 
         //callbacks for FSM states
       public:

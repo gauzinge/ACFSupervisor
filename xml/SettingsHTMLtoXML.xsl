@@ -3,11 +3,13 @@
     <xsl:output method="xml" indent="yes" />
 
     <xsl:template match="/">
+     <HwDescription>
         <Settings>
             <xsl:for-each select="div/tr">
                 <xsl:call-template name="Setting"/>
             </xsl:for-each>
         </Settings>
+    </HwDescription>
     </xsl:template>
 
     <xsl:template match="tr" name="Setting">
