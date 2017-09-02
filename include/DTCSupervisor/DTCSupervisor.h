@@ -24,6 +24,7 @@
 //Ph2 ACF Includes
 #include "System/SystemController.h"
 #include "Utils/Utilities.h"
+#include "Utils/easylogging++.h"
 
 using FormData = std::map<std::string, std::string>;
 

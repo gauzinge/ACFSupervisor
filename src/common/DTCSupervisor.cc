@@ -54,6 +54,10 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
 
     //initialize the FSM
     fFSM.initialize<Ph2TkDAQ::DTCSupervisor> (this);
+
+    //configure the logger
+    el::Configurations conf (expandEnvironmentVariables ("${PH2ACF_ROOT}/settings/logger.conf") );
+    el::Loggers::reconfigureAllLoggers (conf);
 }
 
 //Destructor

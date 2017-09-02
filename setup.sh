@@ -3,8 +3,8 @@ export CACTUSLIB=/opt/cactus/lib
 export CACTUSINCLUDE=/opt/cactus/include
 
 # BOOST
-export BOOST_LIB=/usr/lib64
-export BOOST_INCLUDE=/usr/include/boost
+export BOOST_LIB=/opt/cactus/lib
+export BOOST_INCLUDE=/opt/cactus/include/boost
 
 #ROOT
 #source /usr/local/bin/thisroot.sh
@@ -14,7 +14,7 @@ export BOOST_INCLUDE=/usr/include/boost
 #ZMQ
 export ZMQ_HEADER_PATH=/usr/include/zmq.hpp
 
-export LD_LIBRARY_PATH=/opt/xdaq/lib:$CACTUSLIB:$BOOST_LIB:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/opt/xdaq/lib:$CACTUSLIB:$BOOST_LIB:$PH2ACF_ROOT/lib:$LD_LIBRARY_PATH
 #export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
 export XDAQ_ROOT=/opt/xdaq
 export XDAQ_DOCUMENT_ROOT=/opt/xdaq/htdocs

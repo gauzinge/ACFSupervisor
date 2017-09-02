@@ -7,6 +7,7 @@ Package=DTCSupervisor
 Sources= DTCSupervisor.cc SupervisorGUI.cc DTCStateMachine.cc version.cc XMLUtils.cc
 
 IncludeDirs = \
+	 ${BOOST_INCLUDE} \
      $(XDAQ_ROOT)/include \
      $(XDAQ_ROOT)/include/linux \
 	 ${PH2ACF_ROOT} \

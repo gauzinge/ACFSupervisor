@@ -1,1 +1,1 @@
-requires libxml2, libxslt, libxml++-2.6 (all available via yum)
+requires libxml2(standard on system), libxslt, libxml++-2.6, libuuid-devel (all available via yum)

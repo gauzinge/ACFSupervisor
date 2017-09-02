@@ -476,7 +476,8 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     *out << cgicc::tr() << std::endl;
     *out << cgicc::table() << std::endl;
 
-    *out << cgicc::fieldset().set ("id", "commission_fieldset").set ("style", "margin-top:20px") << cgicc::legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
+    *out << cgicc::fieldset() << std::endl;
+    *out << cgicc::fieldset().set ("id", "commission_fieldset").set ("style", "margin:10px") << cgicc::legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
     //Commissioning Settings
     *out << cgicc::table().set ("style", "display:none").set ("id", "commission_table") << std::endl;
     *out << cgicc::tr() << std::endl;
@@ -499,7 +500,7 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     *out << cgicc::table() << std::endl;
     *out << cgicc::fieldset() << std::endl;
 
-    *out << cgicc::fieldset() << std::endl;
+    //*out << cgicc::fieldset() << std::endl;
 
     if (cState != 'E')
         *out << cgicc::input().set ("type", "submit").set ("name", "Submit").set ("value", "Submit") << std::endl;
@@ -593,8 +594,9 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
 
 void SupervisorGUI::displayPh2_ACFLog (xgi::Output* out)
 {
-    *out << cgicc::div().set ("style", "padding:20px") << std::endl;
-    *out << cgicc::p() << fPh2_ACFLog.str() << cgicc::p() << std::endl;
+    *out << cgicc::div().set ("class", "log") << std::endl;
+    *out  << cgicc::legend ("Ph2_ACF Logs") << cgicc::legend() << std::endl;
+    *out << cgicc::textarea().set ("rows", "12").set ("cols", "100") << fPh2_ACFLog.str() << cgicc::textarea() << std::endl;
     *out << cgicc::div() << std::endl;
 }
 

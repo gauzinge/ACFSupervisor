@@ -166,12 +166,30 @@ option {
 .content div.acf_left{
     float: left;
     width: 38%;
-    /*height: 330px;*/
+    /*height: 540px;*/
 }
 .content div.acf_right{
     float: right;
     width: 62%;
-    /*height: 330px;*/
+    /*height: 540px;*/
+}
+.content div.log {
+    position: fixed;
+    /*right: 0;*/
+    bottom: 25px;
+    /*float: bottom;*/
+    /*box-sizing: padding-box;*/
+    width=100%;
+    padding: 10px;
+}
+
+.content textarea
+{
+  border:none solid #999999;
+  width:100%;
+  /*margin:5px;*/
+  padding:10px;
+  overflow: scroll;
 }
 
 /*Sidebar with FSM diagram*/
