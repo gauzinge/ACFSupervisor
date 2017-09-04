@@ -56,7 +56,7 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     fFSM.initialize<Ph2TkDAQ::DTCSupervisor> (this);
 
     //configure the logger
-    el::Configurations conf (expandEnvironmentVariables ("${PH2ACF_ROOT}/settings/logger.conf") );
+    el::Configurations conf (expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/xml/logger.conf") );
     el::Loggers::reconfigureAllLoggers (conf);
 }
 
@@ -101,6 +101,7 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         ss << "All Default Values set!" << std::endl;
         ss << BOLDYELLOW <<  "***********************************************************" << RESET << std::endl;
         LOG4CPLUS_INFO (this->getApplicationLogger(), ss.str() );
+        LOG (INFO) << ss.str();
         //here is the listener for FSM state transition commands via xoap??
         //have a look at https://gitlab.cern.ch/cms_tk_ph2/BoardSupervisor/blob/master/src/common/BoardSupervisor.cc
         //at a later point!
@@ -164,7 +165,7 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
         std::string cTmpStr = cPh2LogStream.str();
         cleanup_log_string (cTmpStr);
         fGUI->fPh2_ACFLog += cTmpStr;
-        std::cout << cPh2LogStream.str() << std::endl;
+        LOG (INFO) << cPh2LogStream.str() ;
 
     }
 
@@ -174,7 +175,6 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
         fFSM.fireEvent ("Fail", this);
     }
 
-    //fGUI->handleHWFormData();
     fFSM.fireEvent ("InitialiseDone", this);
     return false;
 }
@@ -205,54 +205,55 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
         //TODO: this should happen in enabling as I have no means of calling the member functions otherwise
         //now I should see what kind of tools I have going and call their initialize accordingly
         //if there are any tools enabled, I should create a generic tool with all the directories, files and thttp server and have the specific tools inherit from it!
-        int cEnabledProcedures = 0;
+        //what comes below should go into the main workloop when it starts
+        //int cEnabledProcedures = 0;
 
-        for (auto cProcedure : fGUI->fProcedureMap)
-            if (cProcedure.second && cProcedure.first != "Data Taking") cEnabledProcedures++;
+        //for (auto cProcedure : fGUI->fProcedureMap)
+        //if (cProcedure.second && cProcedure.first != "Data Taking") cEnabledProcedures++;
 
-        if (cEnabledProcedures != 0)
-        {
-            Tool cTool;
-            cTool.Inherit (&fSystemController);
-            cTool.CreateResultDirectory ("CommissioningCycle", false, true);
-            cTool.InitResultFile ("CommissioningCycle");
-            cTool.StartHttpServer (8080, true);
+        //if (cEnabledProcedures != 0)
+        //{
+        //Tool cTool;
+        //cTool.Inherit (&fSystemController);
+        //cTool.CreateResultDirectory ("CommissioningCycle", false, true);
+        //cTool.InitResultFile ("CommissioningCycle");
+        //cTool.StartHttpServer (8080, true);
 
-            auto cProcedure = fGUI->fProcedureMap.find ("Calibration");
+        //auto cProcedure = fGUI->fProcedureMap.find ("Calibration");
 
-            if (cProcedure->second == true) //procedure enabled
-            {
-                Calibration cCalibration;
-                cCalibration.Inherit (&cTool);
-                cCalibration.Initialise (false);
-                //launch this in it's own workloop??
-                cCalibration.FindVplus();
-                cCalibration.FindOffsets();
-                cCalibration.writeObjects();
-                cCalibration.dumpConfigFiles();
-            }
+        //if (cProcedure->second == true) //procedure enabled
+        //{
+        //Calibration cCalibration;
+        //cCalibration.Inherit (&cTool);
+        //cCalibration.Initialise (false);
+        ////launch this in it's own workloop??
+        //cCalibration.FindVplus();
+        //cCalibration.FindOffsets();
+        //cCalibration.writeObjects();
+        //cCalibration.dumpConfigFiles();
+        //}
 
-            cProcedure = fGUI->fProcedureMap.find ("Pedestal&Noise");
+        //cProcedure = fGUI->fProcedureMap.find ("Pedestal&Noise");
 
-            if (cProcedure->second == true) //procedure enabled
-            {
-                PedeNoise cPedeNoise;
-                cPedeNoise.Inherit (&cTool);
-                cPedeNoise.Initialise();
-                //launch this in it's own workloop??
-                cPedeNoise.measureNoise();
-            }
+        //if (cProcedure->second == true) //procedure enabled
+        //{
+        //PedeNoise cPedeNoise;
+        //cPedeNoise.Inherit (&cTool);
+        //cPedeNoise.Initialise();
+        ////launch this in it's own workloop??
+        //cPedeNoise.measureNoise();
+        //}
 
-            cProcedure = fGUI->fProcedureMap.find ("Commissioning");
+        //cProcedure = fGUI->fProcedureMap.find ("Commissioning");
 
-            if (cProcedure->second == true) //procedure enabled
-            {
-                LatencyScan cCommissioning;
-                cCommissioning.Inherit (&cTool);
-                cCommissioning.Initialize (fGUI->fLatencyStartValue, fGUI->fLatencyRange);
-                //do something here
-            }
-        }
+        //if (cProcedure->second == true) //procedure enabled
+        //{
+        //LatencyScan cCommissioning;
+        //cCommissioning.Inherit (&cTool);
+        //cCommissioning.Initialize (fGUI->fLatencyStartValue, fGUI->fLatencyRange);
+        ////do something here
+        //}
+        //}
 
     }
     catch (std::exception& e)
@@ -261,7 +262,6 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
         fFSM.fireEvent ("Fail", this);
     }
 
-    //fGUI->handleHWFormData();
     fFSM.fireEvent ("EnableDone", this);
     return false;
 }
@@ -277,7 +277,6 @@ bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
     }
 
-    //fGUI->handleHWFormData();
     fFSM.fireEvent ("HaltDone", this);
     return false;
 }
@@ -293,7 +292,6 @@ bool DTCSupervisor::pausing (toolbox::task::WorkLoop* wl)
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
     }
 
-    //fGUI->handleHWFormData();
     fFSM.fireEvent ("PauseDone", this);
     return false;
 }
@@ -309,7 +307,6 @@ bool DTCSupervisor::resuming (toolbox::task::WorkLoop* wl)
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
     }
 
-    //fGUI->handleHWFormData();
     fFSM.fireEvent ("ResumeDone", this);
     return false;
 }
@@ -325,7 +322,6 @@ bool DTCSupervisor::stopping (toolbox::task::WorkLoop* wl)
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
     }
 
-    //fGUI->handleHWFormData();
     fFSM.fireEvent ("StopDone", this);
     return false;
 }
@@ -341,7 +337,6 @@ bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
     }
 
-    //fGUI->handleHWFormData();
     fFSM.fireEvent ("DestroyDone", this);
     return false;
 }
@@ -353,44 +348,27 @@ void DTCSupervisor::updateHwDescription()
     //if the state is halted or configured, I get to mess with the HWDescription tree!
     if ( (cState == 'c' || cState == 'e') && !fHWFormData.empty() )
     {
-        if (!fHWFormData.empty() )
+        BeBoard* cBoard = fSystemController.fBoardVector.at (0);
+        //first, clear what we have already initialized
+        LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "The HW Description was changed since initialising - thus updating the memory tree!" << RESET);
+
+        for (auto cRegister = fHWFormData.begin(); cRegister != fHWFormData.end();)
         {
-            //first, clear what we have already initialized
-            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "The HW Description was changed since initialising - thus updating the memory tree!" << RESET);
-            fSystemController.fBoardVector.clear();
-            fSystemController.fBeBoardFWMap.clear();
+            if (cRegister->first.find ("Register_") == 0 && cRegister->first.find ("...") == std::string::npos)
+                this->handleBeBoardRegister (cBoard, cRegister);
 
-            //now re-initialize
-            //if we don't find an environment variable in the path to the address tabel, we prepend the Ph2ACF ROOT
-            if (fGUI->fHwXMLString.find ("file:://${") == std::string::npos)
-            {
-                std::string cCorrectPath = "file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") + "/";
-                cleanupHTMLString (fGUI->fHwXMLString, "file://", cCorrectPath);
-            }
+            if (cRegister->first.find ("glob_cbc_reg") != std::string::npos )
+                this->handleGlobalCbcRegister (cBoard, cRegister);
 
-            //the same goes for the CBC File Path
-            if (fGUI->fHwXMLString.find ("<CBC_Files path=\"${") == std::string::npos)
-            {
-                std::string cCorrectPath = "<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}");
-                cleanupHTMLString (fGUI->fHwXMLString, "<CBC_Files path=\".", cCorrectPath);
-            }
+            if (cRegister->first.find ("Register_...") == 0 )
+                this->handleCBCRegister (cBoard, cRegister);
 
-            //this is a temporary solution to keep the logs - in fact I should tail the logfile that I have to configure properly before
-            std::ostringstream cPh2LogStream;
+            else
+                LOG4CPLUS_INFO (this->getApplicationLogger(), RED << "This setting " << GREEN << cRegister->first << RED << " can currently not be changed after initialising! - you can buy cake for Georg and ask him to fix it..." << RESET);
 
-            if (cState == 'c')
-                fSystemController.InitializeHw (fGUI->fHwXMLString, cPh2LogStream, false);
-            else if (cState == 'e')
-            {
-                fSystemController.InitializeHw (fGUI->fHwXMLString, cPh2LogStream, false);
-                fSystemController.ConfigureHw ();
-            }
-
-            std::string cTmpStr = cPh2LogStream.str();
-            cleanup_log_string (cTmpStr);
-            fGUI->fPh2_ACFLog += cTmpStr;
-            std::cout << cPh2LogStream.str() << std::endl;
+            fHWFormData.erase (cRegister++);
         }
+
     }
     else
     {
@@ -404,18 +382,18 @@ void DTCSupervisor::updateSettings()
     char cState = fFSM.getCurrentState();
 
     //if the state is halted or configured, I get to mess with the HWDescription tree!
-    if ( (cState == 'c' || cState == 'e') && !fHWFormData.empty() )
+    if ( (cState == 'c' || cState == 'e') && !fSettingsFormData.empty() )
     {
-        if (!fSettingsFormData.empty() )
-        {
-            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "The Settings were changed since initialising - thus updating memory!" << RESET);
-            //now simply replace SystemController's settings map with the new one!
-            fSystemController.fSettingsMap.clear();
+        //if (!fSettingsFormData.empty() )
+        //{
+        LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "The Settings were changed since initialising - thus updating memory!" << RESET);
+        //now simply replace SystemController's settings map with the new one!
+        fSystemController.fSettingsMap.clear();
 
-            for (auto cPair : fSettingsFormData)
-                fSystemController.fSettingsMap[cPair.first] = convertAnyInt (cPair.second.c_str() );
+        for (auto cPair : fSettingsFormData)
+            fSystemController.fSettingsMap[cPair.first] = convertAnyInt (cPair.second.c_str() );
 
-        }
+        //}
     }
     else
     {

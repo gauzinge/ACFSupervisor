@@ -98,6 +98,62 @@ namespace Ph2TkDAQ {
         void updateHwDescription ();
         void updateSettings ();
 
+        void handleBeBoardRegister (BeBoard* pBoard, std::map<std::string, std::string>::iterator pRegister)
+        {
+            std::string cKey = pRegister->first;
+            cKey = removeDot (cKey.erase (0, 9) );
+            uint8_t cValue = convertAnyInt (pRegister->second.c_str() );
+            pBoard->setReg (cKey, cValue);
+
+            if (fFSM.getCurrentState() == 'e')
+                fSystemController.fBeBoardInterface->WriteBoardReg (pBoard, cKey, cValue);
+
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BLUE << "Changing Be Board Register " << cKey << " to " << cValue << RESET);
+        }
+        void handleGlobalCbcRegister (BeBoard* pBoard, std::map<std::string, std::string>::iterator pRegister)
+        {
+            std::string cRegName = pRegister->first.substr (pRegister->first.find ("glob_cbc_reg:") );
+            uint8_t cValue = (convertAnyInt (pRegister->second.c_str() ) & 0xFF);
+
+            for (auto cFe : pBoard->fModuleVector)
+            {
+                for (auto cCbc : cFe->fCbcVector)
+                {
+                    cCbc->setReg (cRegName, cValue);
+
+                    if (fFSM.getCurrentState() == 'e')
+                        fSystemController.fCbcInterface->WriteCbcReg (cCbc, cRegName, cValue);
+                }
+            }
+
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BLUE << "Changing Global CBC Register " << cRegName << " to " << +cValue << RESET);
+        }
+        void handleCBCRegister (BeBoard* pBoard, std::map<std::string, std::string>::iterator pRegister)
+        {
+            std::string cRegName = pRegister->first.substr (pRegister->first.find ("Register_...") );
+            size_t cPos = cRegName.find_first_not_of ("0123456789");
+            uint8_t cCbcId = (convertAnyInt (cRegName.substr (0, cPos).c_str() ) & 0xFF);
+            cRegName = cRegName.substr (cPos);
+            uint8_t cValue = (convertAnyInt (pRegister->second.c_str() ) & 0xFF);
+
+            for (auto cFe : pBoard->fModuleVector)
+            {
+                for (auto cCbc : cFe->fCbcVector)
+                {
+                    if (cCbc->getCbcId() == cCbcId)
+                    {
+                        cCbc->setReg (cRegName, cValue);
+
+                        if (fFSM.getCurrentState() == 'e')
+                            fSystemController.fCbcInterface->WriteCbcReg (cCbc, cRegName, cValue);
+                    }
+                    else continue;
+                }
+            }
+
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BLUE << "Changing CBC Register " << cRegName << " on CBC " << +cCbcId << " to " << +cValue << RESET);
+        }
+
     };
 
 }

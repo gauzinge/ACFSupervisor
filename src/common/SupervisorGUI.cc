@@ -514,10 +514,7 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
 
     *out << cgicc::fieldset() << std::endl;
 
-    if (cState != 'I')
-        *out << cgicc::fieldset().set ("id", "commission_fieldset").set ("style", "margin:10px").set ("disabled", "disabled") << cgicc::legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
-    else
-        *out << cgicc::fieldset().set ("id", "commission_fieldset").set ("style", "margin:10px") << cgicc::legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
+    *out << cgicc::fieldset().set ("id", "commission_fieldset").set ("style", "margin:10px") << cgicc::legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
 
     //Commissioning Settings
     *out << cgicc::table().set ("style", "display:none").set ("id", "commission_table") << std::endl;
