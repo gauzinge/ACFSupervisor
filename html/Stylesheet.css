@@ -174,12 +174,12 @@ option {
     /*height: 540px;*/
 }
 .content div.log {
-    position: fixed;
-    /*right: 0;*/
-    bottom: 25px;
-    /*float: bottom;*/
-    /*box-sizing: padding-box;*/
-    width=100%;
+    /*position: fixed;*/
+    left: 13%;
+    width: 87%;
+    bottom: 45px;
+    float: bottom;
+    height: 450px;
     padding: 10px;
 }
 

@@ -153,6 +153,7 @@ namespace Ph2TkDAQ {
         int fLatencyStartValue;
         int fLatencyRange;
 
+
       public:
         xdata::String* fHWDescriptionFile;
         xdata::String* fDataDirectory;
@@ -169,8 +170,9 @@ namespace Ph2TkDAQ {
         std::string fHwXMLString;
         std::string fSettingsXMLString;
 
-        std::ostringstream fPh2_ACFLog;
+        std::string fPh2_ACFLog;
         Tab fCurrentPageView;
+        bool fAutoRefresh;
     };
 }
 #endif

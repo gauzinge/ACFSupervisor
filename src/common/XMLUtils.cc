@@ -58,31 +58,33 @@ const std::map<std::string, std::string> XMLUtils::updateHTMLForm (std::string& 
     //map to return containing unique pairs of strings with the settings from the form
     std::map<std::string, std::string> cFormData;
     pStream << std::endl;
-    // Parse HTML and create a DOM tree
-    xmlDoc* doc = htmlReadDoc ( (xmlChar*) pFormString.c_str(), NULL, NULL, HTML_PARSE_RECOVER | HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
 
-    if (doc == nullptr)
-        pStream << RED << "HTML HW Form string not parsed successfully." << RESET << std::endl;
-
-    // Encapsulate raw libxml document in a libxml++ wrapper
-    xmlNode* r = xmlDocGetRootElement (doc);
-
-    if (r == nullptr)
-        pStream << RED << "HTML HW Form is an empty string" << RESET << std::endl;
-
-    xmlpp::Element* root = new xmlpp::Element (r);
-
-    auto cPair = std::begin (pFormData);
-
-    while (cPair != std::end (pFormData) )
+    try
     {
-        // Grab the node I am interested in
-        std::stringstream xpath;
+        // Parse HTML and create a DOM tree
+        xmlDoc* doc = htmlReadDoc ( (xmlChar*) pFormString.c_str(), NULL, NULL, HTML_PARSE_RECOVER | HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
 
-        xpath << "//*[@name=\"" << cPair->first << "\"]";
 
-        try
+        if (doc == nullptr)
+            pStream << RED << "HTML HW Form string not parsed successfully." << RESET << std::endl;
+
+        // Encapsulate raw libxml document in a libxml++ wrapper
+        xmlNode* r = xmlDocGetRootElement (doc);
+
+        if (r == nullptr)
+            pStream << RED << "HTML HW Form is an empty string" << RESET << std::endl;
+
+        xmlpp::Element* root = new xmlpp::Element (r);
+
+        auto cPair = std::begin (pFormData);
+
+        while (cPair != std::end (pFormData) )
         {
+            // Grab the node I am interested in
+            std::stringstream xpath;
+
+            xpath << "//*[@name=\"" << cPair->first << "\"]";
+
             auto elements = root->find (xpath.str() );
 
             bool cIsChanged;
@@ -118,25 +120,28 @@ const std::map<std::string, std::string> XMLUtils::updateHTMLForm (std::string& 
                 cPair++;
             }
         }
-        catch (const std::exception& e)
-        {
-            pStream << RED << "Exception: " << e.what() << RESET << std::endl;
-        }
+
+
+        //proper xhtml output
+        xmlChar* buff;
+        int buffersize;
+
+        xmlDocDumpFormatMemory (doc, &buff, &buffersize, 1);
+
+        const std::string cTmpString = reinterpret_cast<const char*> (buff);
+        pFormString = cTmpString;
+        cleanup_after_Update (pFormString);
+
+        delete root;
+        //this worked fine on centos7 but produces a segault in SLC6...
+        //xmlFreeDoc (doc);
+        xmlCleanupParser();    // Free globals
+
     }
-
-    //proper xhtml output
-    xmlChar* buff;
-    int buffersize;
-
-    xmlDocDumpFormatMemory (doc, &buff, &buffersize, 1);
-
-    const std::string cTmpString = reinterpret_cast<const char*> (buff);
-    pFormString = cTmpString;
-    cleanup_after_Update (pFormString);
-
-    delete root;
-    xmlFreeDoc (doc);
-    xmlCleanupParser();    // Free globals
+    catch (const std::exception& e)
+    {
+        pStream << RED << "Exception: " << e.what() << RESET << std::endl;
+    }
 
     return cFormData;
     //way of retaining the input

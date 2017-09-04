@@ -89,6 +89,24 @@ namespace Ph2TkDAQ {
         return cString;
     }
 
+    inline void cleanup_log_string (std::string& pLogString)
+    {
+        cleanupHTMLString (pLogString, "\n", "<br/>");
+        cleanupHTMLString (pLogString, RESET, "</span>");
+        cleanupHTMLString (pLogString, BOLDYELLOW, "</span><span style=\"color:red\">");
+        cleanupHTMLString (pLogString, YELLOW, "</span><span style=\"color:red\">");
+        cleanupHTMLString (pLogString, BOLDBLUE, "</span><span style=\"color:blue\">");
+        cleanupHTMLString (pLogString, BLUE, "</span><span style=\"color:blue\">");
+        cleanupHTMLString (pLogString, BOLDRED, "</span><span style=\"color:red\">");
+        cleanupHTMLString (pLogString, RED, "</span><span style=\"color:red\">");
+        cleanupHTMLString (pLogString, BOLDGREEN, "</span><span style=\"color:green\">");
+        cleanupHTMLString (pLogString, GREEN, "</span><span style=\"color:green\">");
+        cleanupHTMLString (pLogString, BOLDMAGENTA, "</span><span style=\"color:magenta\">");
+        cleanupHTMLString (pLogString, MAGENTA, "</span><span style=\"color:magenta\">");
+        cleanupHTMLString (pLogString, BOLDCYAN, "</span><span style=\"color:magenta\">");
+        cleanupHTMLString (pLogString, CYAN, "</span><span style=\"color:magenta\">");
+    }
+
     static std::string expandEnvironmentVariables (  std::string s )
     {
         s.erase (std::remove_if (s.begin(), s.end(), ::isspace), s.end() );

@@ -18,9 +18,9 @@ DTCStateMachine::DTCStateMachine (xdaq::Application* app)
     , asDestroying_ (0)
     , asPausing_ (0)
     , asResuming_ (0)
-      //, rcmsStateNotifier_ (app->getApplicationLogger(),
-      //app->getApplicationDescriptor(),
-      //app->getApplicationContext() )
+    , rcmsStateNotifier_ (app->getApplicationLogger(),
+                          app->getApplicationDescriptor(),
+                          app->getApplicationContext() )
 {
     std::ostringstream oss;
     oss << app->getApplicationDescriptor()->getClassName()
@@ -215,10 +215,10 @@ throw (toolbox::fsm::exception::Exception)
             // ?????????????????????????????????????????????????????????????????????????????????
             std::cout << "-------------------------> " << __PRETTY_FUNCTION__ << " " << " Notify RCMS" << std::endl ;
 
-            //rcmsStateNotifier_.stateChanged (state, appNameAndInstance_ +
-            //" has reached target state "
-            //+
-            //state);
+            rcmsStateNotifier_.stateChanged (state, appNameAndInstance_ +
+                                             " has reached target state "
+                                             +
+                                             state);
         }
         catch (xcept::Exception& e)
         {

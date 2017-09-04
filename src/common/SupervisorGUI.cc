@@ -15,7 +15,8 @@ SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp, DTCStateMachine* pStat
     fHWDescriptionFile (nullptr),
     fHWFormString (""),
     fSettingsFormString (""),
-    fHwXMLString ("")
+    fHwXMLString (""),
+    fAutoRefresh (false)
 {
     for (auto cString : fProcedures)
         fProcedureMap[cString] = (cString == "Data Taking") ? true : false;
@@ -114,8 +115,10 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
 {
     // Create the Title, Tab bar
     std::ostringstream cLogStream;
+    char cState = fFSM->getCurrentState();
 
     fManager.getHTMLHeader (in, out);
+    *out << cgicc::head() << std::endl;
     //Style this thing
     *out << cgicc::style() << std::endl;
     *out << parseExternalResource (expandEnvironmentVariables (CSSSTYLESHEET), cLogStream) << std::endl;
@@ -123,6 +126,8 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
 
     *out << cgicc::title ("DTC Supervisor")  << std::endl;
 
+
+    int cRefreshDelay = 3;
     std::ostringstream cTabBarString;
     std::string url = fURN;
 
@@ -131,21 +136,39 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     {
         case Tab::MAIN:
             cTabBarString << "<a href='" << url << "MainPage' class=\"button active\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button\">DAQPage</a>" << std::endl;
+
+            //auto refresh
+            if (cState == 'c' || fAutoRefresh)
+                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "MainPage\"/>" << std::endl;
+
             break;
 
         case Tab::CONFIG:
             cTabBarString << "<a href='" << url << "MainPage' class=\"button\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button active\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button\">DAQPage</a>" << std::endl;
+
+            if (cState == 'c' || fAutoRefresh)
+                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "ConfigPage\"/>" << std::endl;
+
             break;
 
         case Tab::CALIBRATION:
             cTabBarString << "<a href='" << url << "MainPage' class=\"button\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button active\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button\">DAQPage</a>" << std::endl;
+
+            if (cState == 'c' || fAutoRefresh)
+                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "CalibrationPage\"/>" << std::endl;
+
             break;
 
         case Tab::DAQ:
             cTabBarString << "<a href='" << url << "MainPage' class=\"button\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button active\">DAQPage</a>" << std::endl;
+
+            if (cState == 'c' || fAutoRefresh)
+                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "DAQPage\"/>" << std::endl;
+
             break;
     }
 
+    *out << cgicc::head() << std::endl;
     std::string link = url + "MainPage";
     *out << cgicc::div().set ("class", "title") << std::endl;
     *out << cgicc::h1 (cgicc::a ("DTC Supervisor").set ("href", url) ) << std::endl;
@@ -158,6 +181,9 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     *out << "<div class=\"content\">" << std::endl;
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+
+    //TODO:: attention
+    fAutoRefresh = false;
 }
 
 void SupervisorGUI::createHtmlFooter (xgi::Input* in, xgi::Output* out)
@@ -244,18 +270,16 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
         if (cTransition == "Refresh")
             this->lastPage (in, out);
         else
-        {
             fFSM->fireEvent (cTransition, fApp);
-            this->lastPage (in, out);
-        }
     }
     catch (const std::exception& e)
     {
         XCEPT_RAISE (xgi::exception::Exception, e.what() );
     }
 
-    if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+    this->lastPage (in, out);
 
+    if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 }
 
 
@@ -595,8 +619,9 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
 void SupervisorGUI::displayPh2_ACFLog (xgi::Output* out)
 {
     *out << cgicc::div().set ("class", "log") << std::endl;
-    *out  << cgicc::legend ("Ph2_ACF Logs") << cgicc::legend() << std::endl;
-    *out << cgicc::textarea().set ("rows", "12").set ("cols", "100") << fPh2_ACFLog.str() << cgicc::textarea() << std::endl;
+    *out  << cgicc::legend ("Ph2_ACF Logs") << std::endl;
+    //*out << cgicc::textarea().set ("rows", "12").set ("cols", "100") << fPh2_ACFLog.str() << cgicc::textarea() << std::endl;
+    *out << cgicc::p() << fPh2_ACFLog << cgicc::p() << std::endl;
     *out << cgicc::div() << std::endl;
 }
 
@@ -626,6 +651,7 @@ void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (x
     }
 
     //always strip the unchanged since I am only using this info in the fHWFormData to update once the HWTree is initialized
+    //*fHWFormData = XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormPairs, cLogStream, true );
     *fHWFormData = XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormPairs, cLogStream, true );
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );

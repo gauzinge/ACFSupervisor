@@ -41,7 +41,7 @@
 #include "xdata/String.h"
 #include "xdata/Boolean.h"
 
-//#include "xdaq2rc/RcmsStateNotifier.h"
+#include "xdaq2rc/RcmsStateNotifier.h"
 
 #include "xoap/SOAPEnvelope.h"
 #include "xoap/SOAPBody.h"
@@ -88,16 +88,16 @@ namespace Ph2TkDAQ {
         }
 
         // lookup the RCMS state listener
-        //void findRcmsStateListener()
-        //{
-        //rcmsStateNotifier_.findRcmsStateListener();
-        //}
+        void findRcmsStateListener()
+        {
+            rcmsStateNotifier_.findRcmsStateListener();
+        }
 
         // report if RCMS StateListener was found
-        //xdata::Boolean* foundRcmsStateListener()
-        //{
-        //return rcmsStateNotifier_.getFoundRcmsStateListenerParameter();
-        //}
+        xdata::Boolean* foundRcmsStateListener()
+        {
+            return rcmsStateNotifier_.getFoundRcmsStateListenerParameter();
+        }
 
         // initialize state machine and bind callbacks to driving application
         template<class T> void initialize (T* app)
@@ -246,7 +246,7 @@ namespace Ph2TkDAQ {
             if (!workLoopResuming_->isActive() ) workLoopResuming_->activate();
 
 
-            //findRcmsStateListener();
+            findRcmsStateListener();
 
             //Export the stateName variable
             app->getApplicationInfoSpace()->fireItemAvailable ("stateName", &stateName_);
@@ -344,9 +344,7 @@ namespace Ph2TkDAQ {
         toolbox::task::ActionSignature*  asResuming_;
 
         // rcms state notifier
-        //xdaq2rc::RcmsStateNotifier       rcmsStateNotifier_;
-
-
+        xdaq2rc::RcmsStateNotifier       rcmsStateNotifier_;
     };
 }
 

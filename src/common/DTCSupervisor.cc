@@ -119,6 +119,7 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
 {
     try
     {
+        fGUI->fAutoRefresh = true;
         //get the runnumber from the storage file
         int cRunNumber = fRunNumber;
         std::string cRawOutputFile = fDataDirectory.toString() + "/" + getDataFileName (expandEnvironmentVariables ("${PH2ACF_ROOT}"), cRunNumber) ;
@@ -139,13 +140,31 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
 
         //try to initialize the HWDescription from the GUI's fXMLHWString
         //make sure that the address_table_string is expanded with the correct environment variable
-        std::string cCorrectPath = "file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") + "/";
-        cleanupHTMLString (fGUI->fHwXMLString, "file://", cCorrectPath);
 
-        fSystemController.InitializeSettings (fGUI->fSettingsXMLString, fGUI->fPh2_ACFLog, false);
-        fSystemController.InitializeHw (fGUI->fHwXMLString, fGUI->fPh2_ACFLog, false);
+        //if we don't find an environment variable in the path to the address tabel, we prepend the Ph2ACF ROOT
+        if (fGUI->fHwXMLString.find ("file:://${") == std::string::npos)
+        {
+            std::string cCorrectPath = "file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") + "/";
+            cleanupHTMLString (fGUI->fHwXMLString, "file://", cCorrectPath);
+        }
 
-        std::cout << fGUI->fPh2_ACFLog.str() << std::endl;
+        //the same goes for the CBC File Path
+        if (fGUI->fHwXMLString.find ("<CBC_Files path=\"${") == std::string::npos)
+        {
+            std::string cCorrectPath = "<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}");
+            cleanupHTMLString (fGUI->fHwXMLString, "<CBC_Files path=\".", cCorrectPath);
+        }
+
+        //this is a temporary solution to keep the logs - in fact I should tail the logfile that I have to configure properly before
+        std::ostringstream cPh2LogStream;
+
+        fSystemController.InitializeSettings (fGUI->fSettingsXMLString, cPh2LogStream, false);
+        fSystemController.InitializeHw (fGUI->fHwXMLString, cPh2LogStream, false);
+
+        std::string cTmpStr = cPh2LogStream.str();
+        cleanup_log_string (cTmpStr);
+        fGUI->fPh2_ACFLog += cTmpStr;
+        std::cout << cPh2LogStream.str() << std::endl;
 
     }
     catch (std::exception& e)
@@ -162,6 +181,7 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
 {
     try
     {
+        this->updateHwDescription();
 
     }
     catch (std::exception& e)
@@ -268,4 +288,39 @@ bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
     //fGUI->handleHWFormData();
     fFSM.fireEvent ("DestroyDone", this);
     return false;
+}
+
+void DTCSupervisor::updateHwDescription()
+{
+    char cState = fFSM.getCurrentState();
+
+    //if the state is halted or configured, I get to mess with the HWDescription tree!
+    if ( (cState == 'c' || cState == 'e') && !fHWFormData.empty() )
+    {
+        //now start messing
+        if (fSystemController.fBoardVector.size() )
+        {
+            BeBoard* cBoard = fSystemController.fBoardVector.at (0);
+
+            //first, handle the BeBoard Registers as these are easiest
+            std::vector < std::pair<std::string, uint32_t>> cRegisters = this->getBeBoardRegisters();
+
+            for (auto cPair : cRegisters )
+                cBoard->setReg (cPair.first, cPair.second);
+
+            if (cState == 'e')
+                fSystemController.fBeBoardInterface->WriteBoardMultReg (cBoard, cRegisters);
+
+            this->handleCBCRegisters (cBoard, cState);
+            //next, the condition data - this does not have any influence on configuration or whatsoever, so i can change it in configuring or enabling
+            this->handleCondtionData (cBoard );
+        }
+
+    }
+    else
+    {
+        throw std::runtime_error ("This can only be called in Confuring or Enabling");
+        LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, HW Description Tree can only be updated on configure or enable!" << RESET );
+        return;
+    }
 }
