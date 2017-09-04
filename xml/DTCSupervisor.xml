@@ -9,7 +9,7 @@
         <xc:Application class="Ph2TkDAQ::DTCSupervisor" id="2" instance="0" network="local">
             <properties xmlns="urn:xdaq-application:DTCSupervisor" xsi:type="soapenc:Struct">
                 <!--<HWDescriptionFile xsi:type="xsd:string">${PH2ACF_ROOT}/settings/D19CDescription.xml </HWDescriptionFile>-->
-                <HWDescriptionFile xsi:type="xsd:string">${PH2ACF_ROOT}/settings/D19CDescription.xml</HWDescriptionFile>
+                <HWDescriptionFile xsi:type="xsd:string">${PH2ACF_ROOT}/settings/CBC3DescriptionIC.xml</HWDescriptionFile>
                 <DataDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/</DataDirectory>
                 <ResultDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/</ResultDirectory>
                 <RunNumber xsi:type="xsd:integer">-1</RunNumber>

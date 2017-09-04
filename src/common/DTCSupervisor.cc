@@ -167,9 +167,11 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
         std::cout << cPh2LogStream.str() << std::endl;
 
     }
+
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << e.what() << RESET );
+        fFSM.fireEvent ("Fail", this);
     }
 
     //fGUI->handleHWFormData();
@@ -181,15 +183,16 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
 {
     try
     {
+        fGUI->fAutoRefresh = true;
         this->updateHwDescription();
-
+        this->updateSettings();
+        fSystemController.ConfigureHw();
     }
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
     }
 
-    //fGUI->handleHWFormData();
     fFSM.fireEvent ("ConfigureDone", this);
     return false;
 }
@@ -198,11 +201,64 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
 {
     try
     {
+        fGUI->fAutoRefresh = true;
+        //TODO: this should happen in enabling as I have no means of calling the member functions otherwise
+        //now I should see what kind of tools I have going and call their initialize accordingly
+        //if there are any tools enabled, I should create a generic tool with all the directories, files and thttp server and have the specific tools inherit from it!
+        int cEnabledProcedures = 0;
+
+        for (auto cProcedure : fGUI->fProcedureMap)
+            if (cProcedure.second && cProcedure.first != "Data Taking") cEnabledProcedures++;
+
+        if (cEnabledProcedures != 0)
+        {
+            Tool cTool;
+            cTool.Inherit (&fSystemController);
+            cTool.CreateResultDirectory ("CommissioningCycle", false, true);
+            cTool.InitResultFile ("CommissioningCycle");
+            cTool.StartHttpServer (8080, true);
+
+            auto cProcedure = fGUI->fProcedureMap.find ("Calibration");
+
+            if (cProcedure->second == true) //procedure enabled
+            {
+                Calibration cCalibration;
+                cCalibration.Inherit (&cTool);
+                cCalibration.Initialise (false);
+                //launch this in it's own workloop??
+                cCalibration.FindVplus();
+                cCalibration.FindOffsets();
+                cCalibration.writeObjects();
+                cCalibration.dumpConfigFiles();
+            }
+
+            cProcedure = fGUI->fProcedureMap.find ("Pedestal&Noise");
+
+            if (cProcedure->second == true) //procedure enabled
+            {
+                PedeNoise cPedeNoise;
+                cPedeNoise.Inherit (&cTool);
+                cPedeNoise.Initialise();
+                //launch this in it's own workloop??
+                cPedeNoise.measureNoise();
+            }
+
+            cProcedure = fGUI->fProcedureMap.find ("Commissioning");
+
+            if (cProcedure->second == true) //procedure enabled
+            {
+                LatencyScan cCommissioning;
+                cCommissioning.Inherit (&cTool);
+                cCommissioning.Initialize (fGUI->fLatencyStartValue, fGUI->fLatencyRange);
+                //do something here
+            }
+        }
 
     }
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
+        fFSM.fireEvent ("Fail", this);
     }
 
     //fGUI->handleHWFormData();
@@ -297,30 +353,74 @@ void DTCSupervisor::updateHwDescription()
     //if the state is halted or configured, I get to mess with the HWDescription tree!
     if ( (cState == 'c' || cState == 'e') && !fHWFormData.empty() )
     {
-        //now start messing
-        if (fSystemController.fBoardVector.size() )
+        if (!fHWFormData.empty() )
         {
-            BeBoard* cBoard = fSystemController.fBoardVector.at (0);
+            //first, clear what we have already initialized
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "The HW Description was changed since initialising - thus updating the memory tree!" << RESET);
+            fSystemController.fBoardVector.clear();
+            fSystemController.fBeBoardFWMap.clear();
 
-            //first, handle the BeBoard Registers as these are easiest
-            std::vector < std::pair<std::string, uint32_t>> cRegisters = this->getBeBoardRegisters();
+            //now re-initialize
+            //if we don't find an environment variable in the path to the address tabel, we prepend the Ph2ACF ROOT
+            if (fGUI->fHwXMLString.find ("file:://${") == std::string::npos)
+            {
+                std::string cCorrectPath = "file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") + "/";
+                cleanupHTMLString (fGUI->fHwXMLString, "file://", cCorrectPath);
+            }
 
-            for (auto cPair : cRegisters )
-                cBoard->setReg (cPair.first, cPair.second);
+            //the same goes for the CBC File Path
+            if (fGUI->fHwXMLString.find ("<CBC_Files path=\"${") == std::string::npos)
+            {
+                std::string cCorrectPath = "<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}");
+                cleanupHTMLString (fGUI->fHwXMLString, "<CBC_Files path=\".", cCorrectPath);
+            }
 
-            if (cState == 'e')
-                fSystemController.fBeBoardInterface->WriteBoardMultReg (cBoard, cRegisters);
+            //this is a temporary solution to keep the logs - in fact I should tail the logfile that I have to configure properly before
+            std::ostringstream cPh2LogStream;
 
-            this->handleCBCRegisters (cBoard, cState);
-            //next, the condition data - this does not have any influence on configuration or whatsoever, so i can change it in configuring or enabling
-            this->handleCondtionData (cBoard );
+            if (cState == 'c')
+                fSystemController.InitializeHw (fGUI->fHwXMLString, cPh2LogStream, false);
+            else if (cState == 'e')
+            {
+                fSystemController.InitializeHw (fGUI->fHwXMLString, cPh2LogStream, false);
+                fSystemController.ConfigureHw ();
+            }
+
+            std::string cTmpStr = cPh2LogStream.str();
+            cleanup_log_string (cTmpStr);
+            fGUI->fPh2_ACFLog += cTmpStr;
+            std::cout << cPh2LogStream.str() << std::endl;
         }
-
     }
     else
     {
         throw std::runtime_error ("This can only be called in Confuring or Enabling");
         LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, HW Description Tree can only be updated on configure or enable!" << RESET );
+        return;
+    }
+}
+void DTCSupervisor::updateSettings()
+{
+    char cState = fFSM.getCurrentState();
+
+    //if the state is halted or configured, I get to mess with the HWDescription tree!
+    if ( (cState == 'c' || cState == 'e') && !fHWFormData.empty() )
+    {
+        if (!fSettingsFormData.empty() )
+        {
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "The Settings were changed since initialising - thus updating memory!" << RESET);
+            //now simply replace SystemController's settings map with the new one!
+            fSystemController.fSettingsMap.clear();
+
+            for (auto cPair : fSettingsFormData)
+                fSystemController.fSettingsMap[cPair.first] = convertAnyInt (cPair.second.c_str() );
+
+        }
+    }
+    else
+    {
+        throw std::runtime_error ("This can only be called in Confuring or Enabling");
+        LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, Settings can only be updated on configure or enable!" << RESET );
         return;
     }
 }

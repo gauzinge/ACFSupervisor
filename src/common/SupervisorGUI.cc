@@ -265,6 +265,12 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
             fSettingsXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (SETTINGSSTYLESHEETINVERSE), cLogStream, false);
             //std::cout << fSettingsXMLString << std::endl;
         }
+        else if (cTransition == "Configure")
+        {
+            //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
+            std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
+            fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
+        }
 
 
         if (cTransition == "Refresh")
@@ -455,7 +461,9 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
 
     //left form part
     *out << cgicc::div().set ("class", "acf_left") << std::endl;
+
     *out << cgicc::fieldset().set ("style", "margin-top:20px").set ("onblur", "submitACFForm();") << cgicc::legend ("Ph2_ACF Main Settings") << std::endl;
+
     this->createProcedureInput (out);
     *out << cgicc::fieldset() << std::endl;
 
@@ -471,7 +479,11 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     //right form part
     *out << cgicc::div().set ("class", "acf_right") << std::endl;
 
-    *out << cgicc::fieldset().set ("style", "margin-top:20px") << cgicc::legend ("Main Run Settings") << std::endl;
+    if (cState != 'I')
+        *out << cgicc::fieldset().set ("style", "margin-top:20px").set ("disabled", "disabled") << cgicc::legend ("Main Run Settings") << std::endl;
+    else
+        *out << cgicc::fieldset().set ("style", "margin-top:20px") << cgicc::legend ("Main Run Settings") << std::endl;
+
     *out << cgicc::table() << std::endl;
     *out << cgicc::tr() << std::endl;
 
@@ -501,7 +513,12 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     *out << cgicc::table() << std::endl;
 
     *out << cgicc::fieldset() << std::endl;
-    *out << cgicc::fieldset().set ("id", "commission_fieldset").set ("style", "margin:10px") << cgicc::legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
+
+    if (cState != 'I')
+        *out << cgicc::fieldset().set ("id", "commission_fieldset").set ("style", "margin:10px").set ("disabled", "disabled") << cgicc::legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
+    else
+        *out << cgicc::fieldset().set ("id", "commission_fieldset").set ("style", "margin:10px") << cgicc::legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
+
     //Commissioning Settings
     *out << cgicc::table().set ("style", "display:none").set ("id", "commission_table") << std::endl;
     *out << cgicc::tr() << std::endl;

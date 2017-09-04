@@ -147,11 +147,6 @@ namespace Ph2TkDAQ {
         std::string fURN;
         DTCStateMachine* fFSM;
         const std::vector<std::string> fProcedures{"Data Taking", "Calibration", "Pedestal&Noise", "Commissioning", "Pulseshape", "Hybridtest", "Systemtest"};
-        std::map<std::string, bool> fProcedureMap;
-        bool fLatency;
-        bool fStubLatency;
-        int fLatencyStartValue;
-        int fLatencyRange;
 
 
       public:
@@ -169,6 +164,12 @@ namespace Ph2TkDAQ {
         std::string fSettingsFormString;
         std::string fHwXMLString;
         std::string fSettingsXMLString;
+
+        std::map<std::string, bool> fProcedureMap;
+        bool fLatency;
+        bool fStubLatency;
+        int fLatencyStartValue;
+        int fLatencyRange;
 
         std::string fPh2_ACFLog;
         Tab fCurrentPageView;
