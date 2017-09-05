@@ -138,6 +138,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
         cAutoRefresh = true;
 
     std::ostringstream cTabBarString;
+
     std::string url = fURN;
 
     // switch to show the current tab

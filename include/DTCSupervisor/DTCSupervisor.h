@@ -5,6 +5,9 @@
 #include "xdaq/NamespaceURI.h"
 #include "xdaq/WebApplication.h"
 
+#include "toolbox/task/WorkLoopFactory.h"
+#include "toolbox/task/Action.h"
+
 #include "xgi/Utils.h"
 #include "xgi/Method.h"
 
@@ -54,6 +57,11 @@ namespace Ph2TkDAQ {
         //views
         void Default (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
 
+        // the workloop, action signature and job for calibrations
+        toolbox::task::ActionSignature* fCalibrationAction;
+        toolbox::task::WorkLoop* fCalibrationWorkloop;
+        bool CalibrationJob (toolbox::task::WorkLoop* wl);
+
       protected:
         xdata::String fHWDescriptionFile;
         xdata::String fDataDirectory;
@@ -64,14 +72,16 @@ namespace Ph2TkDAQ {
         xdata::Boolean fDAQFile;
 
       private:
+        std::string fAppNameAndInstanceString;
         FormData fHWFormData;
         FormData fSettingsFormData;
         Ph2_System::SystemController fSystemController;
         //File Handler for SLINK Data - the one for raw data is part of SystemController
         FileHandler* fSLinkFileHandler;
 
-        //callbacks for FSM states
+
       public:
+        //callbacks for FSM state transtions
         bool initialising (toolbox::task::WorkLoop* wl);
         ///Perform configure transition
         bool configuring (toolbox::task::WorkLoop* wl);
@@ -87,6 +97,12 @@ namespace Ph2TkDAQ {
         bool stopping (toolbox::task::WorkLoop* wl);
         ///Perform destroy transition
         bool destroying (toolbox::task::WorkLoop* wl);
+
+        //callbacks for FSM finished state transtions
+        //run when Initialise transaction is finished
+        //void Initialised (toolbox::Event::Reference e) throw (toolbox::fsm::exception::Exception);
+        //run when Configure transaction is finished
+        //void Configured (toolbox::Event::Reference e) throw (toolbox::fsm::exception::Exception);
 
         /** FSM call back   */
         xoap::MessageReference fsmCallback (xoap::MessageReference msg) throw (xoap::exception::Exception)

@@ -33,6 +33,10 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
         }
     }
 
+    std::ostringstream oss;
+    oss << this->getApplicationDescriptor()->getClassName()
+        << this->getApplicationDescriptor()->getInstance();
+    fAppNameAndInstanceString = oss.str();
     //bind xgi and xoap commands to methods
     //xgi::bind (this, &DTCSupervisor::Default, "Default");
 
@@ -44,6 +48,11 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     this->getApplicationInfoSpace()->fireItemAvailable ("NEvents", &fNEvents);
     this->getApplicationInfoSpace()->fireItemAvailable ("WriteRAW", &fRAWFile);
     this->getApplicationInfoSpace()->fireItemAvailable ("WriteDAQ", &fDAQFile);
+
+    //bind the action signature for the calibration action and create the workloop
+    this->fCalibrationAction = toolbox::task::bind (this, &DTCSupervisor::CalibrationJob, "Calibration");
+    this->fCalibrationWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "Calibrating", "waiting");
+
 
     //detect when default values have been set
     this->getApplicationInfoSpace()->addListener (this, "urn:xdaq-event:setDefaultValues");
@@ -101,9 +110,6 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         ss << "All Default Values set!" << std::endl;
         ss << BOLDYELLOW <<  "***********************************************************" << RESET << std::endl;
         LOG4CPLUS_INFO (this->getApplicationLogger(), ss.str() );
-        //here is the listener for FSM state transition commands via xoap??
-        //have a look at https://gitlab.cern.ch/cms_tk_ph2/BoardSupervisor/blob/master/src/common/BoardSupervisor.cc
-        //at a later point!
     }
 }
 
@@ -113,6 +119,80 @@ throw (xgi::exception::Exception)
     std::string name = in->getenv ("PATH_INFO");
     static_cast<xgi::MethodSignature*> (fGUI->getMethod (name) )->invoke (in, out);
     fGUI->lastPage (in, out);
+}
+
+bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
+{
+    try
+    {
+        Tool cTool;
+        cTool.Inherit (&fSystemController);
+        std::string cResultDirectory = fResultDirectory.toString() + "CommissioningCycle";
+        cTool.CreateResultDirectory (cResultDirectory, false, true);
+        cTool.InitResultFile ("CommissioningCycle");
+
+        //cTool.StartHttpServer (8080, true);
+        std::cout << "In DTC Super" << std::endl;
+
+        for (auto cBoard : cTool.fBoardVector)
+        {
+            std::cout << cBoard << " " << +cBoard->getBeId() << std::endl;
+
+            for (auto cFe : cBoard->fModuleVector)
+            {
+                std::cout << cFe << " " << +cFe->getFeId() << std::endl;
+
+                for (auto cCbc : cFe->fCbcVector)
+                    std::cout << cCbc << " " << +cCbc->getCbcId() << std::endl;
+            }
+
+            std::cout << "In DTC Super" << std::endl;
+        }
+
+        auto cProcedure = fGUI->fProcedureMap.find ("Calibration");
+
+        if (cProcedure != std::end (fGUI->fProcedureMap) && cProcedure->second == true )
+        {
+            Calibration cCalibration;
+            cCalibration.Inherit (&cTool);
+            cCalibration.Initialise (false);
+            std::cout << "I get here!" << std::endl;
+            cCalibration.FindVplus();
+            std::cout << "I get here!" << std::endl;
+            cCalibration.FindOffsets();
+            cCalibration.writeObjects();
+            cCalibration.dumpConfigFiles();
+        }
+
+        cProcedure = fGUI->fProcedureMap.find ("Pedestal&Noise");
+
+        if (cProcedure->second == true) //procedure enabled
+        {
+            PedeNoise cPedeNoise;
+            cPedeNoise.Inherit (&cTool);
+            cPedeNoise.Initialise();
+            cPedeNoise.measureNoise();
+        }
+
+        //cProcedure = fGUI->fProcedureMap.find ("Commissioning");
+
+        //if (cProcedure->second == true) //procedure enabled
+        //{
+        //LatencyScan cCommissioning;
+        //cCommissioning.Inherit (&cTool);
+        //cCommissioning.Initialize (fGUI->fLatencyStartValue, fGUI->fLatencyRange);
+        ////do something here
+        //}
+        cTool.Destroy();
+    }
+    catch (std::exception& e)
+    {
+        LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << e.what() << RESET );
+        fFSM.fireFailed ("Error on initialising", this);
+    }
+
+    fFSM.fireEvent ("Stop", this);
+    return false;
 }
 
 bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
@@ -171,7 +251,7 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << e.what() << RESET );
-        fFSM.fireEvent ("Fail", this);
+        fFSM.fireFailed ("Error on initialising", this);
     }
 
     fFSM.fireEvent ("InitialiseDone", this);
@@ -193,6 +273,7 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
+        fFSM.fireFailed ("Error on configuring", this);
     }
 
     fFSM.fireEvent ("ConfigureDone", this);
@@ -203,65 +284,50 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
 {
     try
     {
-        //fGUI->fAutoRefresh = true;
-        //TODO: this should happen in enabling as I have no means of calling the member functions otherwise
+        //first, check if there were updates to the HWDescription or the settings
+        this->updateHwDescription();
+        this->updateSettings();
+
+        //figure out if we are supposed to run any calibrations
+        int cEnabledProcedures = 0;
+
+        for (auto cProcedure : fGUI->fProcedureMap)
+            if (cProcedure.second && cProcedure.first != "Data Taking") cEnabledProcedures++;
+
+        if (cEnabledProcedures != 0) // we are supposed to run calibrations
+        {
+            //activate the workloop so it's available
+            //this can be done in enabling
+            if (!fCalibrationWorkloop->isActive() )
+            {
+                fCalibrationWorkloop->activate();
+                LOG4CPLUS_INFO (this->getApplicationLogger(), BLUE << "Starting workloop for calibration tasks!" << RESET);
+
+                try
+                {
+                    fCalibrationWorkloop->submit (fCalibrationAction);
+                }
+                catch (xdaq::exception::Exception& e)
+                {
+                    LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
+                }
+            }
+        }
+
         //now I should see what kind of tools I have going and call their initialize accordingly
         //if there are any tools enabled, I should create a generic tool with all the directories, files and thttp server and have the specific tools inherit from it!
         //what comes below should go into the main workloop when it starts
-        //int cEnabledProcedures = 0;
 
-        //for (auto cProcedure : fGUI->fProcedureMap)
-        //if (cProcedure.second && cProcedure.first != "Data Taking") cEnabledProcedures++;
 
         //if (cEnabledProcedures != 0)
         //{
-        //Tool cTool;
-        //cTool.Inherit (&fSystemController);
-        //cTool.CreateResultDirectory ("CommissioningCycle", false, true);
-        //cTool.InitResultFile ("CommissioningCycle");
-        //cTool.StartHttpServer (8080, true);
-
-        //auto cProcedure = fGUI->fProcedureMap.find ("Calibration");
-
-        //if (cProcedure->second == true) //procedure enabled
-        //{
-        //Calibration cCalibration;
-        //cCalibration.Inherit (&cTool);
-        //cCalibration.Initialise (false);
-        ////launch this in it's own workloop??
-        //cCalibration.FindVplus();
-        //cCalibration.FindOffsets();
-        //cCalibration.writeObjects();
-        //cCalibration.dumpConfigFiles();
-        //}
-
-        //cProcedure = fGUI->fProcedureMap.find ("Pedestal&Noise");
-
-        //if (cProcedure->second == true) //procedure enabled
-        //{
-        //PedeNoise cPedeNoise;
-        //cPedeNoise.Inherit (&cTool);
-        //cPedeNoise.Initialise();
-        ////launch this in it's own workloop??
-        //cPedeNoise.measureNoise();
-        //}
-
-        //cProcedure = fGUI->fProcedureMap.find ("Commissioning");
-
-        //if (cProcedure->second == true) //procedure enabled
-        //{
-        //LatencyScan cCommissioning;
-        //cCommissioning.Inherit (&cTool);
-        //cCommissioning.Initialize (fGUI->fLatencyStartValue, fGUI->fLatencyRange);
-        ////do something here
-        //}
         //}
 
     }
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
-        fFSM.fireEvent ("Fail", this);
+        fFSM.fireFailed ("Error on enabling", this);
     }
 
     fFSM.fireEvent ("EnableDone", this);
@@ -277,6 +343,7 @@ bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
+        fFSM.fireFailed ("Error on Halting", this);
     }
 
     fFSM.fireEvent ("HaltDone", this);
@@ -292,6 +359,7 @@ bool DTCSupervisor::pausing (toolbox::task::WorkLoop* wl)
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
+        fFSM.fireFailed ("Error on pausing", this);
     }
 
     fFSM.fireEvent ("PauseDone", this);
@@ -307,6 +375,7 @@ bool DTCSupervisor::resuming (toolbox::task::WorkLoop* wl)
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
+        fFSM.fireFailed ("Error on resuming", this);
     }
 
     fFSM.fireEvent ("ResumeDone", this);
@@ -322,6 +391,7 @@ bool DTCSupervisor::stopping (toolbox::task::WorkLoop* wl)
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
+        fFSM.fireFailed ("Error on stopping", this);
     }
 
     fFSM.fireEvent ("StopDone", this);
@@ -338,6 +408,7 @@ bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
+        fFSM.fireFailed ("Error on destroying", this);
     }
 
     fFSM.fireEvent ("DestroyDone", this);
@@ -382,6 +453,20 @@ void DTCSupervisor::updateHwDescription()
         return;
     }
 }
+
+//void DTCSupervisor::Initialised (toolbox::Event::Reference e) throw (toolbox::fsm::exception::Exception)
+//{
+//std::cout << "Initialised Event " << e->type() << std::endl;
+////xgi::Input in ("", 1);
+////xgi::Output out;
+//fGUI->lastPage (this->Input, this->Output);
+//}
+
+//void DTCSupervisor::Configured (toolbox::Event::Reference e) throw (toolbox::fsm::exception::Exception)
+//{
+//std::cout << "Configured Event " << e->type() << std::endl;
+//}
+
 void DTCSupervisor::updateSettings()
 {
     char cState = fFSM.getCurrentState();

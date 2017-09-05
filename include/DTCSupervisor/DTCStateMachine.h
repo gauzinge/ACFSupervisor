@@ -183,9 +183,11 @@ namespace Ph2TkDAQ {
             // define the transition
             fsm_.addStateTransition ('I', 'i', "Initialise");
             fsm_.addStateTransition ('i', 'H', "InitialiseDone");
+            //fsm_.addStateTransition ('i', 'H', "InitialiseDone", app, &T::Initialised);
 
             fsm_.addStateTransition ('H', 'c', "Configure");
             fsm_.addStateTransition ('c', 'C', "ConfigureDone");
+            //fsm_.addStateTransition ('c', 'C', "ConfigureDone", app, &T::Configured);
 
             fsm_.addStateTransition ('C', 'e', "Enable");
             fsm_.addStateTransition ('e', 'E', "EnableDone");
