@@ -19,10 +19,18 @@
     
     <xsl:template match="div[@class='Module']" name="Module">
         <Module FeId="{.//input[contains(@name,'fe_id')]/@value}" FMCId="{.//input[contains(@name,'fmc_id')]/@value}" ModuleId="{.//input[contains(@name,'module_id')]/@value}" Status="{.//input[contains(@name,'module_status')]/@value}">
-            <xsl:call-template name="Global"/>
+            <!--TODO: fixme-->
+            <xsl:choose>
+                <xsl:when test="//div[@class='Config']">
+                    <xsl:call-template name="Global"/>
+                </xsl:when>
+            </xsl:choose>
+            <xsl:choose>
+                <xsl:when test="//input[contains(@name,'glob_cbc_reg:')]">
+                    <xsl:apply-templates select="//input[contains(@name,'glob_cbc_reg:')]"/>
+                </xsl:when>
+            </xsl:choose>
             <xsl:apply-templates select="//input[@name='cbc_filepath']"/>
-            <!--<xsl:apply-templates select="//select[contains(@name,'configfile')]"/>-->
-            <!--<xsl:apply-templates select="//div[@class='CBC']"/>-->
             <xsl:for-each select="//div[@class='CBC']">
                 <xsl:call-template name="CBC"/>
             </xsl:for-each>
@@ -38,7 +46,6 @@
            <Misc analogmux="{//input[contains(@name,'Global__misc_amux')]/@value}" pieplogic="{//input[contains(@name,'Global__misc_pipelogic')]/@value}" stublogic="{//input[contains(@name,'Global__misc_stublogic')]/@value}" or254="{//input[contains(@name,'Global__misc_or254')]/@value}" tpgclock="{//input[contains(@name,'Global__misc_tpgclock')]/@value}" testclock="{//input[contains(@name,'Global__misc_testclock')]/@value}" dll="{//input[contains(@name,'Global__misc_dll')]/@value}"/>
            <ChannelMask disable="{//input[contains(@name,'Global__chanmas_disable')]/@value}"/>
        </Global>
-       <xsl:apply-templates select="//input[contains(@name,'glob_cbc_reg:')]"/>
     </xsl:template>
     
     <xsl:template match="div[@class='CBC']" name="CBC_Settings">
@@ -66,7 +73,6 @@
             <CBC Id="{substring-after(.//select[starts-with(@name,'configfile')]//@name,'configfile')}" configfile="{.//select[starts-with(@name,'configfile')]//option/@value}">
             <xsl:choose>
                 <xsl:when test="contains(.//li/input/@name,'threshold')">
-                    <test test="aabb"/>
                     <xsl:call-template name="CBC_Settings"/>
                     <xsl:apply-templates select=".//input[starts-with(@name,'Register_...')]"/>
                 </xsl:when>
@@ -101,6 +107,12 @@
     
     <xsl:template match="//div[@class='BeBoardRegisters']//input[contains(@name,'Register')]" name="Registers">
         <xsl:choose>
+            <xsl:when test="starts-with(@name,'Register_...')">
+                <Register name="{substring-after(@name,'Register_...')}"><xsl:value-of select="@value"/></Register>
+            </xsl:when>
+            <xsl:when test="starts-with(@name,'Register_..')">
+                <Register name="{substring-after(@name,'Register_..')}"><xsl:value-of select="@value"/></Register>
+            </xsl:when>
             <xsl:when test="starts-with(@name,'Register_.')">
                 <Register name="{substring-after(@name,'Register_.')}"><xsl:value-of select="@value"/></Register>
             </xsl:when>

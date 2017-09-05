@@ -30,9 +30,13 @@ namespace Ph2TkDAQ {
     {
         std::string cWord;
 
-        if (pWord.substr (0, 1) == ".")
-            cWord = pWord.substr (1);
-        else cWord = pWord;
+        if (pWord.find (".") == 0) //if string starts with a dot
+        {
+            size_t cPos = pWord.find_first_not_of (".");
+            cWord = pWord.substr (cPos);
+        }
+        else
+            cWord = pWord;
 
         return cWord;
     }

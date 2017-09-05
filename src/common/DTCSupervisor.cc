@@ -128,7 +128,10 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
 
         //first add a filehandler for the raw data to SystemController
         if (fRAWFile)
+        {
             fSystemController.addFileHandler ( cRawOutputFile, 'w' );
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving raw data to: " << BOLDBLUE << fSystemController.fFileHandler->getFilename() << RESET);
+        }
 
         if (fDAQFile)
         {
@@ -137,6 +140,7 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
             cDAQOutputFile += cFile;
             //then add a file handler for the DAQ data
             fSLinkFileHandler = new FileHandler (cDAQOutputFile, 'w');
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving daq data to: " << BOLDBLUE << fSLinkFileHandler->getFilename() << RESET);
         }
 
         //try to initialize the HWDescription from the GUI's fXMLHWString
@@ -166,7 +170,6 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
         cleanup_log_string (cTmpStr);
         fGUI->fPh2_ACFLog += cTmpStr;
         LOG (INFO) << cPh2LogStream.str() ;
-
     }
 
     catch (std::exception& e)
@@ -357,10 +360,10 @@ void DTCSupervisor::updateHwDescription()
             if (cRegister->first.find ("Register_") == 0 && cRegister->first.find ("...") == std::string::npos)
                 this->handleBeBoardRegister (cBoard, cRegister);
 
-            if (cRegister->first.find ("glob_cbc_reg") != std::string::npos )
+            else if (cRegister->first.find ("glob_cbc_reg") != std::string::npos )
                 this->handleGlobalCbcRegister (cBoard, cRegister);
 
-            if (cRegister->first.find ("Register_...") == 0 )
+            else if (cRegister->first.find ("Register_...") == 0 )
                 this->handleCBCRegister (cBoard, cRegister);
 
             else
@@ -372,7 +375,7 @@ void DTCSupervisor::updateHwDescription()
     }
     else
     {
-        throw std::runtime_error ("This can only be called in Confuring or Enabling");
+        //throw std::runtime_error ("This can only be called in Confuring or Enabling");
         LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, HW Description Tree can only be updated on configure or enable!" << RESET );
         return;
     }
@@ -391,13 +394,16 @@ void DTCSupervisor::updateSettings()
         fSystemController.fSettingsMap.clear();
 
         for (auto cPair : fSettingsFormData)
+        {
             fSystemController.fSettingsMap[cPair.first] = convertAnyInt (cPair.second.c_str() );
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BLUE << "Updating Setting: " << cPair.first << " to " << cPair.second << RESET);
+        }
 
         //}
     }
     else
     {
-        throw std::runtime_error ("This can only be called in Confuring or Enabling");
+        //throw std::runtime_error ("This can only be called in Confuring or Enabling");
         LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, Settings can only be updated on configure or enable!" << RESET );
         return;
     }

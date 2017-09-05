@@ -102,7 +102,7 @@ namespace Ph2TkDAQ {
         {
             std::string cKey = pRegister->first;
             cKey = removeDot (cKey.erase (0, 9) );
-            uint8_t cValue = convertAnyInt (pRegister->second.c_str() );
+            uint32_t cValue = convertAnyInt (pRegister->second.c_str() );
             pBoard->setReg (cKey, cValue);
 
             if (fFSM.getCurrentState() == 'e')
@@ -112,7 +112,7 @@ namespace Ph2TkDAQ {
         }
         void handleGlobalCbcRegister (BeBoard* pBoard, std::map<std::string, std::string>::iterator pRegister)
         {
-            std::string cRegName = pRegister->first.substr (pRegister->first.find ("glob_cbc_reg:") );
+            std::string cRegName = pRegister->first.substr (pRegister->first.find ("glob_cbc_reg:") + 13 );
             uint8_t cValue = (convertAnyInt (pRegister->second.c_str() ) & 0xFF);
 
             for (auto cFe : pBoard->fModuleVector)
@@ -130,8 +130,9 @@ namespace Ph2TkDAQ {
         }
         void handleCBCRegister (BeBoard* pBoard, std::map<std::string, std::string>::iterator pRegister)
         {
-            std::string cRegName = pRegister->first.substr (pRegister->first.find ("Register_...") );
-            size_t cPos = cRegName.find_first_not_of ("0123456789");
+            size_t cPos = pRegister->first.find ("Register_...");
+            std::string cRegName = pRegister->first.substr (cPos + 12);
+            cPos = cRegName.find_first_not_of ("0123456789");
             uint8_t cCbcId = (convertAnyInt (cRegName.substr (0, cPos).c_str() ) & 0xFF);
             cRegName = cRegName.substr (cPos);
             uint8_t cValue = (convertAnyInt (pRegister->second.c_str() ) & 0xFF);
