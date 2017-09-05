@@ -7,7 +7,7 @@ SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp, DTCStateMachine* pStat
     fApp (pApp),
     fManager (pApp),
     fFSM (pStateMachine),
-    //fXLSStylesheet (nullptr),
+    fLogFilePath (""),
     fLatency (true),
     fStubLatency (false),
     fLatencyStartValue (0),
@@ -41,6 +41,10 @@ SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp, DTCStateMachine* pStat
     xgi::bind (this, &SupervisorGUI::lastPage, "lastPage");
 
     fCurrentPageView = Tab::MAIN;
+    fLogFilePath = (expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/logs/DTCSuper.log") );
+
+    if (remove (fLogFilePath.c_str() ) != 0)
+        LOG4CPLUS_INFO (fLogger, BOLDRED << "Error removing Log file from previous Run: " << fLogFilePath << RESET);
 }
 
 void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
@@ -127,7 +131,12 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     *out << cgicc::title ("DTC Supervisor")  << std::endl;
 
 
-    int cRefreshDelay = 3;
+    int cRefreshDelay = 1;
+    bool cAutoRefresh = false;
+
+    if (cState == 'i' || cState == 'c' || cState == 'e' || fAutoRefresh)
+        cAutoRefresh = true;
+
     std::ostringstream cTabBarString;
     std::string url = fURN;
 
@@ -138,7 +147,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
             cTabBarString << "<a href='" << url << "MainPage' class=\"button active\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button\">DAQPage</a>" << std::endl;
 
             //auto refresh
-            if (cState == 'c' || fAutoRefresh)
+            if (cAutoRefresh)
                 *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "MainPage\"/>" << std::endl;
 
             break;
@@ -146,7 +155,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
         case Tab::CONFIG:
             cTabBarString << "<a href='" << url << "MainPage' class=\"button\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button active\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button\">DAQPage</a>" << std::endl;
 
-            if (cState == 'c' || fAutoRefresh)
+            if (cAutoRefresh)
                 *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "ConfigPage\"/>" << std::endl;
 
             break;
@@ -154,7 +163,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
         case Tab::CALIBRATION:
             cTabBarString << "<a href='" << url << "MainPage' class=\"button\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button active\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button\">DAQPage</a>" << std::endl;
 
-            if (cState == 'c' || fAutoRefresh)
+            if (cAutoRefresh)
                 *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "CalibrationPage\"/>" << std::endl;
 
             break;
@@ -162,7 +171,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
         case Tab::DAQ:
             cTabBarString << "<a href='" << url << "MainPage' class=\"button\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button active\">DAQPage</a>" << std::endl;
 
-            if (cState == 'c' || fAutoRefresh)
+            if (cAutoRefresh)
                 *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "DAQPage\"/>" << std::endl;
 
             break;
@@ -181,9 +190,6 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     *out << "<div class=\"content\">" << std::endl;
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
-
-    //TODO:: attention
-    fAutoRefresh = false;
 }
 
 void SupervisorGUI::createHtmlFooter (xgi::Input* in, xgi::Output* out)
@@ -191,7 +197,6 @@ void SupervisorGUI::createHtmlFooter (xgi::Input* in, xgi::Output* out)
     //close the main and content div
     *out << "</div class=\"content\"></div class=\"main\">" << std::endl;
     fManager.getHTMLFooter (in, out);
-
 }
 
 void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::exception::Exception)
@@ -259,7 +264,7 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
             //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
             std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
             fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
-            std::cout << fHwXMLString << std::endl;
+            //std::cout << fHwXMLString << std::endl;
             //now do the same for the Settings
             cTmpFormString = cleanup_before_XSLT (fSettingsFormString);
             fSettingsXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (SETTINGSSTYLESHEETINVERSE), cLogStream, false);
@@ -267,9 +272,6 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
         }
         else if (cTransition == "Configure")
         {
-            //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
-            std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
-            fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
         }
 
 
@@ -634,7 +636,6 @@ void SupervisorGUI::displayPh2_ACFLog (xgi::Output* out)
 {
     *out << cgicc::div().set ("class", "log") << std::endl;
     *out  << cgicc::legend ("Ph2_ACF Logs") << std::endl;
-    //*out << cgicc::textarea().set ("rows", "12").set ("cols", "100") << fPh2_ACFLog.str() << cgicc::textarea() << std::endl;
     *out << cgicc::p() << fPh2_ACFLog << cgicc::p() << std::endl;
     *out << cgicc::div() << std::endl;
 }

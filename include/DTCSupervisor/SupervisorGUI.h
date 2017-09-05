@@ -24,6 +24,7 @@
 #include "log4cplus/loggingmacros.h"
 
 #include "DTCSupervisor/DTCStateMachine.h"
+//#include "DTCSupervisor/LogReader.h"
 #include "DTCSupervisor/FilePaths.h"
 
 #include "Utils.h"
@@ -107,6 +108,11 @@ namespace Ph2TkDAQ {
         {
             fSettingsFormData = pFormData;
         }
+        std::string tailFile ()
+        {
+            std::string cResult = parseExternalResource (fLogFilePath.c_str() );
+            return cResult;
+        }
 
       private:
         //determines allowed state transitions
@@ -147,6 +153,8 @@ namespace Ph2TkDAQ {
         std::string fURN;
         DTCStateMachine* fFSM;
         const std::vector<std::string> fProcedures{"Data Taking", "Calibration", "Pedestal&Noise", "Commissioning", "Pulseshape", "Hybridtest", "Systemtest"};
+        std::string fLogFilePath;
+        //LogReader fLogReader;
 
 
       public:

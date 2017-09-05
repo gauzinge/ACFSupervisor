@@ -138,7 +138,7 @@ namespace Ph2TkDAQ {
         return (stat (name.c_str(), &buffer) == 0);
     }
 
-    inline std::string parseExternalResource (std::string pStylesheet, std::ostringstream& pStream)
+    inline std::string parseExternalResource (std::string pStylesheet, std::ostream& pStream = std::cout)
     {
         std::string cResult;
 

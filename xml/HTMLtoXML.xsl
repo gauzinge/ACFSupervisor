@@ -56,8 +56,8 @@
            <ChannelMask disable="{//input[starts-with(@name,'CBC_') and contains(@name,'_chanmas_disable')]/@value}"/>
     </xsl:template>
     
-    <xsl:template match="div[@class='CBC']//input[starts-with(@name,'Register_...')]" name="CBC_Register">
-        <Register name="{substring(@name,14)}"><xsl:value-of select="@value"/></Register>
+    <xsl:template match="div[@class='CBC']//input[starts-with(@name,'Register_....')]" name="CBC_Register">
+        <Register name="{substring(@name,15)}"><xsl:value-of select="@value"/></Register>
     
     </xsl:template>
     

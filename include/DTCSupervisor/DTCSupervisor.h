@@ -155,6 +155,14 @@ namespace Ph2TkDAQ {
             LOG4CPLUS_INFO (this->getApplicationLogger(), BLUE << "Changing CBC Register " << cRegName << " on CBC " << +cCbcId << " to " << +cValue << RESET);
         }
 
+        void updateLogs()
+        {
+            fGUI->fPh2_ACFLog.clear();
+            std::string cTmpString = fGUI->tailFile () ;
+            cleanup_log_string (cTmpString);
+            fGUI->fPh2_ACFLog = cTmpString;
+        }
+
     };
 
 }

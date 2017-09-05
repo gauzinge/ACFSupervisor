@@ -101,7 +101,6 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         ss << "All Default Values set!" << std::endl;
         ss << BOLDYELLOW <<  "***********************************************************" << RESET << std::endl;
         LOG4CPLUS_INFO (this->getApplicationLogger(), ss.str() );
-        LOG (INFO) << ss.str();
         //here is the listener for FSM state transition commands via xoap??
         //have a look at https://gitlab.cern.ch/cms_tk_ph2/BoardSupervisor/blob/master/src/common/BoardSupervisor.cc
         //at a later point!
@@ -120,10 +119,9 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
 {
     try
     {
-        fGUI->fAutoRefresh = true;
         //get the runnumber from the storage file
         int cRunNumber = fRunNumber;
-        std::string cRawOutputFile = fDataDirectory.toString() + "/" + getDataFileName (expandEnvironmentVariables ("${PH2ACF_ROOT}"), cRunNumber) ;
+        std::string cRawOutputFile = fDataDirectory.toString() + getDataFileName (expandEnvironmentVariables ("${PH2ACF_ROOT}"), cRunNumber) ;
         fRunNumber = cRunNumber;
 
         //first add a filehandler for the raw data to SystemController
@@ -135,7 +133,7 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
 
         if (fDAQFile)
         {
-            std::string cDAQOutputFile = fDataDirectory.toString() + "/";
+            std::string cDAQOutputFile = fDataDirectory.toString();
             std::string cFile = string_format ("run_%04d.daq", cRunNumber);
             cDAQOutputFile += cFile;
             //then add a file handler for the DAQ data
@@ -166,10 +164,8 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
         fSystemController.InitializeSettings (fGUI->fSettingsXMLString, cPh2LogStream, false);
         fSystemController.InitializeHw (fGUI->fHwXMLString, cPh2LogStream, false);
 
-        std::string cTmpStr = cPh2LogStream.str();
-        cleanup_log_string (cTmpStr);
-        fGUI->fPh2_ACFLog += cTmpStr;
         LOG (INFO) << cPh2LogStream.str() ;
+        this->updateLogs();
     }
 
     catch (std::exception& e)
@@ -187,10 +183,12 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
 
     try
     {
-        fGUI->fAutoRefresh = true;
+        //first, check if there were updates to the HWDescription or the settings
         this->updateHwDescription();
         this->updateSettings();
+        // once this is checked, configure
         fSystemController.ConfigureHw();
+        this->updateLogs();
     }
     catch (std::exception& e)
     {
@@ -205,7 +203,7 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
 {
     try
     {
-        fGUI->fAutoRefresh = true;
+        //fGUI->fAutoRefresh = true;
         //TODO: this should happen in enabling as I have no means of calling the member functions otherwise
         //now I should see what kind of tools I have going and call their initialize accordingly
         //if there are any tools enabled, I should create a generic tool with all the directories, files and thttp server and have the specific tools inherit from it!
@@ -334,6 +332,7 @@ bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
 {
     try
     {
+        fSystemController.Destroy();
 
     }
     catch (std::exception& e)
