@@ -130,8 +130,8 @@ namespace Ph2TkDAQ {
         }
         void handleCBCRegister (BeBoard* pBoard, std::map<std::string, std::string>::iterator pRegister)
         {
-            size_t cPos = pRegister->first.find ("Register_...");
-            std::string cRegName = pRegister->first.substr (cPos + 12);
+            size_t cPos = pRegister->first.find ("Register_....");
+            std::string cRegName = pRegister->first.substr (cPos + 13);
             cPos = cRegName.find_first_not_of ("0123456789");
             uint8_t cCbcId = (convertAnyInt (cRegName.substr (0, cPos).c_str() ) & 0xFF);
             cRegName = cRegName.substr (cPos);

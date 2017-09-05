@@ -184,6 +184,7 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
 ///Perform configure transition
 bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
 {
+
     try
     {
         fGUI->fAutoRefresh = true;
@@ -349,34 +350,36 @@ void DTCSupervisor::updateHwDescription()
     char cState = fFSM.getCurrentState();
 
     //if the state is halted or configured, I get to mess with the HWDescription tree!
-    if ( (cState == 'c' || cState == 'e') && !fHWFormData.empty() )
+    if ( (cState == 'c' || cState == 'e')  )
     {
-        BeBoard* cBoard = fSystemController.fBoardVector.at (0);
-        //first, clear what we have already initialized
-        LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "The HW Description was changed since initialising - thus updating the memory tree!" << RESET);
-
-        for (auto cRegister = fHWFormData.begin(); cRegister != fHWFormData.end();)
+        if (!fHWFormData.empty() )
         {
-            if (cRegister->first.find ("Register_") == 0 && cRegister->first.find ("...") == std::string::npos)
-                this->handleBeBoardRegister (cBoard, cRegister);
+            BeBoard* cBoard = fSystemController.fBoardVector.at (0);
+            //first, clear what we have already initialized
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "The HW Description was changed since initialising - thus updating the memory tree!" << RESET);
 
-            else if (cRegister->first.find ("glob_cbc_reg") != std::string::npos )
-                this->handleGlobalCbcRegister (cBoard, cRegister);
+            for (auto cRegister = fHWFormData.begin(); cRegister != fHWFormData.end();)
+            {
+                if (cRegister->first.find ("Register_") == 0 && cRegister->first.find ("...") == std::string::npos)
+                    this->handleBeBoardRegister (cBoard, cRegister);
 
-            else if (cRegister->first.find ("Register_...") == 0 )
-                this->handleCBCRegister (cBoard, cRegister);
+                else if (cRegister->first.find ("glob_cbc_reg") != std::string::npos )
+                    this->handleGlobalCbcRegister (cBoard, cRegister);
 
-            else
-                LOG4CPLUS_INFO (this->getApplicationLogger(), RED << "This setting " << GREEN << cRegister->first << RED << " can currently not be changed after initialising! - you can buy cake for Georg and ask him to fix it..." << RESET);
+                else if (cRegister->first.find ("Register_...") == 0 )
+                    this->handleCBCRegister (cBoard, cRegister);
 
-            fHWFormData.erase (cRegister++);
+                else
+                    LOG4CPLUS_INFO (this->getApplicationLogger(), RED << "This setting " << GREEN << cRegister->first << RED << " can currently not be changed after initialising! - you can buy cake for Georg and ask him to fix it..." << RESET);
+
+                fHWFormData.erase (cRegister++);
+            }
         }
-
     }
     else
     {
-        //throw std::runtime_error ("This can only be called in Confuring or Enabling");
         LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, HW Description Tree can only be updated on configure or enable!" << RESET );
+        throw std::runtime_error ("This can only be called in Confuring or Enabling");
         return;
     }
 }
@@ -385,26 +388,25 @@ void DTCSupervisor::updateSettings()
     char cState = fFSM.getCurrentState();
 
     //if the state is halted or configured, I get to mess with the HWDescription tree!
-    if ( (cState == 'c' || cState == 'e') && !fSettingsFormData.empty() )
+    if ( (cState == 'c' || cState == 'e') )
     {
-        //if (!fSettingsFormData.empty() )
-        //{
-        LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "The Settings were changed since initialising - thus updating memory!" << RESET);
-        //now simply replace SystemController's settings map with the new one!
-        fSystemController.fSettingsMap.clear();
-
-        for (auto cPair : fSettingsFormData)
+        if (!fSettingsFormData.empty() )
         {
-            fSystemController.fSettingsMap[cPair.first] = convertAnyInt (cPair.second.c_str() );
-            LOG4CPLUS_INFO (this->getApplicationLogger(), BLUE << "Updating Setting: " << cPair.first << " to " << cPair.second << RESET);
-        }
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "The Settings were changed since initialising - thus updating memory!" << RESET);
+            //now simply replace SystemController's settings map with the new one!
+            fSystemController.fSettingsMap.clear();
 
-        //}
+            for (auto cPair : fSettingsFormData)
+            {
+                fSystemController.fSettingsMap[cPair.first] = convertAnyInt (cPair.second.c_str() );
+                LOG4CPLUS_INFO (this->getApplicationLogger(), BLUE << "Updating Setting: " << cPair.first << " to " << cPair.second << RESET);
+            }
+        }
     }
     else
     {
-        //throw std::runtime_error ("This can only be called in Confuring or Enabling");
         LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, Settings can only be updated on configure or enable!" << RESET );
+        throw std::runtime_error ("This can only be called in Confuring or Enabling");
         return;
     }
 }
