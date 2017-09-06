@@ -471,6 +471,8 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
 
     std::string url = fURN + "processPh2_ACFForm";
 
+    *out << "<div style=\"display: inline-block; widht=100%\">" << std::endl;
+
     if (cState != 'E')
         *out << cgicc::form().set ("id", "acfform").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onclick", "displayACFfields();") << std::endl;
     else
@@ -522,10 +524,10 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     *out << cgicc::td() << cgicc::label() << "Number of Events: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "nevents").set ("size", "20").set ("placeholder", "number of events to take").set ("value", fNEvents->toString() ) << cgicc::td() << std::endl;
     *out << cgicc::tr() << std::endl;
     *out << cgicc::tr() << std::endl;
-    *out << cgicc::td() << cgicc::label() << "Data Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "data_directory").set ("size", "50").set ("value", expandEnvironmentVariables (fDataDirectory->toString() ) )   << cgicc::td() << std::endl;
+    *out << cgicc::td() << cgicc::label() << "Data Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "data_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fDataDirectory->toString() ) )   << cgicc::td() << std::endl;
     *out << cgicc::tr() << std::endl;
     *out << cgicc::tr() << std::endl;
-    *out << cgicc::td() << cgicc::label().set ("style", "display:none").set ("id", "result_directory_label") << "Result Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "result_directory").set ("id", "result_directory").set ("size", "50").set ("value", expandEnvironmentVariables (fResultDirectory->toString() ) ).set ("style", "display:none")  <<  cgicc::td() << std::endl;
+    *out << cgicc::td() << cgicc::label().set ("style", "display:none").set ("id", "result_directory_label") << "Result Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "result_directory").set ("id", "result_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fResultDirectory->toString() ) ).set ("style", "display:none")  <<  cgicc::td() << std::endl;
     *out << cgicc::tr() << std::endl;
     *out << cgicc::table() << std::endl;
 
@@ -564,6 +566,7 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
 
     *out << cgicc::div() << std::endl;
     *out << cgicc::form() << std::endl;
+    *out << "</div>" << std::endl;
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 }
@@ -652,6 +655,7 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
 
 void SupervisorGUI::displayPh2_ACFLog (xgi::Output* out)
 {
+    *out << cgicc::div().set ("class", "separator") << std::endl;
     *out << cgicc::div().set ("class", "legend") << std::endl;
     *out << cgicc::legend ("Ph2_ACF Logs") << std::endl;
     *out << cgicc::div() << std::endl;
