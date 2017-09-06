@@ -62,12 +62,18 @@ namespace Ph2TkDAQ {
         toolbox::task::WorkLoop* fCalibrationWorkloop;
         bool CalibrationJob (toolbox::task::WorkLoop* wl);
 
+        // the workloop, action signature and job for data taking
+        toolbox::task::ActionSignature* fDAQAction;
+        toolbox::task::WorkLoop* fDAQWorkloop;
+        bool DAQJob (toolbox::task::WorkLoop* wl);
+
       protected:
         xdata::String fHWDescriptionFile;
         xdata::String fDataDirectory;
         xdata::String fResultDirectory;
         xdata::Integer fRunNumber;
         xdata::Integer fNEvents;
+        xdata::Integer fEventCounter;
         xdata::Boolean fRAWFile;
         xdata::Boolean fDAQFile;
 
@@ -75,7 +81,7 @@ namespace Ph2TkDAQ {
         std::string fAppNameAndInstanceString;
         FormData fHWFormData;
         FormData fSettingsFormData;
-        Ph2_System::SystemController fSystemController;
+        Ph2_System::SystemController* fSystemController;
         //File Handler for SLINK Data - the one for raw data is part of SystemController
         FileHandler* fSLinkFileHandler;
 
@@ -122,7 +128,7 @@ namespace Ph2TkDAQ {
             pBoard->setReg (cKey, cValue);
 
             if (fFSM.getCurrentState() == 'e')
-                fSystemController.fBeBoardInterface->WriteBoardReg (pBoard, cKey, cValue);
+                fSystemController->fBeBoardInterface->WriteBoardReg (pBoard, cKey, cValue);
 
             LOG4CPLUS_INFO (this->getApplicationLogger(), BLUE << "Changing Be Board Register " << cKey << " to " << cValue << RESET);
         }
@@ -138,7 +144,7 @@ namespace Ph2TkDAQ {
                     cCbc->setReg (cRegName, cValue);
 
                     if (fFSM.getCurrentState() == 'e')
-                        fSystemController.fCbcInterface->WriteCbcReg (cCbc, cRegName, cValue);
+                        fSystemController->fCbcInterface->WriteCbcReg (cCbc, cRegName, cValue);
                 }
             }
 
@@ -162,7 +168,7 @@ namespace Ph2TkDAQ {
                         cCbc->setReg (cRegName, cValue);
 
                         if (fFSM.getCurrentState() == 'e')
-                            fSystemController.fCbcInterface->WriteCbcReg (cCbc, cRegName, cValue);
+                            fSystemController->fCbcInterface->WriteCbcReg (cCbc, cRegName, cValue);
                     }
                     else continue;
                 }

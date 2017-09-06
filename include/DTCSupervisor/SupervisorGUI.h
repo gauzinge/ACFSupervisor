@@ -152,7 +152,7 @@ namespace Ph2TkDAQ {
         log4cplus::Logger fLogger;
         std::string fURN;
         DTCStateMachine* fFSM;
-        const std::vector<std::string> fProcedures{"Data Taking", "Calibration", "Pedestal&Noise", "Commissioning", "Pulseshape", "Hybridtest", "Systemtest"};
+        const std::vector<std::string> fProcedures{"Data Taking", "Calibration", "Pedestal&Noise", "Commissioning"};
         std::string fLogFilePath;
         //LogReader fLogReader;
 
@@ -163,6 +163,7 @@ namespace Ph2TkDAQ {
         xdata::String* fResultDirectory;
         xdata::Integer* fRunNumber;
         xdata::Integer* fNEvents;
+        xdata::Integer* fEventCounter;
         xdata::Boolean* fRAWFile;
         xdata::Boolean* fDAQFile;
 

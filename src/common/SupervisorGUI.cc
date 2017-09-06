@@ -137,6 +137,12 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     if (cState == 'i' || cState == 'c' || cState == 'e' || fAutoRefresh)
         cAutoRefresh = true;
 
+    if (cState == 'E')
+    {
+        cRefreshDelay = 3;
+        cAutoRefresh = true;
+    }
+
     std::ostringstream cTabBarString;
 
     std::string url = fURN;
@@ -210,6 +216,14 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
         *out << "<p class=\"state\">Current State: " << fFSM->getStateName (fFSM->getCurrentState() ) << "/" << fFSM->getCurrentState() << "</p>" << std::endl;
         *out << cgicc::br() << std::endl;
 
+        //Event counter
+        *out << cgicc::div().set ("class", "eventcount") << std::endl;
+        *out << cgicc::table() << std::endl;
+        *out << cgicc::tr() << cgicc::td() << "Requested Events: " << cgicc::td() << cgicc::td() << *fNEvents << cgicc::td() << cgicc::tr() << std::endl;
+        *out << cgicc::tr() << cgicc::td() << "Event Count: " << cgicc::td() << cgicc::td() << *fEventCounter << cgicc::td() << cgicc::tr() << std::endl;
+        *out << cgicc::table() << std::endl;
+        *out << cgicc::div()  << std::endl;
+
         // display FSM
         // I could loop all possible transitions and check if they are allowed but that does not put the commands sequentially
         // https://gitlab.cern.ch/cms_tk_ph2/BoardSupervisor/blob/master/src/common/BoardSupervisor.cc
@@ -230,8 +244,8 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
         *out << cgicc::form() << std::endl;
 
         std::string cFilename = fHWDescriptionFile->toString().substr (fHWDescriptionFile->toString().find_last_of ("/") + 1);
-        *out << cgicc::br() << std::endl;
         *out << cgicc::div().set ("class", "current_file") << "Current HW File: " << cFilename << cgicc::div()  << std::endl;
+
         *out << "</div>" << std::endl;
     }
     catch (xgi::exception::Exception& e)
@@ -602,26 +616,29 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
         FormData cSettingsFormData = XMLUtils::updateHTMLForm (this->fSettingsFormString, cSettingFormPairs, cLogStream, false );
 
         //now I have settings form Data but Ideally I want to change it to key-value pairs containing setting:value
-        if (cSettingsFormData.size() % 2 == 0)
+        if (fFSM->getCurrentState() != 'I')
         {
-            for (auto cPair : cSettingsFormData)
+            if (cSettingsFormData.size() % 2 == 0)
             {
-                if (cPair.first.length() < 11 ) // the name of the field is "setting_%d" so I have a new key
+                for (auto cPair : cSettingsFormData)
                 {
-                    size_t pos = cPair.first.find ("_");
-                    std::string cKey = "setting_value_" + cPair.first.substr (pos + 1, cPair.first.length() - pos);
+                    if (cPair.first.length() < 11 ) // the name of the field is "setting_%d" so I have a new key
+                    {
+                        size_t pos = cPair.first.find ("_");
+                        std::string cKey = "setting_value_" + cPair.first.substr (pos + 1, cPair.first.length() - pos);
 
-                    auto cValuePair = cSettingsFormData.find (cKey);
+                        auto cValuePair = cSettingsFormData.find (cKey);
 
-                    if (cValuePair == std::end (cSettingsFormData) )
-                        LOG4CPLUS_ERROR (fLogger, RED << "Error, could not find the value for key " << cPair.second << RESET );
-                    else
-                        (*fSettingsFormData) [cPair.second] = cValuePair->second;
+                        if (cValuePair == std::end (cSettingsFormData) )
+                            LOG4CPLUS_ERROR (fLogger, RED << "Error, could not find the value for key " << cPair.second << RESET );
+                        else
+                            (*fSettingsFormData) [cPair.second] = cValuePair->second;
+                    }
                 }
             }
+            else
+                LOG4CPLUS_ERROR (fLogger, RED << "Error, settings map parsed from the input form has the wrong size!" << RESET );
         }
-        else
-            LOG4CPLUS_ERROR (fLogger, RED << "Error, settings map parsed from the input form has the wrong size!" << RESET );
     }
     catch (std::exception& e)
     {
@@ -635,9 +652,11 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
 
 void SupervisorGUI::displayPh2_ACFLog (xgi::Output* out)
 {
-    *out << cgicc::div().set ("class", "log") << std::endl;
-    *out  << cgicc::legend ("Ph2_ACF Logs") << std::endl;
-    *out << cgicc::p() << fPh2_ACFLog << cgicc::p() << std::endl;
+    *out << cgicc::div().set ("class", "legend") << std::endl;
+    *out << cgicc::legend ("Ph2_ACF Logs") << std::endl;
+    *out << cgicc::div() << std::endl;
+    *out << cgicc::div().set ("class", "log").set ("id", "logwindow") << std::endl;
+    *out <<  cgicc::p() << fPh2_ACFLog << cgicc::p() << std::endl;
     *out << cgicc::div() << std::endl;
 }
 

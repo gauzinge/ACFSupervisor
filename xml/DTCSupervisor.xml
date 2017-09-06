@@ -10,8 +10,8 @@
             <properties xmlns="urn:xdaq-application:DTCSupervisor" xsi:type="soapenc:Struct">
                 <!--<HWDescriptionFile xsi:type="xsd:string">${PH2ACF_ROOT}/settings/D19CDescription.xml </HWDescriptionFile>-->
                 <HWDescriptionFile xsi:type="xsd:string">${PH2ACF_ROOT}/settings/CBC3DescriptionIC.xml</HWDescriptionFile>
-                <DataDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/</DataDirectory>
-                <ResultDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/</ResultDirectory>
+                <DataDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Data</DataDirectory>
+                <ResultDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Results</ResultDirectory>
                 <RunNumber xsi:type="xsd:integer">-1</RunNumber>
                 <NEvents xsi:type="xsd:integer">0</NEvents>
                 <WriteRAW xsi:type="xsd:boolean">false</WriteRAW>

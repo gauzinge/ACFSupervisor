@@ -8,7 +8,7 @@ export BOOST_INCLUDE=/opt/cactus/include/boost
 
 #ROOT
 #source /usr/local/bin/thisroot.sh
-export ROOTLIB=/usr/local/lib/root
+export ROOTLIB=/usr/lib64/root
 #export ROOTSYS=/usr/local/lib/root
 
 #ZMQ

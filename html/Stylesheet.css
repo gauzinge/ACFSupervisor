@@ -158,32 +158,42 @@ option {
 }
 
 .content div.fixed {
-    /*position: absolute;*/
-    /*float: top;*/
     padding: 10px;
 }
 
 .content div.acf_left{
     float: left;
     width: 38%;
-    /*height: 540px;*/
 }
 .content div.acf_right{
     float: right;
     width: 62%;
-    /*height: 540px;*/
 }
 .content div.log {
-    /*position: fixed;*/
+    position: absolute;
     left: 13%;
     width: 87%;
-    bottom: 45px;
+    bottom: 0;
     float: bottom;
-    height: 450px;
+    height: 30%;
     padding: 10px;
+    z-index: 2;
+    overflow-y: auto;
+    margin-bottom: 145px;
 }
 
-.content textarea
+.content div.legend {
+    position: absolute;
+    left: 13%;
+    width: 87%;
+    bottom: 0;
+    float: bottom;
+    padding: 10px;
+    z-index: 2;
+    overflow-y: none;
+    margin-bottom: 52%;
+}
+
 {
   border:none solid #999999;
   width:100%;
@@ -215,7 +225,7 @@ option {
     padding-left: 8px;
     padding-right: 8px;
     /*margin-top: 4px;*/
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     text-color: blue;
     background-color: #F39C12;
     float: left;
@@ -234,6 +244,16 @@ option {
     margin-top: 20px;
     text-color: blue;
     background-color: #919191;
+    float: left;
+    word-wrap: break-word;
+}
+.sidenav div.eventcount {
+    font-size: 11pt;
+    width: 100%;
+    margin-bottom: 10px;
+    margin-top: 10px;
+    text-color: blue;
+    background-color: inherit;
     float: left;
     word-wrap: break-word;
 }
@@ -277,6 +297,7 @@ option {
     font-size: 15pt;
     margin-bottom: 20px;
     width: 100%;
+    margin-top: 10px;
     padding-top: 4px;
     padding-bottom: 4px;
     padding-left: 8px;
