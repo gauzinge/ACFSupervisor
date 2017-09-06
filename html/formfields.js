@@ -39,6 +39,7 @@ function submitACFForm() {
     //document.forms["acfform"].submit();
 }
 
+//https://stackoverflow.com/questions/18614301/keep-overflow-div-scrolled-to-bottom-unless-user-scrolls-up
 function scrollLogToBottom() {
     var log = document.getElementById("logwindow");
     if(log) {
@@ -47,7 +48,6 @@ function scrollLogToBottom() {
         if(isScrolledToBottom) log.scrollTop = log.scrollHeight - log.clientHeight;
     }
 }
-
 
 var log = document.getElementById("logwindow");
 if(log) {

@@ -7,6 +7,7 @@
 
 #include "toolbox/task/WorkLoopFactory.h"
 #include "toolbox/task/Action.h"
+#include "toolbox/BSem.h"
 
 #include "xgi/Utils.h"
 #include "xgi/Method.h"
@@ -19,6 +20,7 @@
 #include "xdata/ActionListener.h"
 #include "xdata/String.h"
 #include "xdata/Integer.h"
+#include "xdata/UnsignedInteger32.h"
 #include "xdata/Boolean.h"
 
 #include "DTCSupervisor/SupervisorGUI.h"
@@ -72,12 +74,14 @@ namespace Ph2TkDAQ {
         xdata::String fDataDirectory;
         xdata::String fResultDirectory;
         xdata::Integer fRunNumber;
-        xdata::Integer fNEvents;
-        xdata::Integer fEventCounter;
+        xdata::UnsignedInteger32 fNEvents;
+        uint32_t fEventCounter;
         xdata::Boolean fRAWFile;
         xdata::Boolean fDAQFile;
+        xdata::Integer fShortPause;
 
       private:
+        toolbox::BSem fACFLock;
         std::string fAppNameAndInstanceString;
         FormData fHWFormData;
         FormData fSettingsFormData;

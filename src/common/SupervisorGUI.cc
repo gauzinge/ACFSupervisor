@@ -134,7 +134,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     int cRefreshDelay = 1;
     bool cAutoRefresh = false;
 
-    if (cState == 'i' || cState == 'c' || cState == 'e' || fAutoRefresh)
+    if (cState == 'i' || cState == 'c' || cState == 'e' || cState == 'h' || cState == 's' || cState == 'x' || cState == 'p' || cState == 'r' || fAutoRefresh)
         cAutoRefresh = true;
 
     if (cState == 'E')

@@ -6,6 +6,7 @@
 #include <string>
 #include <algorithm>
 #include <fstream>
+#include <sstream>
 #include <streambuf>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -23,7 +24,18 @@ namespace Ph2TkDAQ {
         else cResult = pFile;
 
         return cResult;
+    }
 
+    inline std::string appendSlash (const std::string& pFilePath)
+    {
+        std::string cResult;
+
+        if (pFilePath.back() != '/')
+            cResult = pFilePath + "/";
+        else
+            cResult = pFilePath;
+
+        return cResult;
     }
 
     inline std::string removeDot (const std::string& pWord)
@@ -136,6 +148,28 @@ namespace Ph2TkDAQ {
     {
         struct stat buffer;
         return (stat (name.c_str(), &buffer) == 0);
+    }
+
+    inline bool mkdir (const std::string& pPath)
+    {
+        struct stat buffer;
+
+        if (stat (pPath.c_str(), &buffer) != 0)
+        {
+            //create the directory as it does not exist
+            std::stringstream cCommand;
+            cCommand << "mkdir " << pPath << std::endl;
+            std::system (cCommand.str().c_str() );
+            return false;
+        }
+        else if (buffer.st_mode & S_IFDIR)
+        {
+            //this is a directory
+            return true;
+        }
+        else
+            //it's a file or whatever
+            return false;
     }
 
     inline std::string parseExternalResource (std::string pStylesheet, std::ostream& pStream = std::cout)

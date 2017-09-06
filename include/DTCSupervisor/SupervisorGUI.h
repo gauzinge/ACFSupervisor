@@ -162,8 +162,8 @@ namespace Ph2TkDAQ {
         xdata::String* fDataDirectory;
         xdata::String* fResultDirectory;
         xdata::Integer* fRunNumber;
-        xdata::Integer* fNEvents;
-        xdata::Integer* fEventCounter;
+        xdata::UnsignedInteger32* fNEvents;
+        uint32_t* fEventCounter;
         xdata::Boolean* fRAWFile;
         xdata::Boolean* fDAQFile;
 

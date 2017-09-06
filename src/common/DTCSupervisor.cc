@@ -14,6 +14,7 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     fResultDirectory (""),
     fRunNumber (-1),
     fNEvents (0),
+    fACFLock (toolbox::BSem::FULL, true), // the second argument is the recursive flag
     fSystemController (nullptr),
     fSLinkFileHandler (nullptr)
 {
@@ -48,6 +49,7 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     this->getApplicationInfoSpace()->fireItemAvailable ("NEvents", &fNEvents);
     this->getApplicationInfoSpace()->fireItemAvailable ("WriteRAW", &fRAWFile);
     this->getApplicationInfoSpace()->fireItemAvailable ("WriteDAQ", &fDAQFile);
+    this->getApplicationInfoSpace()->fireItemAvailable ("ShortPause", &fShortPause);
 
     //bind the action signature for the calibration action and create the workloop
     this->fCalibrationAction = toolbox::task::bind (this, &DTCSupervisor::CalibrationJob, "Calibration");
@@ -73,7 +75,12 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
 }
 
 //Destructor
-DTCSupervisor::~DTCSupervisor() {}
+DTCSupervisor::~DTCSupervisor()
+{
+    if (fSystemController) delete fSystemController;
+
+    if (fSLinkFileHandler) delete fSLinkFileHandler;
+}
 
 //configure action listener
 void DTCSupervisor::actionPerformed (xdata::Event& e)
@@ -87,6 +94,9 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         fHWDescriptionFile = Ph2TkDAQ::removeFilePrefix (fHWDescriptionFile.toString() );
         fDataDirectory = Ph2TkDAQ::removeFilePrefix (fDataDirectory.toString() );
         fResultDirectory = Ph2TkDAQ::removeFilePrefix (fResultDirectory.toString() );
+
+        fDataDirectory = Ph2TkDAQ::appendSlash (fDataDirectory.toString() );
+        fResultDirectory = Ph2TkDAQ::appendSlash (fResultDirectory.toString() );
 
         fEventCounter = 0;
 
@@ -113,6 +123,7 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         ss << "Result Directory: " << RED << fResultDirectory.toString() << GREEN << " set!" << std::endl;
         ss << "Run Number: " << RED << fRunNumber << GREEN << " set!" << std::endl;
         ss << "N Events: " << RED << fNEvents << GREEN << " set!" << std::endl;
+        ss << "ShortPause: " << RED << fShortPause << GREEN << " set!" << std::endl;
         ss << "All Default Values set!" << std::endl;
         ss << BOLDYELLOW <<  "***********************************************************" << RESET << std::endl;
         LOG4CPLUS_INFO (this->getApplicationLogger(), ss.str() );
@@ -131,18 +142,21 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
 {
     try
     {
+        fACFLock.take();
         Tool* cTool = new Tool();
         cTool->Inherit (fSystemController);
         std::string cResultDirectory = fResultDirectory.toString() + "CommissioningCycle";
         cTool->CreateResultDirectory (cResultDirectory, false, true);
         cTool->InitResultFile ("CommissioningCycle");
         cTool->StartHttpServer (8080, true);
+        fACFLock.give();
 
         auto cProcedure = fGUI->fProcedureMap.find ("Calibration");
 
         if (cProcedure != std::end (fGUI->fProcedureMap) && cProcedure->second == true )
         {
             Calibration cCalibration;
+            fACFLock.take();
             cCalibration.Inherit (cTool);
             cCalibration.Initialise (false);
             this->updateLogs();
@@ -153,6 +167,7 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
             cCalibration.writeObjects();
             this->updateLogs();
             cCalibration.dumpConfigFiles();
+            fACFLock.give();
             this->updateLogs();
             cProcedure->second = false;
         }
@@ -162,10 +177,12 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
         if (cProcedure->second == true) //procedure enabled
         {
             PedeNoise cPedeNoise;
+            fACFLock.take();
             cPedeNoise.Inherit (cTool);
             cPedeNoise.Initialise();
             this->updateLogs();
             cPedeNoise.measureNoise();
+            fACFLock.give();
             this->updateLogs();
             cProcedure->second = false;
         }
@@ -175,6 +192,7 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
         if (cProcedure->second == true) //procedure enabled
         {
             LatencyScan cCommissioning;
+            fACFLock.take();
             cCommissioning.Inherit (cTool);
             cCommissioning.Initialize (fGUI->fLatencyStartValue, fGUI->fLatencyRange);
             this->updateLogs();
@@ -185,18 +203,21 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
 
             if ( fGUI->fStubLatency ) cCommissioning.ScanStubLatency (fGUI->fLatencyStartValue, fGUI->fLatencyRange);
 
+            fACFLock.give();
             this->updateLogs();
             cProcedure->second = false;
         }
 
         //TODO: check if this does not cause trouble!
+        fACFLock.take();
         cTool->SoftDestroy();
         delete cTool;
+        fACFLock.give();
     }
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << e.what() << RESET );
-        fFSM.fireFailed ("Error on initialising", this);
+        fFSM.fireFailed ("Error in calibration workloop", this);
     }
 
     fFSM.fireEvent ("Stop", this);
@@ -206,33 +227,49 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
 // will need  a semaphore in order to be able to stop this!
 bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
 {
+
     // first, check if we already have enough events
     // this requires that we are not taking an infinite number of events
-    if (fNEvents != 0 && fNEvents < fEventCounter)
-    {
-        //we are basically done and can stop the workloop execution
-        //firing the stop event will call fSystemController->Stop()
-        fFSM.fireEvent ("Stop", this);
-        //this tells the workloop to stop
-        return false;
-    }
+    //if (fNEvents != static_cast<xdata::UnsignedInteger32> (0) && fNEvents < static_cast<xdata::UnsignedInteger32> (fEventCounter) )
+    //{
+    ////we are basically done and can stop the workloop execution
+    ////firing the stop event will call fSystemController->Stop()
+    //fFSM.fireEvent ("Stop", this);
+    ////this tells the workloop to stop
+    //return false;
+    //}
 
     try
     {
         // in here we only call fSystemController->readData() in a non-blocking fashion
+        // thats why the last argument to ReadData is true (we can try with false at a later point)
         // the start command is called in enable()
-        //fSystemController->ReadData();
+        BeBoard* cBoard = fSystemController->fBoardVector.at (0);
+        uint32_t cEventCount = fSystemController->ReadData (cBoard, false );
+        fEventCounter += cEventCount;
+
+        if (cEventCount != 0 && fDAQFile)
+        {
+            const std::vector<Event*>& events = fSystemController->GetEvents ( cBoard );
+
+            for (auto cEvent : events)
+            {
+                SLinkEvent cSLev =  cEvent->GetSLinkEvent (cBoard);
+                fSLinkFileHandler->set (cSLev.getData<uint32_t>() );
+            }
+
+        }
     }
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << e.what() << RESET );
-        fFSM.fireFailed ("Error on initialising", this);
+        fFSM.fireFailed ("Error in DAQ workloop", this);
     }
 
-    if (fNEvents == 0) // keep running until we say stop!
+    if (fNEvents == static_cast<xdata::UnsignedInteger32> (0) ) // keep running until we say stop!
         return true;
 
-    else if (fEventCounter < fNEvents)
+    else if (static_cast<xdata::UnsignedInteger32> (fEventCounter) < fNEvents)
     {
         // we want to stop automatically once we have reached the number of events set in the GUI
         // therefore, as long as the event counter is smaller than the number of requested events, keep going
@@ -241,9 +278,13 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
     else
     {
         // this is true only once we have reached the requested number of events from the GUI
-        fFSM.fireEvent ("Stop", this);
+        if (fFSM.getCurrentState() == 'E')
+            fFSM.fireEvent ("Stop", this);
+
         return false;
     }
+
+    std::this_thread::sleep_for (std::chrono::milliseconds (fShortPause) );
 }
 
 bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
@@ -251,12 +292,14 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
     try
     {
         //first, make sure that the event counter is 0 since we are just initializing
-        if (fEventCounter != 0) fEventCounter = 0;
+        if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
 
         //get the runnumber from the storage file
         int cRunNumber = fRunNumber;
         std::string cRawOutputFile = fDataDirectory.toString() + getDataFileName (expandEnvironmentVariables ("${PH2ACF_ROOT}"), cRunNumber) ;
         fRunNumber = cRunNumber;
+
+        fACFLock.take();
 
         //construct a system controller object
         if (fSystemController) delete fSystemController;
@@ -266,8 +309,14 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
         //first add a filehandler for the raw data to SystemController
         if (fRAWFile)
         {
+            std::cout << cRawOutputFile << std::endl;
+            bool cExists = Ph2TkDAQ::mkdir (fDataDirectory.toString() );
+
+            if (!cExists)
+                LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Data Directory : " << BOLDBLUE << fDataDirectory.toString() << BOLDGREEN << " does not exist - creating!" << RESET);
+
             fSystemController->addFileHandler ( cRawOutputFile, 'w' );
-            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving raw data to: " << BOLDBLUE << fSystemController->fFileHandler->getFilename() << RESET);
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving raw data to: " << BOLDBLUE << cRawOutputFile << RESET);
         }
 
         if (fDAQFile)
@@ -302,6 +351,7 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
 
         fSystemController->InitializeSettings (fGUI->fSettingsXMLString, cPh2LogStream, false);
         fSystemController->InitializeHw (fGUI->fHwXMLString, cPh2LogStream, false);
+        fACFLock.give();
 
         LOG (INFO) << cPh2LogStream.str() ;
         this->updateLogs();
@@ -322,14 +372,17 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
 
     try
     {
+        fACFLock.take();
+
         //first, make sure that the event counter is 0 since we are just configuring and havent taken any data yet
-        if (fEventCounter != 0) fEventCounter = 0;
+        if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
 
         //first, check if there were updates to the HWDescription or the settings
         this->updateHwDescription();
         this->updateSettings();
         // once this is checked, configure
         fSystemController->ConfigureHw();
+        fACFLock.give();
         this->updateLogs();
     }
     catch (std::exception& e)
@@ -347,8 +400,10 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
     try
     {
         //first, check if there were updates to the HWDescription or the settings
+        fACFLock.take();
         this->updateHwDescription();
         this->updateSettings();
+        fACFLock.give();
 
         //figure out if we are supposed to run any calibrations
         int cEnabledProcedures = 0;
@@ -390,7 +445,7 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
         if (cDataTaking && cEnabledProcedures == 0)
         {
             //first, make sure that the event counter is 0 since we are just starting the run
-            if (fEventCounter != 0) fEventCounter = 0;
+            if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
 
             if (!fDAQWorkloop->isActive() )
             {
@@ -400,7 +455,9 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
                 try
                 {
                     //before we do that, we need to start the flow of Triggers
+                    fACFLock.take();
                     fSystemController->Start();
+                    fACFLock.give();
                     fDAQWorkloop->submit (fDAQAction);
                 }
                 catch (xdaq::exception::Exception& e)
@@ -426,7 +483,12 @@ bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
     try
     {
         if (fDAQWorkloop->isActive() )
+        {
             fDAQWorkloop->cancel();
+            fACFLock.take();
+            fSystemController->Stop();
+            fACFLock.give();
+        }
 
         if (fCalibrationWorkloop->isActive() )
             fCalibrationWorkloop->cancel();
@@ -446,7 +508,9 @@ bool DTCSupervisor::pausing (toolbox::task::WorkLoop* wl)
 {
     try
     {
+        fACFLock.take();
         fSystemController->Pause();
+        fACFLock.give();
     }
     catch (std::exception& e)
     {
@@ -462,7 +526,9 @@ bool DTCSupervisor::resuming (toolbox::task::WorkLoop* wl)
 {
     try
     {
+        fACFLock.take();
         fSystemController->Resume();
+        fACFLock.give();
     }
     catch (std::exception& e)
     {
@@ -481,7 +547,9 @@ bool DTCSupervisor::stopping (toolbox::task::WorkLoop* wl)
         if (fDAQWorkloop->isActive() )
         {
             fDAQWorkloop->cancel();
+            fACFLock.take();
             fSystemController->Stop();
+            fACFLock.give();
         }
 
         if (fCalibrationWorkloop->isActive() )
@@ -508,9 +576,11 @@ bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
         if (fCalibrationWorkloop->isActive() )
             fCalibrationWorkloop->cancel();
 
+        fACFLock.take();
         fSystemController->Destroy();
         delete fSystemController;
         fSystemController = nullptr;
+        fACFLock.give();
 
     }
     catch (std::exception& e)
