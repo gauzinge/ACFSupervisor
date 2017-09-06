@@ -17,6 +17,7 @@
                 <WriteRAW xsi:type="xsd:boolean">false</WriteRAW>
                 <WriteDAQ xsi:type="xsd:boolean">false</WriteDAQ>
                 <ShortPause xsi:type="xsd:integer">10</ShortPause>
+                <THttpServerPort xsi:type="xsd:integer">8080</THttpServerPort>
             </properties>
         </xc:Application>
 

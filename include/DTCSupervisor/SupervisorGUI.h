@@ -166,6 +166,7 @@ namespace Ph2TkDAQ {
         uint32_t* fEventCounter;
         xdata::Boolean* fRAWFile;
         xdata::Boolean* fDAQFile;
+        xdata::Integer* fServerPort;
 
         FormData* fHWFormData;
         FormData* fSettingsFormData;

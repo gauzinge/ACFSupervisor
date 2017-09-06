@@ -35,6 +35,10 @@
 #include "Utils/Utilities.h"
 #include "Utils/easylogging++.h"
 
+#ifdef __HTTP__
+#include "THttpServer.h"
+#endif
+
 #include <regex>
 
 using FormData = std::map<std::string, std::string>;
@@ -79,6 +83,10 @@ namespace Ph2TkDAQ {
         xdata::Boolean fRAWFile;
         xdata::Boolean fDAQFile;
         xdata::Integer fShortPause;
+        xdata::Integer fServerPort;
+#ifdef __HTTP__
+        THttpServer* fHttpServer;
+#endif
 
       private:
         toolbox::BSem fACFLock;

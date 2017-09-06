@@ -15,6 +15,10 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     fRunNumber (-1),
     fNEvents (0),
     fACFLock (toolbox::BSem::FULL, true), // the second argument is the recursive flag
+    fServerPort (8080),
+#ifdef __HTTP__
+    fHttpServer (nullptr),
+#endif
     fSystemController (nullptr),
     fSLinkFileHandler (nullptr)
 {
@@ -50,6 +54,7 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     this->getApplicationInfoSpace()->fireItemAvailable ("WriteRAW", &fRAWFile);
     this->getApplicationInfoSpace()->fireItemAvailable ("WriteDAQ", &fDAQFile);
     this->getApplicationInfoSpace()->fireItemAvailable ("ShortPause", &fShortPause);
+    this->getApplicationInfoSpace()->fireItemAvailable ("THttpServerPort", &fServerPort);
 
     //bind the action signature for the calibration action and create the workloop
     this->fCalibrationAction = toolbox::task::bind (this, &DTCSupervisor::CalibrationJob, "Calibration");
@@ -72,6 +77,40 @@ throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
     //configure the logger for the Ph2 ACF libraries
     el::Configurations conf (expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/xml/logger.conf") );
     el::Loggers::reconfigureAllLoggers (conf);
+
+    //if defined, create a THttpServer
+#ifdef __HTTP__
+
+    if (fHttpServer)
+        delete fHttpServer;
+
+    char hostname[HOST_NAME_MAX];
+
+    try
+    {
+        int cServerPort = fServerPort;
+        fHttpServer = new THttpServer ( string_format ( "http:%d", cServerPort ).c_str() );
+        fHttpServer->SetReadOnly ( true );
+        //fHttpServer->SetTimer ( pRefreshTime, kTRUE );
+        fHttpServer->SetTimer (1000, kFALSE);
+        fHttpServer->SetJSROOT ("https://root.cern.ch/js/latest/");
+
+        //configure the server
+        // see: https://root.cern.ch/gitweb/?p=root.git;a=blob_plain;f=tutorials/http/httpcontrol.C;hb=HEAD
+        fHttpServer->SetItemField ("/", "_monitoring", "5000");
+        fHttpServer->SetItemField ("/", "_layout", "grid2x2");
+
+        gethostname (hostname, HOST_NAME_MAX);
+    }
+    catch (std::exception& e)
+    {
+        LOG4CPLUS_ERROR (this->getApplicationLogger(), BOLDRED << "Exceptin when trying to start THttpServer: " << e.what() << RESET);
+    }
+
+    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDBLUE << "Opening THttpServer on port " << fServerPort << ". Point your browser to: " << BOLDGREEN << hostname << ":" << fServerPort << RESET);
+#else
+    LOG4CPLUS_ERROR (this->getApplicationLogger(), BOLDRED << "Error, ROOT version < 5.34 detected or not compiled with Http Server support!"  << " No THttpServer available! - The webgui will fail to show plots!" << RESET);
+#endif
 }
 
 //Destructor
@@ -109,6 +148,7 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         fGUI->fEventCounter = &fEventCounter;
         fGUI->fRAWFile = &fRAWFile;
         fGUI->fDAQFile = &fDAQFile;
+        fGUI->fServerPort = &fServerPort;
 
         //load the HWFile we have just set - user can always reload it but this is the default for settings and HWDescription
         fGUI->loadHWFile();
@@ -143,12 +183,16 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
     try
     {
         fACFLock.take();
+#ifdef __HTTP__
+        Tool* cTool = new Tool (fHttpServer);
+#else
         Tool* cTool = new Tool();
+#endif
         cTool->Inherit (fSystemController);
         std::string cResultDirectory = fResultDirectory.toString() + "CommissioningCycle";
         cTool->CreateResultDirectory (cResultDirectory, false, true);
         cTool->InitResultFile ("CommissioningCycle");
-        cTool->StartHttpServer (8080, true);
+        //cTool->StartHttpServer (8080, true);
         fACFLock.give();
 
         auto cProcedure = fGUI->fProcedureMap.find ("Calibration");

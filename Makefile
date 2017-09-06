@@ -2,6 +2,19 @@ BUILD_HOME:=$(shell pwd)/..
 include $(XDAQ_ROOT)/config/mfAutoconf.rules
 include $(XDAQ_ROOT)/config/mfDefs.$(XDAQ_OS)
 
+ROOTVERSION := $(shell root-config --has-http)
+
+##################################################
+## check if Root has Http
+##################################################
+ifneq (,$(findstring yes,$(ROOTVERSION)))
+	RootExtraLinkFlags= -lRHTTP
+	RootExtraFlags=-D__HTTP__
+else
+	RootExtraLinkFlags=
+	RootExtraFlags=
+endif
+
 #Project=Ph2_TkDAQ
 Package=DTCSupervisor
 Sources= DTCSupervisor.cc SupervisorGUI.cc DTCStateMachine.cc version.cc XMLUtils.cc #LogReader.h
@@ -25,10 +38,10 @@ LibraryDirs = \
 ExeternalObjects =
 
 #UserCCFlags = -g -fPIC -std=c++11 -Wcpp -Wno-unused-local-typedefs -Wno-reorder -O0 $(shell pkg-config --cflags libxml++-2.6) $(shell xslt-config --cflags) $(shell root-config --cflags)
-UserCCFlags = -g -O1 -fPIC -std=c++11 -w -Wall -pedantic -pthread -Wcpp -Wno-reorder -O0 $(shell pkg-config --cflags libxml++-2.6) $(shell xslt-config --cflags) $(shell root-config --cflags)
-UserDynamicLinkFlags = ${LibraryPaths} $(shell pkg-config --libs libxml++-2.6) $(shell xslt-config --libs)  $(shell root-config --libs) -lxdaq2rc -lPh2_Utils -lPh2_Description -lPh2_Interface -lPh2_System -lPh2_Tools 
+UserCCFlags = -g -O1 -fPIC -std=c++11 -w -Wall -pedantic -pthread -Wcpp -Wno-reorder -O0 $(shell pkg-config --cflags libxml++-2.6) $(shell xslt-config --cflags) $(shell root-config --cflags) $(RootExtraFlags)
+UserDynamicLinkFlags = ${LibraryPaths} $(shell pkg-config --libs libxml++-2.6) $(shell xslt-config --libs)  $(shell root-config --libs) -lxdaq2rc -lPh2_Utils -lPh2_Description -lPh2_Interface -lPh2_System -lPh2_Tools $(RootExtraLinkFlags)
 
-$(LibraryPaths)
+#$(LibraryPaths)
 
 DynamicLibrary=DTCSupervisor
 
