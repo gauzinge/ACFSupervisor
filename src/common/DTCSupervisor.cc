@@ -167,6 +167,9 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         ss << "All Default Values set!" << std::endl;
         ss << BOLDYELLOW <<  "***********************************************************" << RESET << std::endl;
         LOG4CPLUS_INFO (this->getApplicationLogger(), ss.str() );
+#ifdef __HTTP__
+        fHttpServer->AddLocation ("Calibrations", fResultDirectory.toString().c_str() );
+#endif
     }
 }
 
