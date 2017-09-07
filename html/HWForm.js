@@ -150,4 +150,13 @@ function DisplayFieldsOnload(){
     }
 }
         
+function addConditionData(ul_name) {
+    var ul =document.getElementById(ul_name);
+    var counter = ul.getElementsByTagName("li").length;
+    console.log(counter)
+    var newEntry = document.createElement('li');
+    newEntry.innerHTML = "Type:<select name='ConditionData_"+counter+"' id='conddata_"+counter+"' onchange='DisplayFields(this.value, "+counter+");'><option name=''></option><option name='I2C'>I2C</option><option name='User'>User</option><option name='HV'>HV</option><option name='TDC'>TDC</option></select><label for='conddata_Register_"+counter+"' id='conddata_RegisterLabel_"+counter+"' style='display:none'>Register:</label><input type='text' name='ConditionData_Register_"+counter+"' id='conddata_Register_"+counter+"' value='' size='10' style='display:none'/><label for='conddata_UID_"+counter+"' id='conddata_UIDLabel_"+counter+"' style='display:none'>UID:</label><input type='text' name='ConditionData_UID_"+counter+"' id='conddata_UID_"+counter+"' value='' size='5' style='display:none'/><label for='conddata_FeId_"+counter+"' id='conddata_FeIdLabel_"+counter+"' style='display:none'>FeId:</label><input type='text' name='ConditionData_FeId_"+counter+"' id='conddata_FeId_"+counter+"' value='' size='5' style='display:none'/><label for='conddata_CbcId_"+counter+"' id='conddata_CbcIdLabel_"+counter+"' style='display:none'>CbcId:</label><input type='text' name='ConditionData_CbcId_"+counter+"' id='conddata_CbcId_"+counter+"' value='' size='5' style='display:none'/> <label for='conddata_Sensor_"+counter+"' id='conddata_SensorLabel_"+counter+"' style='display:none'>Sensor:</label><input type='text' name='ConditionData_Sensor_"+counter+"' id='conddata_Sensor_"+counter+"' value='' size='5' style='display:none'/><label for='conddata_Value_"+counter+"' id='conddata_ValueLabel_"+counter+"' style='display:none'>Value:</label><input type='text' name='ConditionData_Value_"+counter+"' id='conddata_Value_"+counter+"' value='' size='5' style='display:none'/>";
+ul.appendChild(newEntry);
+}
+
 window.onload = DisplayFieldsOnload();

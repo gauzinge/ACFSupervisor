@@ -24,6 +24,11 @@ SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp, DTCStateMachine* pStat
     fLogger = pApp->getApplicationLogger();
     fURN =  pApp->getApplicationDescriptor()->getContextDescriptor()->getURL() + "/" + pApp->getApplicationDescriptor()->getURN() + "/";
 
+    //when I am at home
+    size_t cPos = fURN.find (".cern.ch");
+    fURN.erase (cPos, 8);
+    std::cout << fURN << std::endl;
+
     //bind xgi and xoap commands to methods
     //methods for tab navigation
     //xgi::bind (this, &SupervisorGUI::Default, "Default");
@@ -122,7 +127,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     char cState = fFSM->getCurrentState();
 
     fManager.getHTMLHeader (in, out);
-    *out << cgicc::head() << std::endl;
+    //*out << cgicc::head() << std::endl;
     //Style this thing
     *out << cgicc::style() << std::endl;
     *out << parseExternalResource (expandEnvironmentVariables (CSSSTYLESHEET), cLogStream) << std::endl;
@@ -184,7 +189,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
             break;
     }
 
-    *out << cgicc::head() << std::endl;
+    //*out << cgicc::head() << std::endl;
     std::string link = url + "MainPage";
     *out << cgicc::div().set ("class", "title") << std::endl;
     *out << cgicc::h1 (cgicc::a ("DTC Supervisor").set ("href", url) ) << std::endl;
@@ -213,8 +218,11 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
     {
         //display the sidenav with the FSM controls
         *out << "<div class=\"sidenav\">" << std::endl;
-        *out << "<p class=\"state\">Current State: " << fFSM->getStateName (fFSM->getCurrentState() ) << "/" << fFSM->getCurrentState() << "</p>" << std::endl;
-        *out << cgicc::br() << std::endl;
+        char cState = fFSM->getCurrentState();
+        std::stringstream cCurrentState;
+        cCurrentState << "Current State: " << fFSM->getStateName (cState) << "/" << cState << std::endl;
+        *out << cgicc::p (cCurrentState.str() ).set ("class", "state") << std::endl;
+        *out << cgicc::p (std::string (1, cState) ).set ("style", "display:none").set ("id", "state") << std::endl;
 
         //Event counter
         *out << cgicc::div().set ("class", "eventcount") << std::endl;
@@ -316,24 +324,18 @@ void SupervisorGUI::displayLoadForm (xgi::Input* in, xgi::Output* out)
     //*out << cgicc::div().set ("padding", "10px") << std::endl;
 
     //only allow changing the HW Description File in state initial
-    *out << cgicc::form().set ("id", "hwForm_load").set ("padding", "10px").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on") << std::endl;
+    if (cState != 'E')
+        *out << cgicc::form().set ("padding", "10px").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on") << std::endl;
+    else
+        *out << cgicc::form().set ("padding", "10px").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on").set ("disabled", "disabled") << std::endl;
+
     *out << cgicc::tr() << cgicc::td() << std::endl;
     *out << "<label for=\"HwDescriptionFile\">Hw Descritpion FilePath: </label>" << std::endl;
     *out << cgicc::td() << cgicc::td() << std::endl;
 
-    if (cState == 'I' )
-    {
-        *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ) << std::endl;
-        *out << cgicc::td() << cgicc::td() << std::endl;
-        *out << cgicc::input().set ("type", "submit").set ("id", "hwForm_load_submit").set ("title", "change the Hw Description File").set ("value", "Reload") << std::endl;
-    }
-    else
-    {
-        *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ).set ("disabled", "true") << std::endl;
-        *out << cgicc::td() << cgicc::td() << std::endl;
-        *out << cgicc::input().set ("type", "submit").set ("id", "hwForm_load_submit").set ("title", "change the Hw Description File").set ("value", "Reload").set ("disabled", "true") << std::endl;
-    }
-
+    *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ) << std::endl;
+    *out << cgicc::td() << cgicc::td() << std::endl;
+    *out << cgicc::input().set ("type", "submit").set ("id", "hwForm_load_submit").set ("title", "change the Hw Description File").set ("value", "Reload") << std::endl;
     *out << cgicc::td() << cgicc::tr() << std::endl;
     *out << cgicc::form() << std::endl;
 }
@@ -473,24 +475,29 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
 
     *out << "<div style=\"display: inline-block; widht=100%\">" << std::endl;
 
-    if (cState != 'E')
-        *out << cgicc::form().set ("id", "acfform").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onclick", "displayACFfields();") << std::endl;
-    else
-        *out << cgicc::form().set ("id", "acfform").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onclick", "displayACFfields();").set ("disabled", "disabled") << std::endl;
+    *out << cgicc::form().set ("id", "acfform").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onclick", "displayACFfields();") << std::endl;
 
     //left form part
     *out << cgicc::div().set ("class", "acf_left") << std::endl;
 
-    *out << cgicc::fieldset().set ("style", "margin-top:20px").set ("onblur", "submitACFForm();") << cgicc::legend ("Ph2_ACF Main Settings") << std::endl;
+    if (cState == 'E')
+        *out << cgicc::fieldset().set ("id", "procedurelist").set ("style", "margin-top:20px").set ("onblur", "submitACFForm();").set ("disabled", "disabled") << cgicc::legend ("Ph2_ACF Main Settings") << std::endl;
+    else
+        *out << cgicc::fieldset().set ("id", "procedurelist").set ("style", "margin-top:20px").set ("onblur", "submitACFForm();") << cgicc::legend ("Ph2_ACF Main Settings") << std::endl;
 
     this->createProcedureInput (out);
     *out << cgicc::fieldset() << std::endl;
 
     //Main Settings parsed from file!
-    *out << cgicc::fieldset().set ("style", "margin-top:10px").set ("style", "display:none").set ("id", "settings_fieldset") << cgicc::legend ("Application Settings").set ("id", "settings_fieldset_legend").set ("style", "display:none") << std::endl;
+    if (cState == 'E')
+        *out << cgicc::fieldset().set ("style", "margin-top:10px").set ("style", "display:none").set ("id", "settings_fieldset") << cgicc::legend ("Application Settings").set ("id", "settings_fieldset_legend").set ("style", "display:none").set ("disabled", "disabled") << std::endl;
+    else
+        *out << cgicc::fieldset().set ("style", "margin-top:10px").set ("style", "display:none").set ("id", "settings_fieldset") << cgicc::legend ("Application Settings").set ("id", "settings_fieldset_legend").set ("style", "display:none") << std::endl;
+
     *out << cgicc::table().set ("name", "settings_table").set ("id", "settings_table").set ("style", "display:none") << std::endl;
     *out << fSettingsFormString << std::endl;
     *out << cgicc::table() << std::endl;
+    *out << cgicc::input().set ("type", "button").set ("value", "Add Setting").set ("onClick", "addSetting('settings_table');") << std::endl;
     *out << cgicc::fieldset() << std::endl;
 
     *out << cgicc::div() << std::endl;
@@ -498,42 +505,81 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     //right form part
     *out << cgicc::div().set ("class", "acf_right") << std::endl;
 
-    if (cState != 'I')
-        *out << cgicc::fieldset().set ("style", "margin-top:20px").set ("disabled", "disabled") << cgicc::legend ("Main Run Settings") << std::endl;
-    else
-        *out << cgicc::fieldset().set ("style", "margin-top:20px") << cgicc::legend ("Main Run Settings") << std::endl;
+    //if (cState != 'I')
+    //*out << cgicc::fieldset().set ("style", "margin-top:20px").set ("disabled", "disabled") << cgicc::legend ("Main Run Settings") << std::endl;
+    //else
+    *out << cgicc::fieldset().set ("style", "margin-top:20px") << cgicc::legend ("Main Run Settings") << std::endl;
 
     *out << cgicc::table() << std::endl;
     *out << cgicc::tr() << std::endl;
 
-    if (*fRAWFile)
-        *out << cgicc::td() << cgicc::label() << "Write RAW File" << cgicc::input().set ("type", "checkbox").set ("name", "raw_file").set ("value", "on").set ("checked", "checked") << cgicc::label() << cgicc::td() << std::endl;
-    else
-        *out << cgicc::td() << cgicc::label() << "Write RAW File" << cgicc::input().set ("type", "checkbox").set ("name", "raw_file").set ("value", "on") << cgicc::label() << cgicc::td() << std::endl;
+    if (cState != 'I')
+    {
 
-    if (*fDAQFile)
-        *out << cgicc::td() << cgicc::label() << "Write DAQ File" << cgicc::input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("checked", "checked") << cgicc::label() << cgicc::td() << std::endl;
+        if (*fRAWFile)
+            *out << cgicc::td() << cgicc::label() << "Write RAW File" << cgicc::input().set ("type", "checkbox").set ("name", "raw_file").set ("value", "on").set ("checked", "checked").set ("id", "fileOptions_raw").set ("disabled", "disabled") << cgicc::label() << cgicc::td() << std::endl;
+        else
+            *out << cgicc::td() << cgicc::label() << "Write RAW File" << cgicc::input().set ("type", "checkbox").set ("name", "raw_file").set ("value", "on").set ("id", "fileOptions_raw").set ("disabled", "disabled") << cgicc::label() << cgicc::td() << std::endl;
+
+        if (*fDAQFile)
+            *out << cgicc::td() << cgicc::label() << "Write DAQ File" << cgicc::input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("checked", "checked").set ("id", "fileOptions_daq").set ("disabled", "disabled") << cgicc::label() << cgicc::td() << std::endl;
+        else
+            *out << cgicc::td() << cgicc::label() << "Write DAQ File" << cgicc::input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("id", "fileOptions_daq").set ("disabled", "disabled") << cgicc::label() << cgicc::td() << std::endl;
+    }
     else
-        *out << cgicc::td() << cgicc::label() << "Write DAQ File" << cgicc::input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on") << cgicc::label() << cgicc::td() << std::endl;
+    {
+        if (*fRAWFile)
+            *out << cgicc::td() << cgicc::label() << "Write RAW File" << cgicc::input().set ("type", "checkbox").set ("name", "raw_file").set ("value", "on").set ("checked", "checked").set ("id", "fileOptions_raw") << cgicc::label() << cgicc::td() << std::endl;
+        else
+            *out << cgicc::td() << cgicc::label() << "Write RAW File" << cgicc::input().set ("type", "checkbox").set ("name", "raw_file").set ("value", "on").set ("id", "fileOptions_raw") << cgicc::label() << cgicc::td() << std::endl;
+
+        if (*fDAQFile)
+            *out << cgicc::td() << cgicc::label() << "Write DAQ File" << cgicc::input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("checked", "checked").set ("id", "fileOptions_daq") << cgicc::label() << cgicc::td() << std::endl;
+        else
+            *out << cgicc::td() << cgicc::label() << "Write DAQ File" << cgicc::input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("id", "fileOptions_daq") << cgicc::label() << cgicc::td() << std::endl;
+    }
 
     *out << cgicc::tr() << std::endl;
     *out << cgicc::tr() << std::endl;
-    *out << cgicc::td() << cgicc::label() << "Runnumber: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "runnumber").set ("size", "20").set ("value", fRunNumber->toString() ) << cgicc::td() << std::endl;
+
+    if (cState != 'I')
+        *out << cgicc::td() << cgicc::label() << "Runnumber: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "runnumber").set ("size", "20").set ("value", fRunNumber->toString() ).set ("id", "runnumber").set ("disabled", "disabled") << cgicc::td() << std::endl;
+    else
+        *out << cgicc::td() << cgicc::label() << "Runnumber: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "runnumber").set ("size", "20").set ("value", fRunNumber->toString() ).set ("id", "runnumber") << cgicc::td() << std::endl;
+
     *out << cgicc::tr() << std::endl;
     *out << cgicc::tr() << std::endl;
-    *out << cgicc::td() << cgicc::label() << "Number of Events: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "nevents").set ("size", "20").set ("placeholder", "number of events to take").set ("value", fNEvents->toString() ) << cgicc::td() << std::endl;
+
+    if (cState == 'E')
+        *out << cgicc::td() << cgicc::label() << "Number of Events: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "nevents").set ("size", "20").set ("placeholder", "number of events to take").set ("value", fNEvents->toString() ).set ("id", "nevents").set ("disabled", "disabled") << cgicc::td() << std::endl;
+    else
+        *out << cgicc::td() << cgicc::label() << "Number of Events: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "nevents").set ("size", "20").set ("placeholder", "number of events to take").set ("value", fNEvents->toString() ).set ("id", "nevents") << cgicc::td() << std::endl;
+
     *out << cgicc::tr() << std::endl;
     *out << cgicc::tr() << std::endl;
-    *out << cgicc::td() << cgicc::label() << "Data Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "data_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fDataDirectory->toString() ) )   << cgicc::td() << std::endl;
+
+    if (cState != 'I')
+        *out << cgicc::td() << cgicc::label() << "Data Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "data_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fDataDirectory->toString() ) ).set ("id", "datadir").set ("disabled", "disabled")   << cgicc::td() << std::endl;
+    else
+        *out << cgicc::td() << cgicc::label() << "Data Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "data_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fDataDirectory->toString() ) ).set ("id", "datadir")   << cgicc::td() << std::endl;
+
     *out << cgicc::tr() << std::endl;
     *out << cgicc::tr() << std::endl;
-    *out << cgicc::td() << cgicc::label().set ("style", "display:none").set ("id", "result_directory_label") << "Result Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "result_directory").set ("id", "result_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fResultDirectory->toString() ) ).set ("style", "display:none")  <<  cgicc::td() << std::endl;
+
+    if (cState == 'E')
+        *out << cgicc::td() << cgicc::label().set ("style", "display:none").set ("id", "result_directory_label") << "Result Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "result_directory").set ("id", "result_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fResultDirectory->toString() ) ).set ("style", "display:none").set ("id", "resultdir").set ("disabled", "disabled")  <<  cgicc::td() << std::endl;
+    else
+        *out << cgicc::td() << cgicc::label().set ("style", "display:none").set ("id", "result_directory_label") << "Result Directory: " << cgicc::label() << cgicc::td() << cgicc::td() << cgicc::input().set ("type", "text").set ("name", "result_directory").set ("id", "result_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fResultDirectory->toString() ) ).set ("style", "display:none").set ("id", "resultdir")  <<  cgicc::td() << std::endl;
+
     *out << cgicc::tr() << std::endl;
     *out << cgicc::table() << std::endl;
 
     *out << cgicc::fieldset() << std::endl;
 
-    *out << cgicc::fieldset().set ("id", "commission_fieldset").set ("style", "margin:10px") << cgicc::legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
+    if (cState == 'E')
+        *out << cgicc::fieldset().set ("id", "commission_fieldset").set ("style", "margin:10px").set ("disabled", "disabled") << cgicc::legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
+    else
+        *out << cgicc::fieldset().set ("id", "commission_fieldset").set ("style", "margin:10px") << cgicc::legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
 
     //Commissioning Settings
     *out << cgicc::table().set ("style", "display:none").set ("id", "commission_table") << std::endl;
@@ -560,7 +606,7 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     //*out << cgicc::fieldset() << std::endl;
 
     if (cState != 'E')
-        *out << cgicc::input().set ("type", "submit").set ("name", "Submit").set ("value", "Submit") << std::endl;
+        *out << cgicc::input().set ("type", "submit").set ("name", "Submit").set ("id", "main_submit").set ("value", "Submit") << std::endl;
     else
         *out << cgicc::input().set ("type", "submit").set ("name", "Submit").set ("value", "Submit").set ("disabled", "disabled") << std::endl;
 
@@ -616,6 +662,7 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
         }
 
         //last argument stripps the unchanged fields
+        //this method needs to learn to add a node in case it is not found in the document
         FormData cSettingsFormData = XMLUtils::updateHTMLForm (this->fSettingsFormString, cSettingFormPairs, cLogStream, false );
 
         //now I have settings form Data but Ideally I want to change it to key-value pairs containing setting:value
@@ -655,13 +702,9 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
 
 void SupervisorGUI::displayPh2_ACFLog (xgi::Output* out)
 {
-    *out << cgicc::div().set ("class", "separator") << std::endl;
-    *out << cgicc::div().set ("class", "legend") << std::endl;
-    *out << cgicc::legend ("Ph2_ACF Logs") << std::endl;
-    *out << cgicc::div() << std::endl;
-    *out << cgicc::div().set ("class", "log").set ("id", "logwindow") << std::endl;
-    *out <<  cgicc::p() << fPh2_ACFLog << cgicc::p() << std::endl;
-    *out << cgicc::div() << std::endl;
+    *out << cgicc::div().set ("class", "separator") << cgicc::div() << std::endl;
+    *out << cgicc::div (cgicc::legend ("Ph2_ACF Logs") ).set ("class", "legend") << std::endl;
+    *out << cgicc::div (cgicc::p (fPh2_ACFLog) ).set ("class", "log").set ("id", "logwindow") << std::endl;
 }
 
 void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)

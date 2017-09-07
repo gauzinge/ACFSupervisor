@@ -89,6 +89,11 @@ const std::map<std::string, std::string> XMLUtils::updateHTMLForm (std::string& 
 
             bool cIsChanged;
 
+            if (elements.size() == 0)
+                //this can only ever be the case for setting nodes, Global CbcRegisters, Registers and potentially condition data
+                //so technically I could strip the name, check if I find something and then add a sibling
+                pStream << RED << "The element " << cPair->first << " was not found in the HTML string and needs to be added " << RESET << std::endl;
+
             for (auto element : elements)
             {
                 std::string cOldValue = "";

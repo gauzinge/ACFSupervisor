@@ -61,14 +61,12 @@ select {
     font-size: 9pt;
 }
 
-/*input, select{*/
-  /*box-sizing: border-box;*/
-  /*-moz-box-sizing: border-box;*/
-  /*-webkit-box-sizing: border-box;*/
-/*}*/
-
 option {
     font-size: 12pt;
+}
+
+input[type=button] {
+    background-color:  	#1E90FF;
 }
 
 .title {
@@ -153,21 +151,23 @@ option {
     padding-left: 1.5%;
     border: 1px solid #ccc;
     background-color: #e1e1e1;
-    overflow-y: scroll;
+    overflow-y: auto;
     background-color: inherit;
 }
-
+.content td {
+    white-space: nowrap;
+}
 .content div.fixed {
     padding: 10px;
 }
 
 .content div.acf_left{
     float: left;
-    width: 60%;
+    width: 50%;
 }
 .content div.acf_right{
     float: right;
-    width: 40%;
+    width: 50%;
 }
 
 [draggable=true] {
@@ -192,13 +192,13 @@ option {
 }
 .content div.log {
     /*position: absolute;*/
-    left: 13%;
-    width: 87%;
+    left: 0;
+    width: 100%;
     /*bottom: 0;*/
-    /*float: bottom;*/
-    /*height: 30%;*/
+    float: bottom;
+    height: 50%;
     padding: 10px;
-    z-index: 2;
+    z-index: 99;
     overflow-y: scroll;
     display: inline-block;
     /*margin-bottom: 145px;*/
@@ -206,8 +206,8 @@ option {
 
 .content div.legend {
     /*position: absolute;*/
-    left: 13%;
-    width: 87%;
+    left: 0;
+    width: 100%;
     /*bottom: 0;*/
     /*float: bottom;*/
     padding: 10px;
@@ -333,110 +333,64 @@ option {
 
 /*for HWDescription form*/
  div.BeBoard {
-     /*position: relative;*/
      font-size: 10 pt;
-     /*height: 100vh;*/
-     /*margin-top: 5px;*/
-     /*margin-bottom: 5px;*/
-     /*margin-left: 0px;*/
-     /*margin-right: 50px;*/
-     /*padding-top: 5px;*/
-     /*padding-bottom: 5px;*/
-     /*padding-left: 10px;*/
-     /*padding-right: 10px;*/
-
-     /*overflow: scroll;*/
      border: none
      solid: #ccc;
-     /*background-color: #424242;*/
      background-color: inherit;
-     /*float: top;*/
-     /*color: #34495e*/
+     display: inline-block; 
  }
 
  div.General {
-     margin-top: 5px;
-     margin-bottom: 5px;
-     margin-left: 5px;
-     margin-right: 100px;
-     padding-top: 5px;
-     padding-bottom: 5px;
      padding-left: 15px;
-     padding-right: 15px;
      /*overflow: hidden;*/
      border: none
      solid: #ddd;
-     background-color: #ebedef
+     background-color: #ebedef;
+     /*display: inline-block; */
  }
 
  div.Module {
-     margin-top: 5px;
-     margin-bottom: 5px;
-     margin-left: 5px;
-     margin-right: 100px;
-     padding-top: 5px;
-     padding-bottom: 5px;
      padding-left: 15px;
-     padding-right: 15px;
-     /*overflow: hidden;*/
      border: none
      solid: #ddd;
      background-color: #d5d8dc;
+     /*display: inline-block; */
  }
  
  div.CBC {
-     margin-top: 5px;
-     margin-bottom: 5px;
-     margin-left: 5px;
-     margin-right: 5px;
      padding-left: 20px;
-     padding-right: 20px;
      /*overflow: hidden;*/
      border: none
      solid: #ddd;
      background-color: inherit;
-     color: #616161
+     color: #616161;
+     display: inline-block;
  }
 
  div.Config {
-     margin-left: 5px;
-     margin-right: 5px;
      padding-left: 20px;
-     padding-right: 20px;
      /*overflow: hidden;*/
      border: none
      solid: #ddd;
      background-color: inherit;
-     color: #616161
+     color: #616161;
+     display: inline-block;
  }
 
  div.SLink {
-     margin-top: 5px;
-     margin-bottom: 5px;
-     margin-left: 5px;
-     margin-right: 100px;
-     padding-top: 5px;
-     padding-bottom: 5px;
      padding-left: 10px;
-     padding-right: 10px;
      /*overflow: hidden;*/
      border: 1px
      solid: #ddd;
-     background-color: #ebedef
+     background-color: #ebedef;
+     display: inline;
  }
 
  div.BeBoardRegisters {
-     margin-top: 5px;
-     margin-bottom: 5px;
-     margin-left: 5px;
-     margin-right: 100px;
-     padding-top: 5px;
-     padding-bottom: 5px;
      padding-left: 10px;
-     padding-right: 10px;
      /*overflow: hidden;*/
      border: 1px
      solid: #ddd;
-     background-color: #d5d8dc
+     background-color: #d5d8dc;
  }
 

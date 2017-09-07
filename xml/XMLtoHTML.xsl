@@ -13,8 +13,9 @@
     <!--Template for BeBoard nodes-->
     <xsl:template match="BeBoard">
         <div class="BeBoard">
-            <h4> BeBoard Id: <input type="number" name="beboard_id_{@Id}" value="{@Id}"> </input></h4>
             <div class="General">
+            <fieldset>
+            <h4> BeBoard Id: <input type="number" name="beboard_id_{@Id}" value="{@Id}"> </input></h4>
             <li>
             BoardType: 
                 <select name="boardType" id="boardType" onchange="SetEventType(this.value);">
@@ -49,6 +50,7 @@
             <input type="text" name="address_table" size="48" value="{connection/@address_table}">
                 </input>
             </li>
+        </fieldset>
         </div>
         
             <!--Module-->
@@ -58,8 +60,8 @@
 
             <!--Registers-->
             <div class="BeBoardRegisters">
-                <h4>Registers</h4>
-                <ul>
+            <h4>Registers</h4>
+            <ul>
                 <xsl:apply-templates select="Register"/>
             </ul>
             </div>
@@ -69,6 +71,7 @@
     <!--Template for Module nodes-->
     <xsl:template match="Module">
         <div class="Module">
+            <fieldset>
             <h4> Module</h4>
              <tr>
                  <td>  FeId: <input type="number" name="fe_id{@FeId}" size="2" value="{@FeId}"/></td>
@@ -80,8 +83,9 @@
                 CBC FilePath: <input type="text" name="cbc_filepath" size="20" value="{CBC_Files/@path}"/>
             <!--</input>-->
             <xsl:apply-templates select="Global"/>
-            <ul>
+            <ul id="global_reg_list">
             <xsl:apply-templates select="Global_CBC_Register"/>
+            <!--<input type="button" value="Add Global Register" onClick="addGlobalRegister('global_reg_list');"/>-->
             </ul>
             </div>
             <div>
@@ -89,6 +93,7 @@
                 <xsl:apply-templates select="CBC"/>
             </ul>
             </div>
+            </fieldset>
         </div>
     </xsl:template>
 
@@ -247,11 +252,14 @@
     <!--Template for SLINK node-->
     <xsl:template match="SLink">
     <div class="SLink">
+    <fieldset>
     <h4>SLink</h4>
-        <ul>
+        <ul id="slink_list">
             <xsl:apply-templates select="DebugMode"/>
             <xsl:apply-templates select="ConditionData"/>
         </ul>
+        <input type="button" value="Add Condition Data" onClick="addConditionData('slink_list');"/>
+    </fieldset>
     </div>
     </xsl:template>
 
