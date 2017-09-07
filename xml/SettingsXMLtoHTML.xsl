@@ -3,7 +3,7 @@
     <xsl:output method="xml" indent="yes" />
 
     <xsl:template match="/">
-        <div onload="">
+        <!--<div onload="">-->
         <xsl:apply-templates match="Setting"/>
             <!--<tr>-->
                 <!--<td>-->
@@ -13,7 +13,7 @@
                     <!--<input type="text" name="setting_value_{count(preceding-sibling::Setting)}" value="" size="10"/>-->
                 <!--</td>-->
             <!--</tr>-->
-        </div>
+        <!--</div>-->
     </xsl:template>
 
     <xsl:template match="Setting">

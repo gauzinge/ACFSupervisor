@@ -3,7 +3,8 @@
 
 #include "xdaq/exception/Exception.h"
 #include "xdaq/NamespaceURI.h"
-#include "xdaq/WebApplication.h"
+//#include "xdaq/WebApplication.h"
+#include "xdaq/Application.h"
 
 #include "toolbox/task/WorkLoopFactory.h"
 #include "toolbox/task/Action.h"
@@ -46,7 +47,7 @@ using FormData = std::map<std::string, std::string>;
 namespace Ph2TkDAQ {
 
     //DTC Supervisor main class, responsible for GUI and user input
-    class DTCSupervisor : public xdaq::WebApplication, public xdata::ActionListener//, public xgi::framework::UIManager
+    class DTCSupervisor : public xdaq::Application, public xdata::ActionListener//, public xgi::framework::UIManager
     {
       public:
         XDAQ_INSTANTIATOR();

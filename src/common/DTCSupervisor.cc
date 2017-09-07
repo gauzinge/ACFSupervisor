@@ -7,7 +7,7 @@ XDAQ_INSTANTIATOR_IMPL (Ph2TkDAQ::DTCSupervisor)
 INITIALIZE_EASYLOGGINGPP
 
 DTCSupervisor::DTCSupervisor (xdaq::ApplicationStub* s)
-throw (xdaq::exception::Exception) : xdaq::WebApplication (s),
+throw (xdaq::exception::Exception) : xdaq::Application (s),
     fFSM (this),
     fHWDescriptionFile (""),
     fDataDirectory (""),
@@ -178,7 +178,6 @@ throw (xgi::exception::Exception)
 {
     std::string name = in->getenv ("PATH_INFO");
     static_cast<xgi::MethodSignature*> (fGUI->getMethod (name) )->invoke (in, out);
-    fGUI->lastPage (in, out);
 }
 
 bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
@@ -678,19 +677,6 @@ void DTCSupervisor::updateHwDescription()
         return;
     }
 }
-
-//void DTCSupervisor::Initialised (toolbox::Event::Reference e) throw (toolbox::fsm::exception::Exception)
-//{
-//std::cout << "Initialised Event " << e->type() << std::endl;
-////xgi::Input in ("", 1);
-////xgi::Output out;
-//fGUI->lastPage (this->Input, this->Output);
-//}
-
-//void DTCSupervisor::Configured (toolbox::Event::Reference e) throw (toolbox::fsm::exception::Exception)
-//{
-//std::cout << "Configured Event " << e->type() << std::endl;
-//}
 
 void DTCSupervisor::updateSettings()
 {

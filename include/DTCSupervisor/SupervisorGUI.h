@@ -1,7 +1,8 @@
 #ifndef __SupervisorGUI_H__
 #define __SupervisorGUI_H__
 
-#include "xdaq/WebApplication.h"
+//#include "xdaq/WebApplication.h"
+#include "xdaq/Application.h"
 #include "xdaq/exception/Exception.h"
 #include "xdaq/NamespaceURI.h"
 #include "toolbox/lang/Class.h"
@@ -31,6 +32,9 @@
 #include "XMLUtils.h"
 #include "ConsoleColor.h"
 
+#include <chrono>
+#include <thread>
+
 using FormData = std::map<std::string, std::string>;
 
 enum class Tab {CONFIG, MAIN, CALIBRATION, DAQ};
@@ -40,7 +44,7 @@ namespace Ph2TkDAQ {
     class SupervisorGUI : public toolbox::lang::Class
     {
       public:
-        SupervisorGUI (xdaq::WebApplication* pApp, DTCStateMachine* pStateMachine);
+        SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMachine);
 
         //views
         void Default (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
@@ -145,9 +149,20 @@ namespace Ph2TkDAQ {
             }
         }
 
+        void wait_state_changed (char& pState)
+        {
+            while (!isupper (pState) )
+            {
+                std::this_thread::sleep_for (std::chrono::milliseconds (100) );
+                pState = fFSM->getCurrentState();
+            }
+
+            std::cout << "state changed to: " << pState << std::endl;
+        }
+
         //members
       private:
-        xdaq::WebApplication* fApp;
+        xdaq::Application* fApp;
         xgi::framework::UIManager fManager;
         log4cplus::Logger fLogger;
         std::string fURN;

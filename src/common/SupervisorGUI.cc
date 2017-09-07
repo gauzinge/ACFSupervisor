@@ -3,7 +3,7 @@
 
 using namespace Ph2TkDAQ;
 
-SupervisorGUI::SupervisorGUI (xdaq::WebApplication* pApp, DTCStateMachine* pStateMachine) :
+SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMachine) :
     fApp (pApp),
     fManager (pApp),
     fFSM (pStateMachine),
@@ -57,7 +57,7 @@ void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exce
     std::string url = fURN + "reloadHWFile";
 
     // stream for logger
-    std::ostringstream cLogStream;
+    //std::ostringstream cLogStream;
 
     //define view and create header
     fCurrentPageView = Tab::MAIN;
@@ -68,9 +68,8 @@ void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exce
     this->displayLoadForm (in, out);
     this->displayPh2_ACFForm (in, out);
     this->displayPh2_ACFLog (out);
-
-    //LOG4CPLUS_INFO (fLogger, cLogStream.str() );
     this->createHtmlFooter (in, out);
+    //LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 }
 
 void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
@@ -94,9 +93,7 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
     std::string JSfile = expandEnvironmentVariables (HOME);
     JSfile += "/html/HWForm.js";
 
-    *out << cgicc::script().set ("type", "text/javascript") << std::endl;
-    *out << parseExternalResource (JSfile, cLogStream) << std::endl;
-    *out << cgicc::script() << std::endl;
+    *out << cgicc::script (parseExternalResource (JSfile, cLogStream) ).set ("type", "text/javascript") << std::endl;
     *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onload", "DisplayFieldsOnload();") << std::endl;
 
     if (cState != 'E')
@@ -113,8 +110,6 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
 
     *out << fHWFormString << std::endl;
     *out << cgicc::form() << std::endl;
-
-
     this->createHtmlFooter (in, out);
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
@@ -122,25 +117,19 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
 
 void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab)
 {
+    fManager.getHTMLHeader (in, out);
     // Create the Title, Tab bar
     std::ostringstream cLogStream;
     char cState = fFSM->getCurrentState();
 
-    fManager.getHTMLHeader (in, out);
-    //*out << cgicc::head() << std::endl;
     //Style this thing
-    *out << cgicc::style() << std::endl;
-    *out << parseExternalResource (expandEnvironmentVariables (CSSSTYLESHEET), cLogStream) << std::endl;
-    *out << cgicc::style() << std::endl;
-
-    *out << cgicc::title ("DTC Supervisor")  << std::endl;
-
+    *out << cgicc::style (parseExternalResource (expandEnvironmentVariables (CSSSTYLESHEET), cLogStream) ) << std::endl;
 
     int cRefreshDelay = 1;
     bool cAutoRefresh = false;
 
-    if (cState == 'i' || cState == 'c' || cState == 'e' || cState == 'h' || cState == 's' || cState == 'x' || cState == 'p' || cState == 'r' || fAutoRefresh)
-        cAutoRefresh = true;
+    //if (cState == 'i' || cState == 'c' || cState == 'e' || cState == 'h' || cState == 's' || cState == 'x' || cState == 'p' || cState == 'r' || fAutoRefresh)
+    //cAutoRefresh = true;
 
     if (cState == 'E')
     {
@@ -150,53 +139,49 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
 
     std::ostringstream cTabBarString;
 
-    std::string url = fURN;
-
     // switch to show the current tab
     switch (pTab)
     {
         case Tab::MAIN:
-            cTabBarString << "<a href='" << url << "MainPage' class=\"button active\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button\">DAQPage</a>" << std::endl;
+            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button active") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button") << std::endl;
 
             //auto refresh
             if (cAutoRefresh)
-                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "MainPage\"/>" << std::endl;
+                //*out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "MainPage\"/>" << std::endl;
+                *out << cgicc::meta().set ("HTTP-EQUIV", "Refresh").set ("CONTENT", cRefreshDelay + "; " + fURN + "MainPage") << std::endl;
 
             break;
 
         case Tab::CONFIG:
-            cTabBarString << "<a href='" << url << "MainPage' class=\"button\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button active\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button\">DAQPage</a>" << std::endl;
+            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button active") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button") << std::endl;
 
             if (cAutoRefresh)
-                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "ConfigPage\"/>" << std::endl;
+                //*out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "ConfigPage\"/>" << std::endl;
+                *out << cgicc::meta().set ("HTTP-EQUIV", "Refresh").set ("CONTENT", cRefreshDelay + "; " + fURN + "ConfigPage") << std::endl;
 
             break;
 
         case Tab::CALIBRATION:
-            cTabBarString << "<a href='" << url << "MainPage' class=\"button\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button active\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button\">DAQPage</a>" << std::endl;
+            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button active") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button") << std::endl;
 
             if (cAutoRefresh)
-                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "CalibrationPage\"/>" << std::endl;
+                /// [ > out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "CalibrationPage\"/>" << std::endl;
+                *out << cgicc::meta().set ("HTTP-EQUIV", "Refresh").set ("CONTENT", cRefreshDelay + "; " + fURN + "CalibrationPage") << std::endl;
 
             break;
 
         case Tab::DAQ:
-            cTabBarString << "<a href='" << url << "MainPage' class=\"button\">MainPage</a>  <a href='" << url << "ConfigPage' class=\"button\">ConfigPage</a>  <a href='" << url << "CalibrationPage' class=\"button\">CalibrationPage</a>  <a href='" << url << "DAQPage' class=\"button active\">DAQPage</a>" << std::endl;
+            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button active") << std::endl;
 
             if (cAutoRefresh)
-                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "DAQPage\"/>" << std::endl;
+                /// [ > out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "DAQPage\"/>" << std::endl;
+                *out << cgicc::meta().set ("HTTP-EQUIV", "Refresh").set ("CONTENT", cRefreshDelay + "; " + fURN + "DQMPage") << std::endl;
 
             break;
     }
 
-    //*out << cgicc::head() << std::endl;
-    std::string link = url + "MainPage";
-    *out << cgicc::div().set ("class", "title") << std::endl;
-    *out << cgicc::h1 (cgicc::a ("DTC Supervisor").set ("href", url) ) << std::endl;
-    *out << cgicc::div() << std::endl;
-    *out << "<div class=\"tab\">" << std::endl;
-    *out << cTabBarString.str() << std::endl;
-    *out << "</div>" << std::endl;
+    *out << cgicc::div (cgicc::h1 (cgicc::a ("DTC Supervisor").set ("href", fURN + "MainPage") ) ).set ("class", "title") << std::endl;
+    *out << cgicc::div (cTabBarString.str() ).set ("class", "tab") << std::endl;
     *out << "<div class=\"main\">" << std::endl;
     this->showStateMachineStatus (out);
     *out << "<div class=\"content\">" << std::endl;
@@ -206,8 +191,8 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
 
 void SupervisorGUI::createHtmlFooter (xgi::Input* in, xgi::Output* out)
 {
-    //close the main and content div
-    *out << "</div class=\"content\"></div class=\"main\">" << std::endl;
+    //close main and content divs
+    *out << "</div>" <<  std::endl << "</div>" << std::endl;
     fManager.getHTMLFooter (in, out);
 }
 
@@ -217,18 +202,19 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
     try
     {
         //display the sidenav with the FSM controls
-        *out << "<div class=\"sidenav\">" << std::endl;
         char cState = fFSM->getCurrentState();
         std::stringstream cCurrentState;
         cCurrentState << "Current State: " << fFSM->getStateName (cState) << "/" << cState << std::endl;
+
+        *out << "<div class=\"sidenav\">" << std::endl;
         *out << cgicc::p (cCurrentState.str() ).set ("class", "state") << std::endl;
         *out << cgicc::p (std::string (1, cState) ).set ("style", "display:none").set ("id", "state") << std::endl;
 
         //Event counter
         *out << cgicc::div().set ("class", "eventcount") << std::endl;
         *out << cgicc::table() << std::endl;
-        *out << cgicc::tr() << cgicc::td() << "Requested Events: " << cgicc::td() << cgicc::td() << *fNEvents << cgicc::td() << cgicc::tr() << std::endl;
-        *out << cgicc::tr() << cgicc::td() << "Event Count: " << cgicc::td() << cgicc::td() << *fEventCounter << cgicc::td() << cgicc::tr() << std::endl;
+        *out << cgicc::tr().add (cgicc::td ("Requested Events: ") ).add (cgicc::td (fNEvents->toString() ) ) << std::endl;
+        *out << cgicc::tr().add (cgicc::td ("Event Count: ") ).add (cgicc::td (std::to_string (*fEventCounter ) ) ) << std::endl;
         *out << cgicc::table() << std::endl;
         *out << cgicc::div()  << std::endl;
 
@@ -252,8 +238,7 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
         *out << cgicc::form() << std::endl;
 
         std::string cFilename = fHWDescriptionFile->toString().substr (fHWDescriptionFile->toString().find_last_of ("/") + 1);
-        *out << cgicc::div().set ("class", "current_file") << "Current HW File: " << cFilename << cgicc::div()  << std::endl;
-
+        *out << cgicc::div ("Current HW File: " + cFilename).set ("class", "current_file") << std::endl;
         *out << "</div>" << std::endl;
     }
     catch (xgi::exception::Exception& e)
@@ -265,6 +250,7 @@ void SupervisorGUI::showStateMachineStatus (xgi::Output* out) throw (xgi::except
 void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
 {
     std::ostringstream cLogStream;
+    char cState = fFSM->getCurrentState();
 
     try
     {
@@ -293,21 +279,26 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
             fSettingsXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (SETTINGSSTYLESHEETINVERSE), cLogStream, false);
             //std::cout << fSettingsXMLString << std::endl;
         }
-        else if (cTransition == "Configure")
-        {
-        }
-
 
         if (cTransition == "Refresh")
+        {
             this->lastPage (in, out);
+            //return;
+        }
         else
+        {
             fFSM->fireEvent (cTransition, fApp);
+            //this should now be the transition state
+            cState = fFSM->getCurrentState();
+        }
     }
     catch (const std::exception& e)
     {
         XCEPT_RAISE (xgi::exception::Exception, e.what() );
     }
 
+    //here just wait for the state change in a blocking fashion - we don't care
+    this->wait_state_changed (cState);
     this->lastPage (in, out);
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
@@ -329,14 +320,7 @@ void SupervisorGUI::displayLoadForm (xgi::Input* in, xgi::Output* out)
     else
         *out << cgicc::form().set ("padding", "10px").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on").set ("disabled", "disabled") << std::endl;
 
-    *out << cgicc::tr() << cgicc::td() << std::endl;
-    *out << "<label for=\"HwDescriptionFile\">Hw Descritpion FilePath: </label>" << std::endl;
-    *out << cgicc::td() << cgicc::td() << std::endl;
-
-    *out << cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ) << std::endl;
-    *out << cgicc::td() << cgicc::td() << std::endl;
-    *out << cgicc::input().set ("type", "submit").set ("id", "hwForm_load_submit").set ("title", "change the Hw Description File").set ("value", "Reload") << std::endl;
-    *out << cgicc::td() << cgicc::tr() << std::endl;
+    *out << cgicc::tr().add (cgicc::td (cgicc::label ("Hw Description File Path:").set ("for", "HwDescriptionFile") ) ).add (cgicc::td (cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ) ) ).add (cgicc::td (cgicc::input().set ("type", "submit").set ("id", "hwForm_load_submit").set ("title", "change the Hw Description File").set ("value", "Reload") ) ) << std::endl;
     *out << cgicc::form() << std::endl;
 }
 
@@ -402,13 +386,7 @@ void SupervisorGUI::displayDumpForm (xgi::Input* in, xgi::Output* out)
     //string defining action
     std::string url = fURN + "dumpHWDescription";
     *out << cgicc::form().set ("style", "padding-top:10px").set ("style", "padding-bottom:10px").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data") << std::endl;
-    *out << cgicc::tr() << cgicc::td() << std::endl;
-    *out << "<label for=\"fileDumpPath\">Path for Hw File dump:  </label>" << std::endl;
-    *out << cgicc::td() << cgicc::td() << std::endl;
-    *out << cgicc::input().set ("type", "text").set ("name", "fileDumpPath").set ("title", "file path to dump HW Description File").set ("value", expandEnvironmentVariables (HOME) ).set ("size", "70") << std::endl;
-    *out << cgicc::td() << cgicc::td() << std::endl;
-    *out << cgicc::input().set ("type", "submit").set ("title", "dump HWDescription form to XML File").set ("value", "Dump") << std::endl;
-    *out << cgicc::td() << cgicc::tr() << std::endl;
+    *out << cgicc::tr().add (cgicc::td (cgicc::label ("Path for Hw File dump: ").set ("for", "fileDumpPath") ) ).add (cgicc::td (cgicc::input().set ("type", "text").set ("name", "fileDumpPath").set ("title", "file path to dump HW Description File").set ("value", expandEnvironmentVariables (HOME) ).set ("size", "70") ) ).add (cgicc::td (cgicc::input().set ("type", "submit").set ("title", "dump HWDescription form to XML File").set ("value", "Dump") ) ) << std::endl;
     *out << cgicc::form() << std::endl;
 }
 
@@ -490,7 +468,7 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
 
     //Main Settings parsed from file!
     if (cState == 'E')
-        *out << cgicc::fieldset().set ("style", "margin-top:10px").set ("style", "display:none").set ("id", "settings_fieldset") << cgicc::legend ("Application Settings").set ("id", "settings_fieldset_legend").set ("style", "display:none").set ("disabled", "disabled") << std::endl;
+        *out << cgicc::fieldset().set ("style", "margin-top:10px; display:none").set ("id", "settings_fieldset") << cgicc::legend ("Application Settings").set ("id", "settings_fieldset_legend").set ("style", "display:none").set ("disabled", "disabled") << std::endl;
     else
         *out << cgicc::fieldset().set ("style", "margin-top:10px").set ("style", "display:none").set ("id", "settings_fieldset") << cgicc::legend ("Application Settings").set ("id", "settings_fieldset_legend").set ("style", "display:none") << std::endl;
 

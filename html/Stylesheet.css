@@ -1,4 +1,6 @@
+
 @charset "utf-8";
+
 * {
     box-sizing: border-box
 }
@@ -71,13 +73,13 @@ input[type=button] {
 
 .title {
     position: fixed;
-    padding-left: 160px;
-    padding-right: 300px;
+    margin-left: 160px;
+    margin-right: 300px;
     margin-top: 10px;
     top: 0;
     left: 0;
     height: 59px;
-    width: 100%;
+    width: 30%;
     z-index: 999;
     overflow: hidden;
     border: none solid #ccc;
@@ -88,6 +90,7 @@ input[type=button] {
 .tab {
     position: fixed;
     left: 0;
+    top: 9%;
     padding-left: 13%;
     height: 40px;
     width: 100%;
@@ -127,13 +130,14 @@ input[type=button] {
 /*main viewport under tab bar*/
 .main {
     position: fixed;
-    float: bottom;
-    box-sizing: padding-box;
+    /*float: bottom;*/
+    /*box-sizing: padding-box;*/
     padding-top: 1.5%;
     padding-bottom: 135px;
     height: 100%;
     width: 100%;
     left: 0;
+    top: 11%;
     overflow: scroll;
     background-color: inherit;
 }
