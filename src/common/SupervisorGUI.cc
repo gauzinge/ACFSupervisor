@@ -55,10 +55,6 @@ SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMa
 void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
 {
     std::string url = fURN + "reloadHWFile";
-
-    // stream for logger
-    //std::ostringstream cLogStream;
-
     //define view and create header
     fCurrentPageView = Tab::MAIN;
     this->createHtmlHeader (in, out, fCurrentPageView);
@@ -69,7 +65,6 @@ void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exce
     this->displayPh2_ACFForm (in, out);
     this->displayPh2_ACFLog (out);
     this->createHtmlFooter (in, out);
-    //LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 }
 
 void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
@@ -87,7 +82,6 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
     *out << cgicc::table() << std::endl;
 
     // Display the HwDescription HTML form
-    // only allow changes in Initial and Configured
     std::string url = fURN + "handleHWFormData";
 
     std::string JSfile = expandEnvironmentVariables (HOME);
@@ -117,6 +111,7 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
 
 void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab)
 {
+    //draw the xdaq header
     fManager.getHTMLHeader (in, out);
     // Create the Title, Tab bar
     std::ostringstream cLogStream;
@@ -145,10 +140,8 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
         case Tab::MAIN:
             cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button active") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button") << std::endl;
 
-            //auto refresh
             if (cAutoRefresh)
-                //*out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "MainPage\"/>" << std::endl;
-                *out << cgicc::meta().set ("HTTP-EQUIV", "Refresh").set ("CONTENT", cRefreshDelay + "; " + fURN + "MainPage") << std::endl;
+                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "MainPage\"/>" << std::endl;
 
             break;
 
@@ -156,8 +149,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
             cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button active") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button") << std::endl;
 
             if (cAutoRefresh)
-                //*out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "ConfigPage\"/>" << std::endl;
-                *out << cgicc::meta().set ("HTTP-EQUIV", "Refresh").set ("CONTENT", cRefreshDelay + "; " + fURN + "ConfigPage") << std::endl;
+                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "ConfigPage\"/>" << std::endl;
 
             break;
 
@@ -165,8 +157,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
             cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button active") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button") << std::endl;
 
             if (cAutoRefresh)
-                /// [ > out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "CalibrationPage\"/>" << std::endl;
-                *out << cgicc::meta().set ("HTTP-EQUIV", "Refresh").set ("CONTENT", cRefreshDelay + "; " + fURN + "CalibrationPage") << std::endl;
+                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "CalibrationPage\"/>" << std::endl;
 
             break;
 
@@ -174,8 +165,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
             cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button active") << std::endl;
 
             if (cAutoRefresh)
-                /// [ > out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "DAQPage\"/>" << std::endl;
-                *out << cgicc::meta().set ("HTTP-EQUIV", "Refresh").set ("CONTENT", cRefreshDelay + "; " + fURN + "DQMPage") << std::endl;
+                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "DAQPage\"/>" << std::endl;
 
             break;
     }
@@ -193,6 +183,7 @@ void SupervisorGUI::createHtmlFooter (xgi::Input* in, xgi::Output* out)
 {
     //close main and content divs
     *out << "</div>" <<  std::endl << "</div>" << std::endl;
+    //draw footer
     fManager.getHTMLFooter (in, out);
 }
 
@@ -260,11 +251,6 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
         std::string cTransition = cgi["transition"]->getValue();
 
         //here handle whatever action is necessary on the gui before handing over to the main application
-
-        // if the transition is Initialise and the HW Form String is still empty, trigger the callback otherwise triggered by the load button
-        // this also populates the fSettingsFormString but not the fSettingsFormData map
-        // the easiest solution is to convert the fSettingsFormString back to an xml string and initialize from that
-        // then, the fSettingsFormData can also be stripped
         if (cTransition == "Initialise" )
         {
             if ( fHWFormString.empty() )
@@ -273,17 +259,15 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
             //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
             std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
             fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
-            //std::cout << fHwXMLString << std::endl;
             //now do the same for the Settings
-            cTmpFormString = cleanup_before_XSLT (fSettingsFormString);
+            cTmpFormString = cleanup_before_XSLT_Settings (fSettingsFormString);
             fSettingsXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (SETTINGSSTYLESHEETINVERSE), cLogStream, false);
-            //std::cout << fSettingsXMLString << std::endl;
         }
 
         if (cTransition == "Refresh")
         {
             this->lastPage (in, out);
-            //return;
+            return;
         }
         else
         {
@@ -470,11 +454,11 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     if (cState == 'E')
         *out << cgicc::fieldset().set ("style", "margin-top:10px; display:none").set ("id", "settings_fieldset") << cgicc::legend ("Application Settings").set ("id", "settings_fieldset_legend").set ("style", "display:none").set ("disabled", "disabled") << std::endl;
     else
-        *out << cgicc::fieldset().set ("style", "margin-top:10px").set ("style", "display:none").set ("id", "settings_fieldset") << cgicc::legend ("Application Settings").set ("id", "settings_fieldset_legend").set ("style", "display:none") << std::endl;
+        *out << cgicc::fieldset().set ("style", "margin-top:10px; display:none").set ("id", "settings_fieldset") << cgicc::legend ("Application Settings").set ("id", "settings_fieldset_legend").set ("style", "display:none") << std::endl;
 
-    *out << cgicc::table().set ("name", "settings_table").set ("id", "settings_table").set ("style", "display:none") << std::endl;
+    //*out << cgicc::table().set ("name", "settings_table").set ("id", "settings_table").set ("style", "display:none") << std::endl;
     *out << fSettingsFormString << std::endl;
-    *out << cgicc::table() << std::endl;
+    //*out << cgicc::table() << std::endl;
     *out << cgicc::input().set ("type", "button").set ("value", "Add Setting").set ("onClick", "addSetting('settings_table');") << std::endl;
     *out << cgicc::fieldset() << std::endl;
 

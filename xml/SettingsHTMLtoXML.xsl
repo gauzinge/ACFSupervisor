@@ -5,7 +5,7 @@
     <xsl:template match="/">
      <HwDescription>
         <Settings>
-            <xsl:for-each select="div/tr">
+            <xsl:for-each select="table/tr">
                 <xsl:call-template name="Setting"/>
             </xsl:for-each>
         </Settings>

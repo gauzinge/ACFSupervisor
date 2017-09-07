@@ -104,6 +104,12 @@ namespace Ph2TkDAQ {
         remove_xml_header (cString, "<div onload");
         return cString;
     }
+    inline std::string cleanup_before_XSLT_Settings (std::string pString)
+    {
+        std::string cString = pString;
+        remove_xml_header (cString, "<table");
+        return cString;
+    }
 
     inline void cleanup_log_string (std::string& pLogString)
     {
