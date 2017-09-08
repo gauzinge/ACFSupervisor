@@ -63,7 +63,7 @@ namespace Ph2TkDAQ {
         void showStateMachineStatus (xgi::Output* out) throw (xgi::exception::Exception);
 
         // Form to load and dump HWDescription File
-        void displayLoadForm (xgi::Input* in, xgi::Output* out);
+        void displayLoadForm (xgi::Input* in, xgi::Output* out, bool pAlone = true);
         void displayDumpForm (xgi::Input* in, xgi::Output* out);
         // Form for Ph2 ACF general settings
         void displayPh2_ACFForm (xgi::Input* in, xgi::Output* out);

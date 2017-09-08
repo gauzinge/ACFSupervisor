@@ -34,7 +34,7 @@ label {
 input {
     color: #000;
     vertical-align:center;
-    height:28px;
+    /*height:28px;*/
 }
 
 input[type="text"]
@@ -48,14 +48,25 @@ input[type="number"]
     width: 40px;
 }
 
-input[type=checkbox], input[type=radio] {
+input[type=checkbox], input[type=radio]  {
   vertical-align: middle;
   position: relative;
   bottom: 1px;
   margin-left: 8px;
   margin-right: 8px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  height:28px;
 }
-
+input[type=file] {
+  vertical-align: middle;
+  position: relative;
+  bottom: 1px;
+  margin-left: 8px;
+  margin-right: 8px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
 select {
     border:none solid #ccc;
     vertical-align:center;
@@ -199,11 +210,11 @@ input[type=button] {
 
 .content div.acf_left{
     float: left;
-    width: 50%;
+    width: 40%;
 }
 .content div.acf_right{
     float: right;
-    width: 50%;
+    width: 60%;
 }
 
 [draggable=true] {
@@ -287,7 +298,7 @@ input[type=button] {
     float: left;
     word-wrap: break-word;
 }
-.sidenav div.eventcount {
+.sidenav div.eventcount table{
     font-size: 11pt;
     width: 100%;
     margin-bottom: 10px;
@@ -345,7 +356,7 @@ input[type=button] {
     text-decoration: none;
     transition: 0.3s;
     text-align: left;
-    background-color: #58D68D;
+    background-color:  #3CB371;
 }
 
 /*for HWDescription form*/
