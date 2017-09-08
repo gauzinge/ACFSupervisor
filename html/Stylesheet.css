@@ -200,7 +200,7 @@ input[type=button] {
     width: 100%;
     /*bottom: 0;*/
     float: bottom;
-    height: 50%;
+    height: 30%;
     padding: 10px;
     z-index: 99;
     overflow-y: scroll;

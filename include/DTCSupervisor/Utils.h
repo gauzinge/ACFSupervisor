@@ -83,12 +83,17 @@ namespace Ph2TkDAQ {
     {
         remove_xml_header (pString, "<div onload");
     }
+    inline void cleanup_after_XSLT_Settings (std::string& pString)
+    {
+        remove_xml_header (pString, "<table");
+    }
+
     inline void cleanup_after_Update (std::string& pString)
     {
         if (pString.find ("<div onload") != std::string::npos)
             remove_xml_header (pString, "<div onload");
-        else if (pString.find ("<tr>") != std::string::npos)
-            remove_xml_header (pString, "<tr");
+        else if (pString.find ("<table") != std::string::npos)
+            remove_xml_header (pString, "<table");
 
         cleanupHTMLString (pString, "<html>", "");
         cleanupHTMLString (pString, "</html>", "");

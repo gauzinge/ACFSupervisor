@@ -354,6 +354,7 @@ void SupervisorGUI::loadHWFile()
         fHWFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), expandEnvironmentVariables (XSLSTYLESHEET), cLogStream);
         cleanup_after_XSLT (fHWFormString);
         fSettingsFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), expandEnvironmentVariables (SETTINGSSTYLESHEET), cLogStream);
+        cleanup_after_XSLT_Settings (fSettingsFormString);
 
         if (fSettingsFormString.empty() )
             LOG4CPLUS_ERROR (fLogger, RED << "Error, HW Description File " << fHWDescriptionFile->toString() << " does not contain any run settings!" << RESET);
@@ -695,7 +696,6 @@ void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (x
     }
 
     //always strip the unchanged since I am only using this info in the fHWFormData to update once the HWTree is initialized
-    //*fHWFormData = XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormPairs, cLogStream, true );
     *fHWFormData = XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormPairs, cLogStream, true );
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
