@@ -103,7 +103,8 @@ input[type=button] {
 .tab a.button {
     background-color: inherit;
     vertical-align: middle;
-    display: table-cell;
+    /*display: table-cell;*/
+    float: left;
     height: 100%;
     border: none;
     outline: none;
@@ -123,31 +124,42 @@ input[type=button] {
 }
 
 .tab a.button.active {
+    float: left;
     height: 100%;
     background-color: #ccc;
 }
 
 .tab a.refresh_button {
+    color:	#1E90FF;
+    float: right;
     height: 100%;
-    background-color: #1E90FF;
+    background-color: #FFD700;
     vertical-align: middle;
-    display: table-cell;
+    /*display: table-cell;*/
     height: 100%;
     transition: 0.3s;
-    font-size: 14px;
+    font-size: 17px;
+    padding-top: 10px;
+    padding-bottom: 10px;
     padding-left: 16px;
     padding-right: 16px;
+    margin-right: 10px;
 }
 .tab a.refresh_button_active {
+    color:	#FF6347;
+    float: right;
     height: 100%;
     background-color: #3CB371;
     vertical-align: middle;
     display: table-cell;
     height: 100%;
     transition: 0.3s;
-    font-size: 14px;
+    font-size: 17px;
+    padding-top: 10px;
+    padding-bottom: 10px;
     padding-left: 16px;
     padding-right: 16px;
+    margin-right: 10px;
 }
 
 /*main viewport under tab bar*/

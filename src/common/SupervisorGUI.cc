@@ -129,7 +129,7 @@ void SupervisorGUI::FirmwarePage (xgi::Input* in, xgi::Output* out) throw (xgi::
 
     this->displayLoadForm (in, out);
 
-    *out << cgicc::div().set ("style", "display:inline-block") << std::endl;
+    *out << cgicc::div().set ("style", "display:inline") << std::endl;
 
     if (cState != 'I')
     {
@@ -140,14 +140,14 @@ void SupervisorGUI::FirmwarePage (xgi::Input* in, xgi::Output* out) throw (xgi::
     else
     {
         //display the form
-        *out << cgicc::legend ("Fw Settings") << cgicc::fieldset() << std::endl;
+        *out << cgicc::legend ("Fw Settings").set ("style", "padding-top:20px") << cgicc::fieldset() << std::endl;
         //the button / form for loading the stuff
-        *out << cgicc::form().set ("method", "POST").set ("action", fURN + "loadImages").set ("enctype", "multipart/form-data").add (cgicc::table().add (cgicc::tr().add (cgicc::td (cgicc::input ().set ("type", "submit").set ("title", "load list of FW images from FC7").set ("name", "listImages").set ("value", "List Images").set ("style", "margin-bottom: 20px") ) ).add (cgicc::td (cgicc::input ().set ("type", "submit").set ("title", "reboot the FC7").set ("name", "rebootBoard").set ("value", "Reboot Board").set ("style", "margin-bottom: 20px") ) ) ) ) << std::endl;
+        *out << cgicc::form().set ("method", "POST").set ("action", fURN + "loadImages").set ("enctype", "multipart/form-data").add (cgicc::table().set ("style", "border-spacing:10px; border-collapse: separate;").add (cgicc::tr().add (cgicc::td (cgicc::input ().set ("type", "submit").set ("title", "load list of FW images from FC7").set ("name", "listImages").set ("value", "List Images") ) ).add (cgicc::td (cgicc::input ().set ("type", "submit").set ("title", "reboot the FC7").set ("name", "rebootBoard").set ("value", "Reboot Board") ) ) ) ) << std::endl;
         //the select node to select the image
         *out << cgicc::form ().set ("method", "POST").set ("action", fURN + "handleImages").set ("enctype", "multipart/form-data") << std::endl;
-        *out << "<table>" << std::endl;
+        *out << "<table style=\"padding-top:20px; border-spacing:10px; border-collapse:separate;\">" << std::endl;
         *out << cgicc::tr() << std::endl;
-        *out << cgicc::td() << cgicc::label ("Image List") << cgicc::select ().set ("name", "FW images").set ("style", "margin-bottom: 20px") << std::endl;
+        *out << cgicc::td (cgicc::label ("Image List:  ") ) << cgicc::td() << cgicc::select ().set ("name", "FW images") << std::endl;
 
         if (fImageVector.size() )
         {
@@ -160,15 +160,15 @@ void SupervisorGUI::FirmwarePage (xgi::Input* in, xgi::Output* out) throw (xgi::
 
         *out << cgicc::tr() << std::endl;
         //now put a couple of inputs(submit type there with the various actions)
-        *out << cgicc::td (cgicc::input ().set ("type", "submit").set ("name", "loadImage").set ("title", "configure FPGA with selected FW image").set ("value", "Load Image").set ("style", "margin-bottom: 20px") ) << std::endl;
-        *out << cgicc::td (cgicc::input ().set ("type", "submit").set ("name", "deleteImage").set ("title", "delete selected FW image").set ("value", "Delete Image").set ("style", "margin-bottom: 20px") ) << std::endl;
+        *out << cgicc::td (cgicc::input ().set ("type", "submit").set ("name", "loadImage").set ("title", "configure FPGA with selected FW image").set ("value", "Load Image") ) << std::endl;
+        *out << cgicc::td (cgicc::input ().set ("type", "submit").set ("name", "deleteImage").set ("title", "delete selected FW image").set ("value", "Delete Image") ) << std::endl;
         *out << cgicc::tr() << std::endl;
 
-        *out << cgicc::tr().add (cgicc::td().add (cgicc::label ("Path to Download:") ).add (cgicc::input ().set ("type", "text").set ("name", "pathdownload").set ("size", "70").set ("value", expandEnvironmentVariables (HOME) + "/myImage.bin" ).set ("title", "download selected FW image").set ("style", "margin-bottom: 20px") ) ) << std::endl;
-        *out << cgicc::tr().add (cgicc::td (cgicc::input ().set ("type", "submit").set ("name", "downloadImage").set ("title", "download selected FW image").set ("value", "Download").set ("style", "margin-bottom: 20px") ) ) << std::endl;
+        *out << cgicc::tr().add (cgicc::td (cgicc::label ("Path to Download:  ") ) ).add (cgicc::td (cgicc::input ().set ("type", "text").set ("name", "pathdownload").set ("size", "50").set ("value", expandEnvironmentVariables (HOME) + "/myImage.bin" ).set ("title", "download selected FW image") ) ) << std::endl;
+        *out << cgicc::tr().add (cgicc::td (cgicc::input ().set ("type", "submit").set ("name", "downloadImage").set ("title", "download selected FW image").set ("value", "Download") ) ).add (cgicc::td (cgicc::input ().set ("type", "submit").set ("name", "uploadImage").set ("title", "upload selected FW image").set ("value", "Upload") ) ) << std::endl;
 
-        *out << cgicc::tr().add (cgicc::td().add (cgicc::label ("Image to upload:") ).add (cgicc::input ().set ("type", "file").set ("name", "Image").set ("size", "70").set ("style", "margin-bottom: 20px") ) ).add (cgicc::td().add (cgicc::label ("Image Name:") ).add (cgicc::input ().set ("type", "text").set ("name", "imagename").set ("size", "30").set ("value", "myImage.bin" ).set ("title", "name for uploaded FW image on SD Card").set ("style", "margin-bottom: 20px") ) ) << std::endl;
-        *out << cgicc::tr().add (cgicc::td (cgicc::input ().set ("type", "submit").set ("name", "uploadImage").set ("title", "upload selected FW image").set ("value", "Upload").set ("style", "margin-bottom: 20px") ) ) << std::endl;
+        *out << cgicc::tr().add (cgicc::td (cgicc::label ("Image to upload:  ") ) ).add (cgicc::td (cgicc::input ().set ("type", "file").set ("name", "Image").set ("size", "70") ) ) << std::endl;
+        *out <<   cgicc::tr().add (cgicc::td (cgicc::label ("Image Name:  ") ) ).add (cgicc::td (cgicc::input ().set ("type", "text").set ("name", "imagename").set ("size", "30").set ("value", "myImage.bin" ).set ("title", "name for uploaded FW image on SD Card") ) )  << std::endl;
 
         *out << "</table>" << std::endl;
         *out << cgicc::form() << std::endl;
