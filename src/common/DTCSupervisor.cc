@@ -341,6 +341,7 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
         if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
 
         //get the runnumber from the storage file
+        //TODO
         int cRunNumber = fRunNumber;
         std::string cRawOutputFile = fDataDirectory.toString() + getDataFileName (expandEnvironmentVariables ("${PH2ACF_ROOT}"), cRunNumber) ;
         fRunNumber = cRunNumber;
@@ -378,15 +379,15 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
         //try to initialize the HWDescription from the GUI's fXMLHWString
         //make sure that the address_table_string is expanded with the correct environment variable
 
-        //if we don't find an environment variable in the path to the address tabel, we prepend the Ph2ACF ROOT
-        if (fGUI->fHwXMLString.find ("file:://${") == std::string::npos)
+        //if we don't find an environment variable in the path to the address tabel, or the path does not point to Ph2_ACF root we prepend the Ph2ACF ROOT
+        if (fGUI->fHwXMLString.find ("file:://${") == std::string::npos || fGUI->fHwXMLString.find ("file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
         {
             std::string cCorrectPath = "file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") + "/";
             cleanupHTMLString (fGUI->fHwXMLString, "file://", cCorrectPath);
         }
 
         //the same goes for the CBC File Path
-        if (fGUI->fHwXMLString.find ("<CBC_Files path=\"${") == std::string::npos)
+        if (fGUI->fHwXMLString.find ("<CBC_Files path=\"${") == std::string::npos || fGUI->fHwXMLString.find ("<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
         {
             std::string cCorrectPath = "<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}");
             cleanupHTMLString (fGUI->fHwXMLString, "<CBC_Files path=\".", cCorrectPath);
@@ -627,7 +628,8 @@ bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
         delete fSystemController;
         fSystemController = nullptr;
         fACFLock.give();
-
+        fGUI->fHwXMLString.clear();
+        fGUI->fSettingsXMLString.clear();
     }
     catch (std::exception& e)
     {

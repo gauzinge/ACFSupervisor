@@ -25,8 +25,11 @@
 #include "log4cplus/loggingmacros.h"
 
 #include "DTCSupervisor/DTCStateMachine.h"
-//#include "DTCSupervisor/LogReader.h"
 #include "DTCSupervisor/FilePaths.h"
+
+//Ph2 ACF
+#include "System/SystemController.h"
+#include "HWInterface/FpgaConfig.h"
 
 #include "Utils.h"
 #include "XMLUtils.h"
@@ -37,7 +40,7 @@
 
 using FormData = std::map<std::string, std::string>;
 
-enum class Tab {CONFIG, MAIN, CALIBRATION, DAQ};
+enum class Tab {CONFIG, MAIN, CALIBRATION, FIRMWARE};
 
 namespace Ph2TkDAQ {
 
@@ -51,7 +54,7 @@ namespace Ph2TkDAQ {
         void MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         void ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         void CalibrationPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception) {}
-        void DAQPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception) {}
+        void FirmwarePage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
 
         ///HTML header & footer for Hyperdaq interface
         void createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab);
@@ -77,6 +80,9 @@ namespace Ph2TkDAQ {
         void fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         //self explanatory
         void toggleAutoRefresh (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        //functions to handle FW up and download
+        void loadImages (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        void handleImages (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
 
 
       public:
@@ -99,8 +105,8 @@ namespace Ph2TkDAQ {
                     this->CalibrationPage (in, out);
                     break;
 
-                case Tab::DAQ:
-                    this->DAQPage (in, out);
+                case Tab::FIRMWARE:
+                    this->FirmwarePage (in, out);
                     break;
             }
         }
@@ -162,6 +168,25 @@ namespace Ph2TkDAQ {
             std::cout << "state changed to: " << pState << std::endl;
         }
 
+        bool verifyImageName ( const std::string& strImage, const std::vector<std::string>& lstNames)
+        {
+            bool bFound = false;
+
+            for (int iName = 0; iName < lstNames.size(); iName++)
+            {
+                if (!strImage.compare (lstNames[iName]) )
+                {
+                    bFound = true;
+                    break;
+                }// else cout<<strImage<<"!="<<lstNames[iName]<<endl;
+            }
+
+            if (!bFound)
+                LOG4CPLUS_ERROR (fLogger, RED << "Error, this image name: " << strImage << " is not available on SD card" << RESET);
+
+            return bFound;
+        }
+
         //members
       private:
         xdaq::Application* fApp;
@@ -171,6 +196,8 @@ namespace Ph2TkDAQ {
         DTCStateMachine* fFSM;
         const std::vector<std::string> fProcedures{"Data Taking", "Calibration", "Pedestal&Noise", "Commissioning"};
         std::string fLogFilePath;
+        std::vector<std::string> fImageVector;
+        Ph2_System::SystemController* fSystemController;
         //LogReader fLogReader;
 
 

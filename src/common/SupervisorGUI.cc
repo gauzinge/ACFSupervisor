@@ -16,7 +16,8 @@ SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMa
     fHWFormString (""),
     fSettingsFormString (""),
     fHwXMLString (""),
-    fAutoRefresh (false)
+    fAutoRefresh (false),
+    fSystemController (nullptr)
 {
     for (auto cString : fProcedures)
         fProcedureMap[cString] = (cString == "Data Taking") ? true : false;
@@ -35,7 +36,7 @@ SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMa
     xgi::bind (this, &SupervisorGUI::MainPage, "MainPage");
     xgi::bind (this, &SupervisorGUI::ConfigPage, "ConfigPage");
     xgi::bind (this, &SupervisorGUI::CalibrationPage, "CalibrationPage");
-    xgi::bind (this, &SupervisorGUI::DAQPage, "DAQPage");
+    xgi::bind (this, &SupervisorGUI::FirmwarePage, "FirmwarePage");
 
     //helper methods for buttons etc
     xgi::bind (this, &SupervisorGUI::reloadHWFile, "reloadHWFile");
@@ -45,6 +46,8 @@ SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMa
     xgi::bind (this, &SupervisorGUI::handleHWFormData, "handleHWFormData");
     xgi::bind (this, &SupervisorGUI::lastPage, "lastPage");
     xgi::bind (this, &SupervisorGUI::toggleAutoRefresh, "toggleAutoRefresh");
+    xgi::bind (this, &SupervisorGUI::loadImages, "loadImages");
+    xgi::bind (this, &SupervisorGUI::handleImages, "handleImages");
 
     fCurrentPageView = Tab::MAIN;
     fLogFilePath = (expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/logs/DTCSuper.log") );
@@ -81,6 +84,7 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
     //define view and create header
     fCurrentPageView = Tab::CONFIG;
     this->createHtmlHeader (in, out, fCurrentPageView);
+    *out << cgicc::h3 ("DTC Supervisor HwDescription Page") << std::endl;
 
     char cState = fFSM->getCurrentState();
 
@@ -108,6 +112,78 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
 
     *out << fHWFormString << std::endl;
     *out << cgicc::form() << std::endl;
+    this->createHtmlFooter (in, out);
+
+    if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+}
+
+void SupervisorGUI::FirmwarePage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    std::ostringstream cLogStream;
+    //define view and create header
+    fCurrentPageView = Tab::FIRMWARE;
+    this->createHtmlHeader (in, out, fCurrentPageView);
+    *out << cgicc::h3 ("DTC Supervisor Firmware Page") << std::endl;
+
+    char cState = fFSM->getCurrentState();
+
+    this->displayLoadForm (in, out);
+
+    *out << cgicc::div().set ("style", "display:inline-block") << std::endl;
+
+    if (cState != 'I')
+    {
+        *out << cgicc::p (cgicc::span ("Firmware operations can only be done in Initial State!!").set ("style", "color:red; font-size: 20pt") ).set ("style", "margin-top: 20px") << std::endl;
+        *out << cgicc::p ().add (cgicc::span ("Current State: ").set ("style", "color:blue; font-size: 20pt") ).add (cgicc::span (fFSM->getStateName (cState) ).set ("style", "color:red; font-size: 20pt") ) << std::endl;
+    }
+
+    else
+    {
+        //display the form
+        *out << cgicc::legend ("Fw Settings") << cgicc::fieldset() << std::endl;
+        //the button / form for loading the stuff
+        *out << cgicc::form().set ("method", "POST").set ("action", fURN + "loadImages").set ("enctype", "multipart/form-data").add (cgicc::table().add (cgicc::tr().add (cgicc::td (cgicc::input ().set ("type", "submit").set ("title", "load list of FW images from FC7").set ("name", "listImages").set ("value", "List Images").set ("style", "margin-bottom: 20px") ) ).add (cgicc::td (cgicc::input ().set ("type", "submit").set ("title", "reboot the FC7").set ("name", "rebootBoard").set ("value", "Reboot Board").set ("style", "margin-bottom: 20px") ) ) ) ) << std::endl;
+        //the select node to select the image
+        *out << cgicc::form ().set ("method", "POST").set ("action", fURN + "handleImages").set ("enctype", "multipart/form-data") << std::endl;
+        *out << "<table>" << std::endl;
+        *out << cgicc::tr() << std::endl;
+        *out << cgicc::td() << cgicc::label ("Image List") << cgicc::select ().set ("name", "FW images").set ("style", "margin-bottom: 20px") << std::endl;
+
+        if (fImageVector.size() )
+        {
+            for (auto cImage : fImageVector)
+                *out << cgicc::option (cImage) << std::endl;
+        }
+
+        *out << cgicc::select() << cgicc::td() << std::endl;
+        *out << cgicc::tr() << std::endl;
+
+        *out << cgicc::tr() << std::endl;
+        //now put a couple of inputs(submit type there with the various actions)
+        *out << cgicc::td (cgicc::input ().set ("type", "submit").set ("name", "loadImage").set ("title", "configure FPGA with selected FW image").set ("value", "Load Image").set ("style", "margin-bottom: 20px") ) << std::endl;
+        *out << cgicc::td (cgicc::input ().set ("type", "submit").set ("name", "deleteImage").set ("title", "delete selected FW image").set ("value", "Delete Image").set ("style", "margin-bottom: 20px") ) << std::endl;
+        *out << cgicc::tr() << std::endl;
+
+        *out << cgicc::tr().add (cgicc::td().add (cgicc::label ("Path to Download:") ).add (cgicc::input ().set ("type", "text").set ("name", "pathdownload").set ("size", "70").set ("value", expandEnvironmentVariables (HOME) + "/myImage.bin" ).set ("title", "download selected FW image").set ("style", "margin-bottom: 20px") ) ) << std::endl;
+        *out << cgicc::tr().add (cgicc::td (cgicc::input ().set ("type", "submit").set ("name", "downloadImage").set ("title", "download selected FW image").set ("value", "Download").set ("style", "margin-bottom: 20px") ) ) << std::endl;
+
+        *out << cgicc::tr().add (cgicc::td().add (cgicc::label ("Image to upload:") ).add (cgicc::input ().set ("type", "file").set ("name", "Image").set ("size", "70").set ("style", "margin-bottom: 20px") ) ).add (cgicc::td().add (cgicc::label ("Image Name:") ).add (cgicc::input ().set ("type", "text").set ("name", "imagename").set ("size", "30").set ("value", "myImage.bin" ).set ("title", "name for uploaded FW image on SD Card").set ("style", "margin-bottom: 20px") ) ) << std::endl;
+        *out << cgicc::tr().add (cgicc::td (cgicc::input ().set ("type", "submit").set ("name", "uploadImage").set ("title", "upload selected FW image").set ("value", "Upload").set ("style", "margin-bottom: 20px") ) ) << std::endl;
+
+        *out << "</table>" << std::endl;
+        *out << cgicc::form() << std::endl;
+
+        *out << cgicc::fieldset() << std::endl;
+    }
+
+    *out << cgicc::div() << std::endl;
+
+
+    //first, we are messing with Firmware, so before we do anything, we should destroy the running configuration
+    //or maybe this should happen the very second I am actually taking action
+    //if (cState != 'I')
+    //fFSM->fireEvent ("Destroy");
+
     this->createHtmlFooter (in, out);
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
@@ -141,25 +217,27 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     switch (pTab)
     {
         case Tab::MAIN:
-            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button active") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button") ;
+            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button active") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") ;
             JSfile += "/html/formfields.js";
             cAutoRefreshString << "MainPage";
             break;
 
         case Tab::CONFIG:
-            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button active") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button");
+            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button active") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button");
             JSfile += "/html/HWForm.js";
             cAutoRefreshString << "ConfigPage";
             break;
 
         case Tab::CALIBRATION:
-            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button active") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button");
+            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button active") << cgicc::a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button");
+            JSfile += "/html/empty.js";
             cAutoRefreshString << "CalibrationPage";
             break;
 
-        case Tab::DAQ:
-            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button active");
-            cAutoRefreshString << "DAQPage";
+        case Tab::FIRMWARE:
+            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button active");
+            JSfile += "/html/empty.js";
+            cAutoRefreshString << "FirmwarePage";
             break;
     }
 
@@ -305,12 +383,13 @@ void SupervisorGUI::displayLoadForm (xgi::Input* in, xgi::Output* out)
     //*out << cgicc::div().set ("padding", "10px") << std::endl;
 
     //only allow changing the HW Description File in state initial
-    if (cState != 'E')
-        *out << cgicc::form().set ("padding", "10px").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on") << std::endl;
-    else
-        *out << cgicc::form().set ("padding", "10px").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on").set ("disabled", "disabled") << std::endl;
+    *out << cgicc::form().set ("padding", "10px").set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("autocomplete", "on") << std::endl;
 
-    *out << cgicc::tr().add (cgicc::td (cgicc::label ("Hw Description File Path:").set ("for", "HwDescriptionFile") ) ).add (cgicc::td (cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ) ) ).add (cgicc::td (cgicc::input().set ("type", "submit").set ("id", "hwForm_load_submit").set ("title", "change the Hw Description File").set ("value", "Reload") ) ) << std::endl;
+    if (cState == 'I')
+        *out << cgicc::tr().add (cgicc::td (cgicc::label ("Hw Description File Path:").set ("for", "HwDescriptionFile") ) ).add (cgicc::td (cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ) ) ).add (cgicc::td (cgicc::input().set ("type", "submit").set ("id", "hwForm_load_submit").set ("title", "change the Hw Description File").set ("value", "Reload") ) ) << std::endl;
+    else
+        *out << cgicc::tr().add (cgicc::td (cgicc::label ("Hw Description File Path:").set ("for", "HwDescriptionFile") ) ).add (cgicc::td (cgicc::input().set ("type", "text").set ("name", "HwDescriptionFile").set ("id", "HwDescriptionFile").set ("size", "70").set ("value", fHWDescriptionFile->toString() ).set ("disabled", "disabled")  ) ).add (cgicc::td (cgicc::input().set ("type", "submit").set ("id", "hwForm_load_submit").set ("title", "change the Hw Description File").set ("value", "Reload").set ("disabled", "disabled") ) ) << std::endl;
+
     *out << cgicc::form() << std::endl;
 }
 
@@ -577,7 +656,6 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
 {
     // stream for logger
     std::ostringstream cLogStream;
-    std::string cHWDescriptionFile;
 
     try
     {
@@ -692,6 +770,287 @@ void SupervisorGUI::handleHWFormData (xgi::Input* in, xgi::Output* out) throw (x
     *fHWFormData = XMLUtils::updateHTMLForm (this->fHWFormString, cHWFormPairs, cLogStream, true );
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+
+    this->lastPage (in, out);
+}
+
+void SupervisorGUI::loadImages (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    std::ostringstream cLogStream;
+
+    // get the form input
+    bool cList = false;
+    bool cReboot = false;
+
+    try
+    {
+        cgicc::Cgicc cgi (in);
+
+        for (auto cIt : *cgi)
+        {
+            if (cIt.getValue() != "")
+            {
+                if (cIt.getValue() == "List Images") cList = true;
+                else if (cIt.getValue() == "Reboot Board") cReboot = true;
+            }
+
+        }
+    }
+    catch (std::exception& e)
+    {
+        LOG4CPLUS_ERROR (fLogger, RED << e.what() << RESET );
+    }
+
+    char cState = fFSM->getCurrentState();
+
+    try
+    {
+        if (cState != 'I')
+        {
+            fFSM->fireEvent ("Destroy", fApp);
+            LOG4CPLUS_ERROR (fLogger, RED << "This should never happen!" << RESET);
+            this->wait_state_changed (cState);
+        }
+
+        if (fSystemController != nullptr) delete fSystemController;
+
+        fSystemController = new Ph2_System::SystemController();
+
+        if (this->fHwXMLString.empty() )
+        {
+            // we haven't created the xml string yet, this normally happens on configure
+            if ( fHWFormString.empty() )
+                this->loadHWFile();
+
+            //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
+            std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
+            this->fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
+        }
+
+        //if we don't find an environment variable in the path to the address tabel, or the path does not point to Ph2_ACF root we prepend the Ph2ACF ROOT
+        if (this->fHwXMLString.find ("file:://${") == std::string::npos || this->fHwXMLString.find ("file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
+        {
+            std::string cCorrectPath = "file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") + "/";
+            cleanupHTMLString (this->fHwXMLString, "file://", cCorrectPath);
+        }
+
+        //the same goes for the CBC File Path
+        if (this->fHwXMLString.find ("<CBC_Files path=\"${") == std::string::npos || this->fHwXMLString.find ("<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
+        {
+            std::string cCorrectPath = "<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}");
+            cleanupHTMLString (this->fHwXMLString, "<CBC_Files path=\".", cCorrectPath);
+        }
+
+        fSystemController->InitializeHw (this->fHwXMLString, cLogStream, false);
+        BeBoard* pBoard = fSystemController->fBoardVector.at (0);
+
+        if (cList)
+            fImageVector = fSystemController->fBeBoardInterface->getFpgaConfigList (pBoard);
+        else if (cReboot)
+            LOG4CPLUS_INFO (fLogger, GREEN << "Rebooting Board - this will cause a segfault and needs a restart of the application!" << RESET);
+
+        fSystemController->fBeBoardInterface->RebootBoard (pBoard);
+
+        fSystemController->Destroy();
+        delete fSystemController;
+        fSystemController = nullptr;
+
+        //since we are cleaning up behind us, we need to clear the HwXMLString
+        this->fHwXMLString.clear();
+    }
+    catch (const std::exception& e)
+    {
+        XCEPT_RAISE (xgi::exception::Exception, e.what() );
+    }
+
+    this->lastPage (in, out);
+}
+
+void SupervisorGUI::handleImages (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    std::ostringstream cLogStream;
+
+    // get the form input
+    bool cLoad = false;
+    bool cDelete = false;
+    bool cDownload = false;
+    bool cUpload = false;
+    std::string cDownloadPath = "";
+    std::string cImagePath = "";
+    std::string cImageName = "";
+    std::string cImage = "";
+
+    try
+    {
+        cgicc::Cgicc cgi (in);
+
+        for (auto cIt : *cgi)
+        {
+            std::cout << cIt.getName() << " " << cIt.getValue() << std::endl;
+
+            if (cIt.getValue() == "Load Image") cLoad = true;
+
+            if (cIt.getValue() == "Delete Image") cDelete = true;
+
+            if (cIt.getValue() == "Upload") cUpload = true;
+
+            if (cIt.getValue() == "Download") cDownload = true;
+        }
+
+        if (cLoad || cDelete || cDownload)
+        {
+            cgicc::form_iterator cIt = cgi.getElement ("FW Images");
+
+            if (!cIt->isEmpty() && cIt != (*cgi).end() )
+            {
+                cImage = cIt->getValue();
+                LOG4CPLUS_INFO (fLogger, GREEN << "Changing to Image " << cImage << " this will cause a segfault and needs a restart of the application!" << RESET);
+
+                if (!this->verifyImageName (cImage, fImageVector) )
+                {
+                    this->lastPage (in, out);
+                    LOG4CPLUS_ERROR (fLogger, RED << "The image is not on the SD card!" << RESET);
+                    return;
+                }
+            }
+        }
+
+        if (cDownload)
+        {
+            cgicc::form_iterator cIt = cgi.getElement ("pathdownload");
+
+            if (!cIt->isEmpty() && cIt != (*cgi).end() )
+                cDownloadPath = cIt->getValue();
+            else
+            {
+                this->lastPage (in, out);
+                LOG4CPLUS_ERROR (fLogger, RED << "The path to download the Image to has not been specified!" << RESET);
+                return;
+            }
+        }
+
+        if (cUpload)
+        {
+            cgicc::form_iterator cIt = cgi.getElement ("imagename");
+
+            if (!cIt->isEmpty() && cIt != (*cgi).end() )
+                cImageName = cIt->getValue();
+            else
+            {
+                this->lastPage (in, out);
+                LOG4CPLUS_ERROR (fLogger, RED << "The Image name has not been specified!" << RESET);
+                return;
+            }
+
+            cgicc::const_file_iterator cFile = cgi.getFile ("Image");
+
+            if (cFile != cgi.getFiles().end() )
+            {
+                std::ofstream cTmp ("/tmp/myImage.bin");
+
+                cFile->writeToStream (cTmp);
+                cImagePath = "/tmp/myImage.bin";
+            }
+            else
+            {
+                this->lastPage (in, out);
+                LOG4CPLUS_ERROR (fLogger, RED << "No file Uploaded!" << RESET);
+                return;
+            }
+        }
+
+        std::cout << cUpload << " " << cDownload << " " << cLoad << " " << cDelete << " " << cImage << " " << std::endl;
+    }
+    catch (std::exception& e)
+    {
+        LOG4CPLUS_ERROR (fLogger, RED << e.what() << RESET );
+    }
+
+    char cState = fFSM->getCurrentState();
+
+    try
+    {
+        if (cState != 'I')
+        {
+            fFSM->fireEvent ("Destroy", fApp);
+            LOG4CPLUS_ERROR (fLogger, RED << "This should never happen!" << RESET);
+            this->wait_state_changed (cState);
+        }
+
+        if (fSystemController != nullptr) delete fSystemController;
+
+        fSystemController = new Ph2_System::SystemController();
+
+        if (this->fHwXMLString.empty() )
+        {
+            // we haven't created the xml string yet, this normally happens on configure
+            if ( fHWFormString.empty() )
+                this->loadHWFile();
+
+            //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
+            std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
+            this->fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
+        }
+
+        //if we don't find an environment variable in the path to the address tabel, or the path does not point to Ph2_ACF root we prepend the Ph2ACF ROOT
+        if (this->fHwXMLString.find ("file:://${") == std::string::npos || this->fHwXMLString.find ("file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
+        {
+            std::string cCorrectPath = "file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") + "/";
+            cleanupHTMLString (this->fHwXMLString, "file://", cCorrectPath);
+        }
+
+        //the same goes for the CBC File Path
+        if (this->fHwXMLString.find ("<CBC_Files path=\"${") == std::string::npos || this->fHwXMLString.find ("<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
+        {
+            std::string cCorrectPath = "<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}");
+            cleanupHTMLString (this->fHwXMLString, "<CBC_Files path=\".", cCorrectPath);
+        }
+
+        fSystemController->InitializeHw (this->fHwXMLString, cLogStream, false);
+        BeBoard* pBoard = fSystemController->fBoardVector.at (0);
+        std::cout << "I get here!" << std::endl;
+
+        if (cLoad)
+        {
+            fSystemController->fBeBoardInterface->JumpToFpgaConfig (pBoard, cImage);
+            exit (0);
+        }
+        else if (cDelete) fSystemController->fBeBoardInterface->DeleteFpgaConfig (pBoard, cImage);
+        else if (cDownload) fSystemController->fBeBoardInterface->DownloadFpgaConfig (pBoard, cImage, cDownloadPath );
+        else if (cUpload)
+        {
+            fSystemController->fBeBoardInterface->FlashProm (pBoard, cImageName, cImagePath.c_str() );
+            uint32_t progress;
+            bool cDone = false;
+
+            while (!cDone)
+            {
+                progress = fSystemController->fBeBoardInterface->getConfiguringFpga (pBoard)->getProgressValue();
+
+                if (progress == 100)
+                {
+                    cDone = true;
+                    LOG4CPLUS_INFO (fLogger, BOLDBLUE << "100\% Done" << RESET);
+                }
+                else
+                {
+                    LOG4CPLUS_INFO (fLogger, BLUE << "\% " << fSystemController->fBeBoardInterface->getConfiguringFpga (pBoard)->getProgressString() << " done\r" << RESET);
+                    sleep (1);
+                }
+            }
+        }
+
+        fSystemController->Destroy();
+        delete fSystemController;
+        fSystemController = nullptr;
+
+        //since we are cleaning up behind us, we need to clear the HwXMLString
+        this->fHwXMLString.clear();
+    }
+    catch (const std::exception& e)
+    {
+        XCEPT_RAISE (xgi::exception::Exception, e.what() );
+    }
 
     this->lastPage (in, out);
 }
