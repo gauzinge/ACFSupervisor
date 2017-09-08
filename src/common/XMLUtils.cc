@@ -90,10 +90,27 @@ const std::map<std::string, std::string> XMLUtils::updateHTMLForm (std::string& 
             bool cIsChanged;
 
             if (elements.size() == 0)
-                //this can only ever be the case for setting nodes, Global CbcRegisters, Registers and potentially condition data
-                //so technically I could strip the name, check if I find something and then add a sibling
-                pStream << RED << "The element " << cPair->first << " was not found in the HTML string and needs to be added " << RESET << std::endl;
+            {
 
+                if (cPair->first.find ("setting_") != std::string::npos && cPair->first.find ("_value") == std::string::npos)
+                {
+                    //we found a field that represents a new setting, in this case we need to create new nodes
+                    createNewSettingNode (cPair, root, pStream);
+                    pStream << BOLDYELLOW << "A new setting " << BOLDBLUE << cPair->second << BOLDYELLOW << " was added - adding to the xml buffer!" << RESET << std::endl;
+                    continue;
+                }
+                else if (cPair->first.find ("ConditionData_") != std::string::npos && cPair->first.size() < 17 )
+                {
+                    //we found a new condition data field
+                    createNewConditionDataNode (cPair, root, pStream);
+                    pStream << BOLDYELLOW << "A new Condition Data Field " << BOLDBLUE << cPair->second << BOLDYELLOW << " was added - adding to the xml buffer!" << RESET << std::endl;
+                    continue;
+                }
+                else
+                    pStream << RED << "The element " << cPair->first << " was not found in the HTML string and needs to be added " << RESET << std::endl;
+            }
+
+            //this else needs to go once I have the node copied
             for (auto element : elements)
             {
                 std::string cOldValue = "";
@@ -125,7 +142,6 @@ const std::map<std::string, std::string> XMLUtils::updateHTMLForm (std::string& 
                 cPair++;
             }
         }
-
 
         //proper xhtml output
         xmlChar* buff;
@@ -266,6 +282,212 @@ bool XMLUtils::handle_node (xmlpp::Node* node, std::string& pOldValue, const std
         cDifferent = handle_input_node (node, pOldValue, pValue);
 
     return cDifferent;
+}
+
+void XMLUtils::createNewSettingNode (std::vector<std::pair<std::string, std::string>>::iterator cPair, xmlpp::Element* pRoot, std::ostringstream& pStream)
+{
+    //calculate the index of the new node
+    size_t cPos = cPair->first.find_last_of ("_");
+    std::string cNewSearchPath = cPair->first.substr (0, cPos + 1 );
+    int cIndex = atoi (cPair->first.substr (cPos + 1).c_str() );
+
+    if (cIndex > 0)
+    {
+        //create a new xpath expression to find the last sibling if it exists (the index is greater than 0)
+        std::stringstream xpath;
+        xpath << "//*[@name=\"" << cNewSearchPath << cIndex - 1 << "\"]";
+        auto elements = pRoot->find (xpath.str() );
+
+        if (!elements.size() )
+        {
+            //no siblings found
+            pStream << RED << "Unfortunately there are no siblings for " << cPair->first << "  in the HTML string and thus the new member cant be added! " << RESET << std::endl;
+            return;
+        }
+        else
+        {
+            xmlpp::Node* cParent = elements.at (0);
+
+            for (int i = 0; i < 3; i++) // to get to the <table> tag containing the settings
+                cParent = cParent->get_parent();
+
+            xmlpp::Node* cNewRow = cParent->add_child ("tr");
+            xmlpp::Node* cNewCell = cNewRow->add_child ("td");
+            cNewCell = cNewCell->add_child ("input");
+            xmlpp::Element* cElement = dynamic_cast<xmlpp::Element*> (cNewCell);
+            cElement->set_attribute ("type", "text");
+            cElement->set_attribute ("name", cPair->first);
+            cElement->set_attribute ("value", cPair->second);
+            cElement->set_attribute ("size", "30");
+            cNewCell = cNewRow->add_child ("td");
+            cNewCell = cNewCell->add_child ("input");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewCell);
+            cElement->set_attribute ("type", "text");
+            cElement->set_attribute ("name", "setting_value_" + std::to_string (cIndex) );
+            cElement->set_attribute ("value", "");
+            cElement->set_attribute ("size", "10");
+        }
+    }
+    else
+        pStream << RED << "Unfortunately there are no siblings for " << cPair->first << "  in the HTML string and thus the new member cant be added! " << RESET << std::endl;
+
+}
+
+void XMLUtils::createNewConditionDataNode (std::vector<std::pair<std::string, std::string>>::iterator cPair, xmlpp::Element* pRoot, std::ostringstream& pStream)
+{
+    //calculate the index of the new node
+    size_t cPos = cPair->first.find_last_of ("_");
+    std::string cNewSearchPath = cPair->first.substr (0, cPos + 1 );
+    int cIndex = atoi (cPair->first.substr (cPos + 1).c_str() );
+
+    //has to be greater than 1 for at least one condition data to exist
+    if (cIndex > 1)
+    {
+
+        //create a new xpath expression to find the last sibling if it exists (the index is greater than 0)
+        std::stringstream xpath;
+        xpath << "//*[@name=\"" << cNewSearchPath << cIndex - 1 << "\"]";
+        auto elements = pRoot->find (xpath.str() );
+
+        if (!elements.size() )
+        {
+            //no siblings found
+            pStream << RED << "Unfortunately there are no siblings for " << cPair->first << "  in the HTML string and thus the new member cant be added! " << RESET << std::endl;
+            return;
+        }
+        else
+        {
+            //success, let's get parsing
+            xmlpp::Node* cParent = elements.at (0);
+
+            for (int i = 0; i < 2; i++) // to get to the <ul> tag containing the condition data
+                cParent = cParent->get_parent();
+
+            xmlpp::Node* cNewli = cParent->add_child ("li");
+            xmlpp::Element* cElement = dynamic_cast<xmlpp::Element*> (cNewli);
+            cElement->add_child_text ("Type:  ");
+            xmlpp::Node* cNewselect = cNewli->add_child ("select");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewselect);
+            cElement->set_attribute ("name", cPair->first);
+            cElement->set_attribute ("id", "conddata_" + std::to_string (cIndex) );
+            cElement->set_attribute ("onchange", "DisplayFields(this.value, " + std::to_string (cIndex) + ");");
+            xmlpp::Node* cNewOption = cNewselect->add_child ("option");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewOption);
+            cElement->set_attribute ("name", cPair->second);
+            //set the text node here
+            cElement->add_child_text (cPair->second);
+            //now add the default ones
+            cNewOption = cNewselect->add_child ("option");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewOption);
+            cElement->set_attribute ("name", "I2C");
+            cElement->add_child_text ("I2C");
+            cNewOption = cNewselect->add_child ("option");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewOption);
+            cElement->set_attribute ("name", "User");
+            cElement->add_child_text ("User");
+            cNewOption = cNewselect->add_child ("option");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewOption);
+            cElement->set_attribute ("name", "HV");
+            cElement->add_child_text ("HV");
+            cNewOption = cNewselect->add_child ("option");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewOption);
+            cElement->set_attribute ("name", "TDC");
+            cElement->add_child_text ("TDC");
+
+            //now the label for the input for the register
+            xmlpp::Node* cNewLabel = cNewli->add_child ("label");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewLabel);
+            cElement->set_attribute ("for", "conddata_Register_" + std::to_string (cIndex) );
+            cElement->set_attribute ("id", "conddata_RegisterLabel_" + std::to_string (cIndex) );
+            cElement->set_attribute ("style", "display:none");
+            cElement->add_child_text ("Register:");
+            xmlpp::Node* cNewInput = cNewli->add_child ("input");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewInput);
+            cElement->set_attribute ("type", "text");
+            cElement->set_attribute ("name", "ConditionData_Register_" + std::to_string (cIndex) );
+            cElement->set_attribute ("id", "conddata_Register_" + std::to_string (cIndex) );
+            cElement->set_attribute ("value", "");
+            cElement->set_attribute ("size", "10");
+            cElement->set_attribute ("style", "display:none");
+            //now the UID
+            cNewLabel = cNewli->add_child ("label");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewLabel);
+            cElement->set_attribute ("for", "conddata_UID_" + std::to_string (cIndex) );
+            cElement->set_attribute ("id", "conddata_UIDLabel_" + std::to_string (cIndex) );
+            cElement->set_attribute ("style", "display:none");
+            cElement->add_child_text ("UID:");
+            cNewInput = cNewli->add_child ("input");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewInput);
+            cElement->set_attribute ("type", "text");
+            cElement->set_attribute ("name", "ConditionData_UID_" + std::to_string (cIndex) );
+            cElement->set_attribute ("id", "conddata_UID_" + std::to_string (cIndex) );
+            cElement->set_attribute ("value", "");
+            cElement->set_attribute ("size", "5");
+            cElement->set_attribute ("style", "display:none");
+            //now the FeId
+            cNewLabel = cNewli->add_child ("label");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewLabel);
+            cElement->set_attribute ("for", "conddata_FeId_" + std::to_string (cIndex) );
+            cElement->set_attribute ("id", "conddata_FeIdLabel_" + std::to_string (cIndex) );
+            cElement->set_attribute ("style", "display:none");
+            cElement->add_child_text ("FeId:");
+            cNewInput = cNewli->add_child ("input");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewInput);
+            cElement->set_attribute ("type", "text");
+            cElement->set_attribute ("name", "ConditionData_FeId_" + std::to_string (cIndex) );
+            cElement->set_attribute ("id", "conddata_FeId_" + std::to_string (cIndex) );
+            cElement->set_attribute ("value", "");
+            cElement->set_attribute ("size", "5");
+            cElement->set_attribute ("style", "display:none");
+            //now the FeId
+            cNewLabel = cNewli->add_child ("label");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewLabel);
+            cElement->set_attribute ("for", "conddata_CbcId_" + std::to_string (cIndex) );
+            cElement->set_attribute ("id", "conddata_CbcIdLabel_" + std::to_string (cIndex) );
+            cElement->set_attribute ("style", "display:none");
+            cElement->add_child_text ("CbcId:");
+            cNewInput = cNewli->add_child ("input");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewInput);
+            cElement->set_attribute ("type", "text");
+            cElement->set_attribute ("name", "ConditionData_CbcId_" + std::to_string (cIndex) );
+            cElement->set_attribute ("id", "conddata_CbcId_" + std::to_string (cIndex) );
+            cElement->set_attribute ("value", "");
+            cElement->set_attribute ("size", "5");
+            cElement->set_attribute ("style", "display:none");
+            //now the Sensor
+            cNewLabel = cNewli->add_child ("label");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewLabel);
+            cElement->set_attribute ("for", "conddata_Sensor_" + std::to_string (cIndex) );
+            cElement->set_attribute ("id", "conddata_SensorLabel_" + std::to_string (cIndex) );
+            cElement->set_attribute ("style", "display:none");
+            cElement->add_child_text ("Sensor:");
+            cNewInput = cNewli->add_child ("input");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewInput);
+            cElement->set_attribute ("type", "text");
+            cElement->set_attribute ("name", "ConditionData_Sensor_" + std::to_string (cIndex) );
+            cElement->set_attribute ("id", "conddata_Sensor_" + std::to_string (cIndex) );
+            cElement->set_attribute ("value", "");
+            cElement->set_attribute ("size", "5");
+            cElement->set_attribute ("style", "display:none");
+            cNewLabel = cNewli->add_child ("label");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewLabel);
+            cElement->set_attribute ("for", "conddata_Value_" + std::to_string (cIndex) );
+            cElement->set_attribute ("id", "conddata_ValueLabel_" + std::to_string (cIndex) );
+            cElement->set_attribute ("style", "display:none");
+            cElement->add_child_text ("Value:");
+            cNewInput = cNewli->add_child ("input");
+            cElement = dynamic_cast<xmlpp::Element*> (cNewInput);
+            cElement->set_attribute ("type", "text");
+            cElement->set_attribute ("name", "ConditionData_Value_" + std::to_string (cIndex) );
+            cElement->set_attribute ("id", "conddata_Value_" + std::to_string (cIndex) );
+            cElement->set_attribute ("value", "");
+            cElement->set_attribute ("size", "5");
+            cElement->set_attribute ("style", "display:none");
+
+        }
+    }
+    else
+        pStream << RED << "Unfortunately there are no siblings for " << cPair->first << "  in the HTML string and thus the new member cant be added! " << RESET << std::endl;
 }
 
 void XMLUtils::print_indentation (unsigned int indentation)

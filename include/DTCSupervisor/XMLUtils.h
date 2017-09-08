@@ -38,6 +38,8 @@ namespace Ph2TkDAQ {
         static bool handle_node (xmlpp::Node* node, std::string& pOldValue, const std::string& pValue);
         static bool handle_select_node (xmlpp::Node* node, std::string& pOldValue, const std::string& pValue);
         static bool handle_input_node (xmlpp::Node* node, std::string& pOldValue, const std::string& pValue);
+        static void createNewSettingNode (std::vector<std::pair<std::string, std::string>>::iterator cPair, xmlpp::Element* pRoot, std::ostringstream& pStream);
+        static void createNewConditionDataNode (std::vector<std::pair<std::string, std::string>>::iterator cPair, xmlpp::Element* pRoot, std::ostringstream& pStream);
 
         static void print_indentation (unsigned int indentation);
         static void print_node (const xmlpp::Node* node, unsigned int indentation = 0);
