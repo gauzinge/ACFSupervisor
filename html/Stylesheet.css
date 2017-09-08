@@ -90,7 +90,7 @@ input[type=button] {
 .tab {
     position: fixed;
     left: 0;
-    top: 9%;
+    top: 72px;
     padding-left: 13%;
     height: 40px;
     width: 100%;
@@ -127,34 +127,54 @@ input[type=button] {
     background-color: #ccc;
 }
 
+.tab a.refresh_button {
+    height: 100%;
+    background-color: #1E90FF;
+    vertical-align: middle;
+    display: table-cell;
+    height: 100%;
+    transition: 0.3s;
+    font-size: 14px;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+.tab a.refresh_button_active {
+    height: 100%;
+    background-color: #3CB371;
+    vertical-align: middle;
+    display: table-cell;
+    height: 100%;
+    transition: 0.3s;
+    font-size: 14px;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
 /*main viewport under tab bar*/
 .main {
     position: fixed;
-    /*float: bottom;*/
-    /*box-sizing: padding-box;*/
-    padding-top: 1.5%;
-    padding-bottom: 135px;
-    height: 100%;
-    width: 100%;
     left: 0;
-    top: 11%;
-    overflow: scroll;
+    top: 112px;
+    height: calc(100% - 162px);
+    width: 100%;
+    overflow: auto;
     background-color: inherit;
 }
 
 /*content of page*/
 .content {
-    /*font-size: 15pt;*/
-    float: right;
-    float: top;
+    display: -webkit-flex;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    top: 0;
+    right: 0;
+    bottom: 50px;
     height: 100%;
     width: 87%;
-    /*z-index: 1;*/
-    right: 0;
-    padding-top: 3%;
-    padding-left: 1.5%;
-    border: 1px solid #ccc;
-    background-color: #e1e1e1;
+    padding-top: 20px;
+    padding-left: 20px;
+    border: none solid #ccc;
     overflow-y: auto;
     background-color: inherit;
 }
@@ -179,54 +199,35 @@ input[type=button] {
 }
 
 .content div.separator {
-    /*resize: both;*/
-    /*position: absolute;*/
+    position: relative;
+    left: 0;
     margin-top: 10px;
     margin-bottom: 10px;
-    left: 13%;
     width: 100%;
     height: 5px;
-    /*bottom: 0;*/
-    /*float: bottom;*/
-    /*padding: 10px;*/
     z-index: 2;
     overflow-y: none;
     background-color: #aaa;
-    /*margin-bottom: 42%;*/
 }
 .content div.log {
-    /*position: absolute;*/
+    -webkit-flex: 1;
+    flex: 1;
     left: 0;
+    right: 0;
     width: 100%;
-    /*bottom: 0;*/
-    float: bottom;
-    height: 30%;
-    padding: 10px;
-    z-index: 99;
+    height: 10%;
+    padding-left: 20px;
     overflow-y: scroll;
     display: inline-block;
-    /*margin-bottom: 145px;*/
 }
 
 .content div.legend {
-    /*position: absolute;*/
     left: 0;
     width: 100%;
-    /*bottom: 0;*/
-    /*float: bottom;*/
-    padding: 10px;
+    padding-left: 10px;
     z-index: 2;
     overflow-y: none;
     display: inline-block;
-    /*margin-bottom: 42%;*/
-}
-
-{
-  border:none solid #999999;
-  width:100%;
-  /*margin:5px;*/
-  padding:10px;
-  overflow: scroll;
 }
 
 /*Sidebar with FSM diagram*/

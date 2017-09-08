@@ -124,6 +124,15 @@ function DisplayFields(val, position){
     }
 }
 
+function setEventType() {
+    //<!--handle the event type input-->
+    var boardtype = document.getElementById('boardType');
+    if(boardtype != null) {
+       var boardtypenode = boardtype.options[boardtype.selectedIndex].value;
+       SetEventType(boardtypenode);
+    }
+}
+
 function DisplayFieldsOnload(){
     <!--handle the condition data fields-->
     var RegEx = /^conddata_\d$/;
@@ -142,12 +151,6 @@ function DisplayFieldsOnload(){
             DisplayFields(selected_node, i+1);
         }
     }
-    //<!--handle the event type input-->
-    var boardtype = document.getElementById('boardType');
-    if(boardtype != null) {
-       var boardtypenode = boardtype.options[boardtype.selectedIndex].value;
-       SetEventType(boardtypenode);
-    }
 }
         
 function addConditionData(ul_name) {
@@ -159,4 +162,20 @@ function addConditionData(ul_name) {
 ul.appendChild(newEntry);
 }
 
-window.onload = DisplayFieldsOnload();
+function addLoadEvent(func) { 
+  var oldonload = window.onload; 
+  if (typeof window.onload != 'function') { 
+    window.onload = func; 
+  } else { 
+    window.onload = function() { 
+      if (oldonload) { 
+        oldonload(); 
+      } 
+      func(); 
+    } 
+  } 
+} 
+
+addLoadEvent(setEventType); 
+addLoadEvent(DisplayFieldsOnload); 
+//window.onload = DisplayFieldsOnload();

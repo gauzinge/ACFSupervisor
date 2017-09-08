@@ -75,6 +75,8 @@ namespace Ph2TkDAQ {
         void handleHWFormData (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         //GUI handler for FSM transitions
         void fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        //self explanatory
+        void toggleAutoRefresh (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
 
 
       public:

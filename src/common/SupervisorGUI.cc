@@ -44,12 +44,20 @@ SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMa
     xgi::bind (this, &SupervisorGUI::processPh2_ACFForm, "processPh2_ACFForm");
     xgi::bind (this, &SupervisorGUI::handleHWFormData, "handleHWFormData");
     xgi::bind (this, &SupervisorGUI::lastPage, "lastPage");
+    xgi::bind (this, &SupervisorGUI::toggleAutoRefresh, "toggleAutoRefresh");
 
     fCurrentPageView = Tab::MAIN;
     fLogFilePath = (expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/logs/DTCSuper.log") );
 
     if (remove (fLogFilePath.c_str() ) != 0)
         LOG4CPLUS_INFO (fLogger, BOLDRED << "Error removing Log file from previous Run: " << fLogFilePath << RESET);
+}
+void SupervisorGUI::toggleAutoRefresh (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    if (fAutoRefresh) fAutoRefresh = false;
+    else fAutoRefresh = true;
+
+    this->lastPage (in, out);
 }
 
 void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
@@ -84,10 +92,6 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
     // Display the HwDescription HTML form
     std::string url = fURN + "handleHWFormData";
 
-    std::string JSfile = expandEnvironmentVariables (HOME);
-    JSfile += "/html/HWForm.js";
-
-    *out << cgicc::script (parseExternalResource (JSfile, cLogStream) ).set ("type", "text/javascript") << std::endl;
     *out << cgicc::form().set ("method", "POST").set ("action", url).set ("enctype", "multipart/form-data").set ("onload", "DisplayFieldsOnload();") << std::endl;
 
     if (cState != 'E')
@@ -119,18 +123,17 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
 
     //Style this thing
     *out << cgicc::style (parseExternalResource (expandEnvironmentVariables (CSSSTYLESHEET), cLogStream) ) << std::endl;
+    // some javascript
+    std::string JSfile = expandEnvironmentVariables (HOME);
 
-    int cRefreshDelay = 1;
     bool cAutoRefresh = false;
+    int cRefreshDelay = 3;
 
-    //if (cState == 'i' || cState == 'c' || cState == 'e' || cState == 'h' || cState == 's' || cState == 'x' || cState == 'p' || cState == 'r' || fAutoRefresh)
-    //cAutoRefresh = true;
-
-    if (cState == 'E')
-    {
-        cRefreshDelay = 3;
+    if (cState == 'E' || fAutoRefresh)
         cAutoRefresh = true;
-    }
+
+    std::ostringstream cAutoRefreshString;
+    cAutoRefreshString << cRefreshDelay << "; " << fURN;
 
     std::ostringstream cTabBarString;
 
@@ -138,38 +141,41 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     switch (pTab)
     {
         case Tab::MAIN:
-            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button active") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button") << std::endl;
-
-            if (cAutoRefresh)
-                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "MainPage\"/>" << std::endl;
-
+            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button active") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button") ;
+            JSfile += "/html/formfields.js";
+            cAutoRefreshString << "MainPage";
             break;
 
         case Tab::CONFIG:
-            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button active") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button") << std::endl;
-
-            if (cAutoRefresh)
-                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "ConfigPage\"/>" << std::endl;
-
+            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button active") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button");
+            JSfile += "/html/HWForm.js";
+            cAutoRefreshString << "ConfigPage";
             break;
 
         case Tab::CALIBRATION:
-            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button active") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button") << std::endl;
-
-            if (cAutoRefresh)
-                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "CalibrationPage\"/>" << std::endl;
-
+            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button active") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button");
+            cAutoRefreshString << "CalibrationPage";
             break;
 
         case Tab::DAQ:
-            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button active") << std::endl;
-
-            if (cAutoRefresh)
-                *out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "DAQPage\"/>" << std::endl;
-
+            cTabBarString << cgicc::a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << cgicc::a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << cgicc::a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << cgicc::a ("DQM Page").set ("href", fURN + "DQMPage").set ("class", "button active");
+            cAutoRefreshString << "DAQPage";
             break;
     }
 
+    //if(!cAutoRefresh)
+
+    if (cAutoRefresh)
+    {
+        *out << cgicc::meta().set ("HTTP-EQUIV", "Refresh").set ("CONTENT", cAutoRefreshString.str() ) << std::endl;
+        cTabBarString << cgicc::a ("AutoRefresh Off").set ("href", fURN + "toggleAutoRefresh" ).set ("class", "refresh_button_active") << std::endl;
+    }
+    else
+        cTabBarString << cgicc::a ("AutoRefresh On").set ("href", fURN + "toggleAutoRefresh" ).set ("class", "refresh_button") << std::endl;
+
+    //*out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "MainPage\"/>" << std::endl;
+
+    *out << cgicc::script (parseExternalResource (JSfile, cLogStream) ).set ("type", "text/javascript") << std::endl;
     *out << cgicc::div (cgicc::h1 (cgicc::a ("DTC Supervisor").set ("href", fURN + "MainPage") ) ).set ("class", "title") << std::endl;
     *out << cgicc::div (cTabBarString.str() ).set ("class", "tab") << std::endl;
     *out << "<div class=\"main\">" << std::endl;
@@ -425,11 +431,6 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     //get FSM state
     char cState = fFSM->getCurrentState();
     std::ostringstream cLogStream;
-
-    //some useful javascript
-    std::string JSfile = expandEnvironmentVariables (HOME);
-    JSfile += "/html/formfields.js";
-    *out << cgicc::script (parseExternalResource (JSfile, cLogStream) ).set ("type", "text/javascript") << std::endl;
 
     std::string url = fURN + "processPh2_ACFForm";
 
