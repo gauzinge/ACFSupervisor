@@ -218,5 +218,24 @@ namespace Ph2TkDAQ {
         return val;
     }
 
+    inline void complete_file_paths ( std:: string& pXMLString )
+    {
+        //try to initialize the HWDescription from the GUI's fXMLHWString
+        //make sure that the address_table_string is expanded with the correct environment variable
+        //if we don't find an environment variable in the path to the address tabel, or the path does not point to Ph2_ACF root we prepend the Ph2ACF ROOT
+        if (pXMLString.find ("file:://${") == std::string::npos || pXMLString.find ("file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
+        {
+            std::string cCorrectPath = "file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") + "/";
+            cleanupHTMLString (pXMLString, "file://", cCorrectPath);
+        }
+
+        //the same goes for the CBC File Path
+        if (pXMLString.find ("<CBC_Files path=\"${") == std::string::npos || pXMLString.find ("<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
+        {
+            std::string cCorrectPath = "<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}");
+            cleanupHTMLString (pXMLString, "<CBC_Files path=\".", cCorrectPath);
+        }
+    }
+
 }
 #endif

@@ -834,19 +834,8 @@ void SupervisorGUI::loadImages (xgi::Input* in, xgi::Output* out) throw (xgi::ex
             this->fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
         }
 
-        //if we don't find an environment variable in the path to the address tabel, or the path does not point to Ph2_ACF root we prepend the Ph2ACF ROOT
-        if (this->fHwXMLString.find ("file:://${") == std::string::npos || this->fHwXMLString.find ("file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
-        {
-            std::string cCorrectPath = "file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") + "/";
-            cleanupHTMLString (this->fHwXMLString, "file://", cCorrectPath);
-        }
-
-        //the same goes for the CBC File Path
-        if (this->fHwXMLString.find ("<CBC_Files path=\"${") == std::string::npos || this->fHwXMLString.find ("<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
-        {
-            std::string cCorrectPath = "<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}");
-            cleanupHTMLString (this->fHwXMLString, "<CBC_Files path=\".", cCorrectPath);
-        }
+        //expand all file paths from HW Description xml string
+        complete_file_paths (fGUI->fHwXMLString);
 
         fSystemController->InitializeHw (this->fHwXMLString, cLogStream, false);
         BeBoard* pBoard = fSystemController->fBoardVector.at (0);
@@ -966,7 +955,6 @@ void SupervisorGUI::handleImages (xgi::Input* in, xgi::Output* out) throw (xgi::
             }
         }
 
-        std::cout << cUpload << " " << cDownload << " " << cLoad << " " << cDelete << " " << cImage << " " << std::endl;
     }
     catch (std::exception& e)
     {
@@ -999,19 +987,8 @@ void SupervisorGUI::handleImages (xgi::Input* in, xgi::Output* out) throw (xgi::
             this->fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
         }
 
-        //if we don't find an environment variable in the path to the address tabel, or the path does not point to Ph2_ACF root we prepend the Ph2ACF ROOT
-        if (this->fHwXMLString.find ("file:://${") == std::string::npos || this->fHwXMLString.find ("file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
-        {
-            std::string cCorrectPath = "file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") + "/";
-            cleanupHTMLString (this->fHwXMLString, "file://", cCorrectPath);
-        }
-
-        //the same goes for the CBC File Path
-        if (this->fHwXMLString.find ("<CBC_Files path=\"${") == std::string::npos || this->fHwXMLString.find ("<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
-        {
-            std::string cCorrectPath = "<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}");
-            cleanupHTMLString (this->fHwXMLString, "<CBC_Files path=\".", cCorrectPath);
-        }
+        //expand all file paths from HW Description xml string
+        complete_file_paths (fGUI->fHwXMLString);
 
         fSystemController->InitializeHw (this->fHwXMLString, cLogStream, false);
         BeBoard* pBoard = fSystemController->fBoardVector.at (0);

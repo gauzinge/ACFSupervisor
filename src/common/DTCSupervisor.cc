@@ -376,22 +376,8 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
             LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving daq data to: " << BOLDBLUE << fSLinkFileHandler->getFilename() << RESET);
         }
 
-        //try to initialize the HWDescription from the GUI's fXMLHWString
-        //make sure that the address_table_string is expanded with the correct environment variable
-
-        //if we don't find an environment variable in the path to the address tabel, or the path does not point to Ph2_ACF root we prepend the Ph2ACF ROOT
-        if (fGUI->fHwXMLString.find ("file:://${") == std::string::npos || fGUI->fHwXMLString.find ("file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
-        {
-            std::string cCorrectPath = "file://" + expandEnvironmentVariables ("${PH2ACF_ROOT}") + "/";
-            cleanupHTMLString (fGUI->fHwXMLString, "file://", cCorrectPath);
-        }
-
-        //the same goes for the CBC File Path
-        if (fGUI->fHwXMLString.find ("<CBC_Files path=\"${") == std::string::npos || fGUI->fHwXMLString.find ("<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}") ) == std::string::npos)
-        {
-            std::string cCorrectPath = "<CBC_Files path=\"" + expandEnvironmentVariables ("${PH2ACF_ROOT}");
-            cleanupHTMLString (fGUI->fHwXMLString, "<CBC_Files path=\".", cCorrectPath);
-        }
+        //expand all file paths from HW Description xml string
+        complete_file_paths (fGUI->fHwXMLString);
 
         //this is a temporary solution to keep the logs - in fact I should tail the logfile that I have to configure properly before
         std::ostringstream cPh2LogStream;
