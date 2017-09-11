@@ -97,6 +97,7 @@ namespace Ph2TkDAQ {
         Ph2_System::SystemController* fSystemController;
         //File Handler for SLINK Data - the one for raw data is part of SystemController
         FileHandler* fSLinkFileHandler;
+        bool fGetRunnumberFromFile;
 
 
       public:

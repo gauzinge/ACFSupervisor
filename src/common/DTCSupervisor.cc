@@ -20,7 +20,8 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     fHttpServer (nullptr),
 #endif
     fSystemController (nullptr),
-    fSLinkFileHandler (nullptr)
+    fSLinkFileHandler (nullptr),
+    fGetRunnumberFromFile (false)
 {
     //instance of my GUI object
     fGUI = new SupervisorGUI (this, &fFSM);
@@ -150,6 +151,7 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         fGUI->fDAQFile = &fDAQFile;
         fGUI->fServerPort = &fServerPort;
 
+
         //load the HWFile we have just set - user can always reload it but this is the default for settings and HWDescription
         fGUI->loadHWFile();
 
@@ -167,9 +169,6 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         ss << "All Default Values set!" << std::endl;
         ss << BOLDYELLOW <<  "***********************************************************" << RESET << std::endl;
         LOG4CPLUS_INFO (this->getApplicationLogger(), ss.str() );
-#ifdef __HTTP__
-        fHttpServer->AddLocation ("Calibrations", fResultDirectory.toString().c_str() );
-#endif
     }
 }
 
@@ -193,8 +192,10 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
         cTool->Inherit (fSystemController);
         std::string cResultDirectory = fResultDirectory.toString() + "CommissioningCycle";
         cTool->CreateResultDirectory (cResultDirectory, false, true);
+#ifdef __HTTP__
+        fHttpServer->AddLocation ("Calibrations", cResultDirectory.c_str() );
+#endif
         cTool->InitResultFile ("CommissioningCycle");
-        //cTool->StartHttpServer (8080, true);
         fACFLock.give();
 
         auto cProcedure = fGUI->fProcedureMap.find ("Calibration");
@@ -273,22 +274,10 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
 // will need  a semaphore in order to be able to stop this!
 bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
 {
-
-    // first, check if we already have enough events
-    // this requires that we are not taking an infinite number of events
-    //if (fNEvents != static_cast<xdata::UnsignedInteger32> (0) && fNEvents < static_cast<xdata::UnsignedInteger32> (fEventCounter) )
-    //{
-    ////we are basically done and can stop the workloop execution
-    ////firing the stop event will call fSystemController->Stop()
-    //fFSM.fireEvent ("Stop", this);
-    ////this tells the workloop to stop
-    //return false;
-    //}
-
     try
     {
         // in here we only call fSystemController->readData() in a non-blocking fashion
-        // thats why the last argument to ReadData is true (we can try with false at a later point)
+        // thats why the last argument to ReadData is false
         // the start command is called in enable()
         BeBoard* cBoard = fSystemController->fBoardVector.at (0);
         uint32_t cEventCount = fSystemController->ReadData (cBoard, false );
@@ -340,41 +329,12 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
         //first, make sure that the event counter is 0 since we are just initializing
         if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
 
-        //get the runnumber from the storage file
-        //TODO
-        int cRunNumber = fRunNumber;
-        std::string cRawOutputFile = fDataDirectory.toString() + getDataFileName (expandEnvironmentVariables ("${PH2ACF_ROOT}"), cRunNumber) ;
-        fRunNumber = cRunNumber;
-
         fACFLock.take();
 
         //construct a system controller object
         if (fSystemController) delete fSystemController;
 
         fSystemController = new SystemController();
-
-        //first add a filehandler for the raw data to SystemController
-        if (fRAWFile)
-        {
-            std::cout << cRawOutputFile << std::endl;
-            bool cExists = Ph2TkDAQ::mkdir (fDataDirectory.toString() );
-
-            if (!cExists)
-                LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Data Directory : " << BOLDBLUE << fDataDirectory.toString() << BOLDGREEN << " does not exist - creating!" << RESET);
-
-            fSystemController->addFileHandler ( cRawOutputFile, 'w' );
-            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving raw data to: " << BOLDBLUE << cRawOutputFile << RESET);
-        }
-
-        if (fDAQFile)
-        {
-            std::string cDAQOutputFile = fDataDirectory.toString();
-            std::string cFile = string_format ("run_%04d.daq", cRunNumber);
-            cDAQOutputFile += cFile;
-            //then add a file handler for the DAQ data
-            fSLinkFileHandler = new FileHandler (cDAQOutputFile, 'w');
-            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving daq data to: " << BOLDBLUE << fSLinkFileHandler->getFilename() << RESET);
-        }
 
         //expand all file paths from HW Description xml string
         complete_file_paths (fGUI->fHwXMLString);
@@ -405,6 +365,53 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
 
     try
     {
+        //first check what we are actually configuring
+        for (auto cProcedure : fGUI->fProcedureMap)
+        {
+            //if we are going to take data, increment the run number if we are getting it from file
+            if (cProcedure.second && cProcedure.first == "Data Taking")
+            {
+                int cRunNumber = fRunNumber;
+
+                if (fRunNumber == -1) fGetRunnumberFromFile = true;
+
+                //get the runnumber from the storage file in Ph2_ACF
+                if (fGetRunnumberFromFile) // this means we want the run number from the file
+                {
+                    getRunNumber (expandEnvironmentVariables ("${PH2ACF_ROOT}"), cRunNumber, true) ;
+                    fRunNumber = cRunNumber;
+                }
+
+                std::string cRawOutputFile = fDataDirectory.toString() + string_format ("run%05d.raw", cRunNumber);
+
+                //first add a filehandler for the raw data to SystemController
+                if (fRAWFile)
+                {
+                    bool cExists = Ph2TkDAQ::mkdir (fDataDirectory.toString() );
+
+                    if (!cExists)
+                        LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Data Directory : " << BOLDBLUE << fDataDirectory.toString() << BOLDGREEN << " does not exist - creating!" << RESET);
+
+                    fSystemController->addFileHandler ( cRawOutputFile, 'w' );
+                    fSystemController->initializeFileHandler();
+                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving raw data to: " << BOLDBLUE << cRawOutputFile << RESET);
+                }
+
+                //then, if required also for the .daq data
+                if (fDAQFile)
+                {
+                    int cRunNumber = fRunNumber;
+                    std::string cDAQOutputFile = fDataDirectory.toString();
+                    std::string cFile = string_format ("run_%05d.daq", cRunNumber);
+                    cDAQOutputFile += cFile;
+                    //then add a file handler for the DAQ data
+                    fSLinkFileHandler = new FileHandler (cDAQOutputFile, 'w');
+                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving daq data to: " << BOLDBLUE << fSLinkFileHandler->getFilename() << RESET);
+                }
+
+            }
+        }
+
         fACFLock.take();
 
         //first, make sure that the event counter is 0 since we are just configuring and havent taken any data yet
@@ -526,6 +533,10 @@ bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
         if (fCalibrationWorkloop->isActive() )
             fCalibrationWorkloop->cancel();
 
+
+        //reset the internal runnumber so we pick up on it on the next initialise
+        if (fGetRunnumberFromFile)
+            fRunNumber = -1;
     }
     catch (std::exception& e)
     {
@@ -583,6 +594,7 @@ bool DTCSupervisor::stopping (toolbox::task::WorkLoop* wl)
             fACFLock.take();
             fSystemController->Stop();
             fACFLock.give();
+
         }
 
         if (fCalibrationWorkloop->isActive() )
@@ -616,6 +628,7 @@ bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
         fACFLock.give();
         fGUI->fHwXMLString.clear();
         fGUI->fSettingsXMLString.clear();
+
     }
     catch (std::exception& e)
     {

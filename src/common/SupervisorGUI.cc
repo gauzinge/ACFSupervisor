@@ -531,7 +531,7 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     *out << cgicc::div().set ("class", "acf_left") << std::endl;
 
     //Procedure settings
-    if (cState == 'E')
+    if (cState == 'E' || cState == 'C' )
         *out << fieldset().set ("id", "procedurelist").set ("style", "margin-top:20px").set ("onblur", "submitACFForm();").set ("disabled", "disabled") << legend ("Ph2_ACF Main Settings") << std::endl;
     else
         *out << fieldset().set ("id", "procedurelist").set ("style", "margin-top:20px").set ("onblur", "submitACFForm();") << legend ("Ph2_ACF Main Settings") << std::endl;
@@ -560,20 +560,7 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     *out << table() << std::endl;
     *out << tr() << std::endl;
 
-    if (cState != 'I')
-    {
-
-        if (*fRAWFile)
-            *out << td().add (label ( "Write RAW File" ) ).add (input().set ("type", "checkbox").set ("name", "raw_file").set ("value", "on").set ("checked", "checked").set ("id", "fileOptions_raw").set ("disabled", "disabled") ) <<  std::endl;
-        else
-            *out << td().add (label ( "Write RAW File" ) ).add (input().set ("type", "checkbox").set ("name", "raw_file").set ("value", "on").set ("id", "fileOptions_raw").set ("disabled", "disabled") ) <<  std::endl;
-
-        if (*fDAQFile)
-            *out << td().add (label ("Write DAQ File" ) ).add (input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("checked", "checked").set ("id", "fileOptions_daq").set ("disabled", "disabled") ) << std::endl;
-        else
-            *out << td().add (label ("Write DAQ File" ) ).add (input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("id", "fileOptions_daq").set ("disabled", "disabled") ) << std::endl;
-    }
-    else
+    if (cState == 'I' || cState == 'H')
     {
         if (*fRAWFile)
             *out << td().add (label ("Write RAW File") ).add (input().set ("type", "checkbox").set ("name", "raw_file").set ("value", "on").set ("checked", "checked").set ("id", "fileOptions_raw") ) << std::endl;
@@ -585,13 +572,25 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
         else
             *out << td().add (label ("Write DAQ File") ).add (input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("id", "fileOptions_daq") )  << std::endl;
     }
+    else
+    {
+        if (*fRAWFile)
+            *out << td().add (label ( "Write RAW File" ) ).add (input().set ("type", "checkbox").set ("name", "raw_file").set ("value", "on").set ("checked", "checked").set ("id", "fileOptions_raw").set ("disabled", "disabled") ) <<  std::endl;
+        else
+            *out << td().add (label ( "Write RAW File" ) ).add (input().set ("type", "checkbox").set ("name", "raw_file").set ("value", "on").set ("id", "fileOptions_raw").set ("disabled", "disabled") ) <<  std::endl;
+
+        if (*fDAQFile)
+            *out << td().add (label ("Write DAQ File" ) ).add (input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("checked", "checked").set ("id", "fileOptions_daq").set ("disabled", "disabled") ) << std::endl;
+        else
+            *out << td().add (label ("Write DAQ File" ) ).add (input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("id", "fileOptions_daq").set ("disabled", "disabled") ) << std::endl;
+    }
 
     *out << tr() << std::endl;
 
-    if (cState != 'I')
-        *out << tr().add (td (label ("Runnumber: ") ) ).add (td (input().set ("type", "text").set ("name", "runnumber").set ("size", "20").set ("value", fRunNumber->toString() ).set ("id", "runnumber").set ("disabled", "disabled") ) ) << std::endl;
-    else
+    if (cState == 'I' || cState == 'H')
         *out << tr().add (td (label ("Runnumber: ") ) ).add (td (input().set ("type", "text").set ("name", "runnumber").set ("size", "20").set ("value", fRunNumber->toString() ).set ("id", "runnumber") ) ) << std::endl;
+    else
+        *out << tr().add (td (label ("Runnumber: ") ) ).add (td (input().set ("type", "text").set ("name", "runnumber").set ("size", "20").set ("value", fRunNumber->toString() ).set ("id", "runnumber").set ("disabled", "disabled") ) ) << std::endl;
 
 
     if (cState == 'E')
@@ -600,16 +599,16 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
         *out << tr().add (td (label ("Number of Events: ") ) ).add (td (input().set ("type", "text").set ("name", "nevents").set ("size", "20").set ("placeholder", "number of events to take").set ("value", fNEvents->toString() ).set ("id", "nevents") ) ) << std::endl;
 
 
-    if (cState != 'I')
-        *out << tr().add (td (label ("Data Directory: ") ) ).add (td (input().set ("type", "text").set ("name", "data_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fDataDirectory->toString() ) ).set ("id", "datadir").set ("disabled", "disabled") ) ) << std::endl;
-    else
+    if (cState == 'I' || cState == 'H')
         *out << tr().add (td (label ("Data Directory: ") ) ).add (td (input().set ("type", "text").set ("name", "data_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fDataDirectory->toString() ) ).set ("id", "datadir") ) ) << std::endl;
-
-
-    if (cState == 'E')
-        *out << tr().add ( td (label ("Result Directory: ").set ("style", "display:none").set ("id", "result_directory_label") ) ).add (td (input().set ("type", "text").set ("name", "result_directory").set ("id", "result_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fResultDirectory->toString() ) ).set ("style", "display:none").set ("id", "resultdir").set ("disabled", "disabled") ) )  << std::endl;
     else
+        *out << tr().add (td (label ("Data Directory: ") ) ).add (td (input().set ("type", "text").set ("name", "data_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fDataDirectory->toString() ) ).set ("id", "datadir").set ("disabled", "disabled") ) ) << std::endl;
+
+
+    if (cState == 'I' || cState == 'H')
         *out << tr().add (td (label ("Result Directory: ").set ("style", "display:none").set ("id", "result_directory_label") ) ).add (td (input().set ("type", "text").set ("name", "result_directory").set ("id", "result_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fResultDirectory->toString() ) ).set ("style", "display:none").set ("id", "resultdir") ) ) << std::endl;
+    else
+        *out << tr().add ( td (label ("Result Directory: ").set ("style", "display:none").set ("id", "result_directory_label") ) ).add (td (input().set ("type", "text").set ("name", "result_directory").set ("id", "result_directory").set ("size", "60").set ("value", expandEnvironmentVariables (fResultDirectory->toString() ) ).set ("style", "display:none").set ("id", "resultdir").set ("disabled", "disabled") ) )  << std::endl;
 
     *out << table() << std::endl;
     *out << fieldset() << std::endl;
