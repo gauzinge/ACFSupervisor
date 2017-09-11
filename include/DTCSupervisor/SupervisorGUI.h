@@ -187,6 +187,31 @@ namespace Ph2TkDAQ {
             return bFound;
         }
 
+        void prepare_System_initialise (std::ostringstream& pLogStream)
+        {
+            char cState = fFSM->getCurrentState();
+
+            if (cState != 'I')
+            {
+                fFSM->fireEvent ("Destroy", fApp);
+                LOG4CPLUS_ERROR (fLogger, RED << "This should never happen!" << RESET);
+                this->wait_state_changed (cState);
+            }
+
+            if (this->fHwXMLString.empty() )
+            {
+                // we haven't created the xml string yet, this normally happens on configure
+                if ( this->fHWFormString.empty() )
+                    this->loadHWFile();
+
+                //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
+                std::string cTmpFormString = cleanup_before_XSLT (this->fHWFormString);
+                this->fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), pLogStream, false);
+                //expand all file paths from HW Description xml string
+                complete_file_paths (this->fHwXMLString);
+            }
+        }
+
         //members
       private:
         xdaq::Application* fApp;
@@ -197,7 +222,7 @@ namespace Ph2TkDAQ {
         const std::vector<std::string> fProcedures{"Data Taking", "Calibration", "Pedestal&Noise", "Commissioning"};
         std::string fLogFilePath;
         std::vector<std::string> fImageVector;
-        Ph2_System::SystemController* fSystemController;
+        //Ph2_System::SystemController* fSystemController;
         //LogReader fLogReader;
 
 

@@ -17,8 +17,8 @@ SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMa
     fHWFormString (""),
     fSettingsFormString (""),
     fHwXMLString (""),
-    fAutoRefresh (false),
-    fSystemController (nullptr)
+    fAutoRefresh (false)
+    //fSystemController (nullptr)
 {
     for (auto cString : fProcedures)
         fProcedureMap[cString] = (cString == "Data Taking") ? true : false;
@@ -443,8 +443,11 @@ void SupervisorGUI::loadHWFile()
 
     if (!fHWDescriptionFile->toString().empty() && checkFile (fHWDescriptionFile->toString() ) )
     {
+        fHWFormString.clear();
         fHWFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), expandEnvironmentVariables (XSLSTYLESHEET), cLogStream);
         cleanup_after_XSLT (fHWFormString);
+
+        fSettingsFormString.clear();
         fSettingsFormString = XMLUtils::transformXmlDocument (fHWDescriptionFile->toString(), expandEnvironmentVariables (SETTINGSSTYLESHEET), cLogStream);
         cleanup_after_XSLT_Settings (fSettingsFormString);
 
@@ -800,7 +803,6 @@ void SupervisorGUI::loadImages (xgi::Input* in, xgi::Output* out) throw (xgi::ex
                 if (cIt.getValue() == "List Images") cList = true;
                 else if (cIt.getValue() == "Reboot Board") cReboot = true;
             }
-
         }
     }
     catch (std::exception& e)
@@ -808,51 +810,28 @@ void SupervisorGUI::loadImages (xgi::Input* in, xgi::Output* out) throw (xgi::ex
         LOG4CPLUS_ERROR (fLogger, RED << e.what() << RESET );
     }
 
-    char cState = fFSM->getCurrentState();
-
     try
     {
-        if (cState != 'I')
-        {
-            fFSM->fireEvent ("Destroy", fApp);
-            LOG4CPLUS_ERROR (fLogger, RED << "This should never happen!" << RESET);
-            this->wait_state_changed (cState);
-        }
 
-        if (fSystemController != nullptr) delete fSystemController;
+        Ph2_System::SystemController fSystemController;
 
-        fSystemController = new Ph2_System::SystemController();
-
-        if (this->fHwXMLString.empty() )
-        {
-            // we haven't created the xml string yet, this normally happens on configure
-            if ( fHWFormString.empty() )
-                this->loadHWFile();
-
-            //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
-            std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
-            this->fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
-        }
-
-        //expand all file paths from HW Description xml string
-        complete_file_paths (fGUI->fHwXMLString);
-
-        fSystemController->InitializeHw (this->fHwXMLString, cLogStream, false);
-        BeBoard* pBoard = fSystemController->fBoardVector.at (0);
+        this->prepare_System_initialise (cLogStream);
+        fSystemController.InitializeHw (this->fHwXMLString, cLogStream, false);
+        BeBoard* pBoard = fSystemController.fBoardVector.at (0);
 
         if (cList)
-            fImageVector = fSystemController->fBeBoardInterface->getFpgaConfigList (pBoard);
+        {
+            fImageVector.clear();
+            fImageVector = fSystemController.fBeBoardInterface->getFpgaConfigList (pBoard);
+        }
         else if (cReboot)
+        {
             LOG4CPLUS_INFO (fLogger, GREEN << "Rebooting Board - this will cause a segfault and needs a restart of the application!" << RESET);
+            fSystemController.fBeBoardInterface->RebootBoard (pBoard);
+        }
 
-        fSystemController->fBeBoardInterface->RebootBoard (pBoard);
+        fSystemController.Destroy();
 
-        fSystemController->Destroy();
-        delete fSystemController;
-        fSystemController = nullptr;
-
-        //since we are cleaning up behind us, we need to clear the HwXMLString
-        this->fHwXMLString.clear();
     }
     catch (const std::exception& e)
     {
@@ -864,8 +843,6 @@ void SupervisorGUI::loadImages (xgi::Input* in, xgi::Output* out) throw (xgi::ex
 
 void SupervisorGUI::handleImages (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
 {
-    std::ostringstream cLogStream;
-
     // get the form input
     bool cLoad = false;
     bool cDelete = false;
@@ -961,55 +938,33 @@ void SupervisorGUI::handleImages (xgi::Input* in, xgi::Output* out) throw (xgi::
         LOG4CPLUS_ERROR (fLogger, RED << e.what() << RESET );
     }
 
-    char cState = fFSM->getCurrentState();
-
     try
     {
-        if (cState != 'I')
-        {
-            fFSM->fireEvent ("Destroy", fApp);
-            LOG4CPLUS_ERROR (fLogger, RED << "This should never happen!" << RESET);
-            this->wait_state_changed (cState);
-        }
+        std::ostringstream cLogStream;
+        Ph2_System::SystemController fSystemController;
 
-        if (fSystemController != nullptr) delete fSystemController;
+        this->prepare_System_initialise (cLogStream);
 
-        fSystemController = new Ph2_System::SystemController();
-
-        if (this->fHwXMLString.empty() )
-        {
-            // we haven't created the xml string yet, this normally happens on configure
-            if ( fHWFormString.empty() )
-                this->loadHWFile();
-
-            //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
-            std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
-            this->fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
-        }
-
-        //expand all file paths from HW Description xml string
-        complete_file_paths (fGUI->fHwXMLString);
-
-        fSystemController->InitializeHw (this->fHwXMLString, cLogStream, false);
-        BeBoard* pBoard = fSystemController->fBoardVector.at (0);
-        std::cout << "I get here!" << std::endl;
+        fSystemController.InitializeHw (this->fHwXMLString, cLogStream, false);
+        BeBoard* pBoard = fSystemController.fBoardVector.at (0);
 
         if (cLoad)
         {
-            fSystemController->fBeBoardInterface->JumpToFpgaConfig (pBoard, cImage);
+            fSystemController.fBeBoardInterface->JumpToFpgaConfig (pBoard, cImage);
             exit (0);
         }
-        else if (cDelete) fSystemController->fBeBoardInterface->DeleteFpgaConfig (pBoard, cImage);
-        else if (cDownload) fSystemController->fBeBoardInterface->DownloadFpgaConfig (pBoard, cImage, cDownloadPath );
+        else if (cDelete)
+            fSystemController.fBeBoardInterface->DeleteFpgaConfig (pBoard, cImage);
+        else if (cDownload) fSystemController.fBeBoardInterface->DownloadFpgaConfig (pBoard, cImage, cDownloadPath );
         else if (cUpload)
         {
-            fSystemController->fBeBoardInterface->FlashProm (pBoard, cImageName, cImagePath.c_str() );
+            fSystemController.fBeBoardInterface->FlashProm (pBoard, cImageName, cImagePath.c_str() );
             uint32_t progress;
             bool cDone = false;
 
             while (!cDone)
             {
-                progress = fSystemController->fBeBoardInterface->getConfiguringFpga (pBoard)->getProgressValue();
+                progress = fSystemController.fBeBoardInterface->getConfiguringFpga (pBoard)->getProgressValue();
 
                 if (progress == 100)
                 {
@@ -1018,15 +973,15 @@ void SupervisorGUI::handleImages (xgi::Input* in, xgi::Output* out) throw (xgi::
                 }
                 else
                 {
-                    LOG4CPLUS_INFO (fLogger, BLUE << "\% " << fSystemController->fBeBoardInterface->getConfiguringFpga (pBoard)->getProgressString() << " done\r" << RESET);
+                    LOG4CPLUS_INFO (fLogger, BLUE << "\% " << fSystemController.fBeBoardInterface->getConfiguringFpga (pBoard)->getProgressString() << " done\r" << RESET);
                     sleep (1);
                 }
             }
         }
 
-        fSystemController->Destroy();
-        delete fSystemController;
-        fSystemController = nullptr;
+        fSystemController.Destroy();
+        //delete fSystemController;
+        //fSystemController = nullptr;
 
         //since we are cleaning up behind us, we need to clear the HwXMLString
         this->fHwXMLString.clear();

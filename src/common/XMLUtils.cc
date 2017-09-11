@@ -25,10 +25,10 @@ std::string XMLUtils::transformXmlDocument (const std::string& pInputDocument, c
 
     try
     {
+        xsltStylesheetPtr cStylesheet = xsltParseStylesheetFile ( (const xmlChar*) pStylesheet.c_str() );
         xmlDocPtr cInputDoc = xmlReadMemory (cInput.str().c_str(), cInput.str().length(), "teststring.xsl", 0, 0); //last to arguments are no endcoding (read from header) and no further options
         //xmlSubstituteEntitiesDefault (1);
         xmlLoadExtDtdDefaultValue = 1;
-        xsltStylesheetPtr cStylesheet = xsltParseStylesheetFile ( (const xmlChar*) pStylesheet.c_str() );
         xmlDocPtr cOutput = xsltApplyStylesheet (cStylesheet, cInputDoc, 0);
 
         //save the output to string
@@ -41,6 +41,8 @@ std::string XMLUtils::transformXmlDocument (const std::string& pInputDocument, c
         xmlFreeDoc (cInputDoc);
         xmlFreeDoc (cOutput);
         xsltFreeStylesheet (cStylesheet);
+        xmlCleanupParser();
+        xsltCleanupGlobals();
 
     }
     catch (std::exception& e)
@@ -48,8 +50,6 @@ std::string XMLUtils::transformXmlDocument (const std::string& pInputDocument, c
         pStream << RED << "Error parsing the document with libxslt: " << e.what() << RESET << std::endl;
     }
 
-    xmlCleanupParser();
-    xsltCleanupGlobals();
     return cHtmlResult;
 }
 
