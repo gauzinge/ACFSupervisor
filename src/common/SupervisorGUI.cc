@@ -118,6 +118,22 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 }
 
+void SupervisorGUI::CalibrationPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    std::ostringstream cLogStream;
+    //define view and create header
+    fCurrentPageView = Tab::CALIBRARTION;
+    this->createHtmlHeader (in, out, fCurrentPageView);
+    *out << h3 ("DTC Supervisor Calibration Page") << std::endl;
+
+    char cState = fFSM->getCurrentState();
+
+
+
+    this->createHtmlFooter (in, out);
+
+    if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+}
 void SupervisorGUI::FirmwarePage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
 {
     std::ostringstream cLogStream;

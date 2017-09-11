@@ -53,7 +53,7 @@ namespace Ph2TkDAQ {
         void Default (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         void MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         void ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
-        void CalibrationPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception) {}
+        void CalibrationPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         void FirmwarePage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
 
         ///HTML header & footer for Hyperdaq interface

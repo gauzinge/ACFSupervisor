@@ -193,7 +193,7 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
         std::string cResultDirectory = fResultDirectory.toString() + "CommissioningCycle";
         cTool->CreateResultDirectory (cResultDirectory, false, true);
 #ifdef __HTTP__
-        fHttpServer->AddLocation ("Calibrations", cResultDirectory.c_str() );
+        fHttpServer->AddLocation ("Calibrations/", cResultDirectory.c_str() );
 #endif
         cTool->InitResultFile ("CommissioningCycle");
         fACFLock.give();
@@ -256,9 +256,13 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
         }
 
         //TODO: check if this does not cause trouble!
+        std::string cResultFileName = cTool->getResultFileName();
         fACFLock.take();
         cTool->SoftDestroy();
         delete cTool;
+#ifdef __HTTP__
+        fHttpServer->ReadFileContent (cResultFileName.c_str() );
+#endif
         fACFLock.give();
     }
     catch (std::exception& e)

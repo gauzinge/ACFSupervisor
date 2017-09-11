@@ -85,29 +85,27 @@ function greyOutElements() {
         resultdir.setAttribute('disabled','disabled');
         commission_table.setAttribute('disabled','disabled');
     }
-
-    //console.log(state)
-
 }
 
 //https://stackoverflow.com/questions/18614301/keep-overflow-div-scrolled-to-bottom-unless-user-scrolls-up
 function scrollLogToBottom() {
     var log = document.getElementById("logwindow");
     if(log) {
+        console.log(log)
         //allow 2 px inaccuracy by adding 2 
         var isScrolledToBottom = log.scrollHeight - log.clientHeight <= log.scrollTop +2;
         if(isScrolledToBottom) log.scrollTop = log.scrollHeight - log.clientHeight;
     }
 }
 
-var log = document.getElementById("logwindow");
-if(log) {
-     log.scrollTop = log.scrollHeight - log.clientHeight;
+function scrollLog() {
+    var log = document.getElementById("logwindow");
+    if(log) {
+         log.scrollTop = log.scrollHeight - log.clientHeight;
+    }
 }
 
 var thing = setInterval(scrollLogToBottom, 1500);
-
-//var statecheck = setInterval(greyOutElements, 2500);
 
 function addLoadEvent(func) { 
   var oldonload = window.onload; 
@@ -124,6 +122,6 @@ function addLoadEvent(func) {
 } 
 
 addLoadEvent(displayACFfields); 
-addLoadEvent(scrollLogToBottom);
+addLoadEvent(scrollLog);
 addLoadEvent(queryState); 
 //addLoadEvent(greyOutElements); 
