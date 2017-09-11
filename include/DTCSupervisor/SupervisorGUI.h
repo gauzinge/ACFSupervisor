@@ -126,6 +126,11 @@ namespace Ph2TkDAQ {
             return cResult;
         }
 
+        void appendResultFiles (std::string pFile)
+        {
+            fResultFilesForGUI += ";" + pFile;
+        }
+
       private:
         //determines allowed state transitions
         void createStateTransitionButton (std::string pTransition, xgi::Output* out)
@@ -222,6 +227,7 @@ namespace Ph2TkDAQ {
         const std::vector<std::string> fProcedures{"Data Taking", "Calibration", "Pedestal&Noise", "Commissioning"};
         std::string fLogFilePath;
         std::vector<std::string> fImageVector;
+        std::string fResultFilesForGUI;
         //Ph2_System::SystemController* fSystemController;
         //LogReader fLogReader;
 
@@ -235,7 +241,7 @@ namespace Ph2TkDAQ {
         uint32_t* fEventCounter;
         xdata::Boolean* fRAWFile;
         xdata::Boolean* fDAQFile;
-        xdata::Integer* fServerPort;
+        std::string fHostString;
 
         FormData* fHWFormData;
         FormData* fSettingsFormData;

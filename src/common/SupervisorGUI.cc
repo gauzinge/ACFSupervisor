@@ -122,14 +122,24 @@ void SupervisorGUI::CalibrationPage (xgi::Input* in, xgi::Output* out) throw (xg
 {
     std::ostringstream cLogStream;
     //define view and create header
-    fCurrentPageView = Tab::CALIBRARTION;
+    fCurrentPageView = Tab::CALIBRATION;
     this->createHtmlHeader (in, out, fCurrentPageView);
     *out << h3 ("DTC Supervisor Calibration Page") << std::endl;
 
     char cState = fFSM->getCurrentState();
 
+    //*out << script ().set ("type", "text/javascript").set ("src", "http://" + fHostString + "/jsrootsys/scripts/JSRootCore.js?more2d&io")  << script() << std::endl;
+    //*out << script ().set ("type", "text/javascript").set ("src", "https://root.cern/js/latest/scripts/JSRootCore.js?more2d&io&tree")  << script() << std::endl;
+    //*out << script (parseExternalResource ("html/jsplots.js", cLogStream) ).set ("type", "text/javascript") <<  std::endl;
+    //*out << script ("createGUI ('/afs/cern.ch/user/g/gauzinge/DTCSupervisor/Results/CommissioningCycle_11-09-17_15:47/CommissioningCycle.root');" ).set ("type", "text/javascript") << std::endl;
+    *out << "<div style=\"display:inline; height:90%;\">" << std::endl;
+    //*out << cgicc::div().set ("id", "simpleGUI").set ("files", "/afs/cern.ch/user/g/gauzinge/DTCSupervisor/Results/CommissioningCycle_11-09-17_15:47/CommissioningCycle.root") << std::endl;
+    //*out << cgicc::div().set ("id", "FileContentDiv").set ("style", "width: 250px;float:left;") << std::endl;
+    //*out << cgicc::div().set ("id", "MainDiv").set ("style", "width:calc(100\%-250px;float:right;") << std::endl;
+    *out << iframe ().set ("src", "http://" + fHostString + "?monitoring=1000").set ("style", "width:100%;height:100%;") << std::endl;
 
 
+    *out << "</div>" << std::endl;
     this->createHtmlFooter (in, out);
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
@@ -147,6 +157,8 @@ void SupervisorGUI::FirmwarePage (xgi::Input* in, xgi::Output* out) throw (xgi::
     this->displayLoadForm (in, out);
 
     *out << cgicc::div().set ("style", "display:inline") << std::endl;
+
+    *out << cgicc::div() << std::endl;
 
     if (cState != 'I')
     {
@@ -222,7 +234,8 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     bool cAutoRefresh = false;
     int cRefreshDelay = 3;
 
-    if (cState == 'E' || fAutoRefresh)
+    //if (cState == 'E' || fAutoRefresh)
+    if (fAutoRefresh)
         cAutoRefresh = true;
 
     std::ostringstream cAutoRefreshString;
@@ -249,6 +262,8 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
             cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button active") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button");
             JSfile += "/html/empty.js";
             cAutoRefreshString << "CalibrationPage";
+            //*out << script ().set ("type", "text/javascript").set ("src", "https://root.cern/js/latest/scripts/JSRootCore.js?more2d&gui&io") << std::endl;
+            //*out << script ().set ("type", "text/javascript").set ("src", "http://" + fHostString + "/jsrootsys/scripts/JSRootCore.js?more2d&io&gui")  << script() << std::endl;
             break;
 
         case Tab::FIRMWARE:
@@ -270,7 +285,8 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
 
     //*out << " <meta HTTP-EQUIV=\"Refresh\" CONTENT=\"" << cRefreshDelay << "; " << fURN << "MainPage\"/>" << std::endl;
 
-    *out << script (parseExternalResource (JSfile, cLogStream) ).set ("type", "text/javascript") << std::endl;
+    if (!JSfile.empty() ) *out << script (parseExternalResource (JSfile, cLogStream) ).set ("type", "text/javascript") << std::endl;
+
     *out << cgicc::div (h1 (a ("DTC Supervisor").set ("href", fURN + "MainPage") ) ).set ("class", "title") << std::endl;
     *out << cgicc::div (cTabBarString.str() ).set ("class", "tab") << std::endl;
     *out << "<cgicc::div class=\"main\">" << std::endl;

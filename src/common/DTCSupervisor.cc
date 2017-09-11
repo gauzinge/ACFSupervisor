@@ -98,8 +98,8 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
 
         //configure the server
         // see: https://root.cern.ch/gitweb/?p=root.git;a=blob_plain;f=tutorials/http/httpcontrol.C;hb=HEAD
-        fHttpServer->SetItemField ("/", "_monitoring", "5000");
-        fHttpServer->SetItemField ("/", "_layout", "grid2x2");
+        //fHttpServer->SetItemField ("/", "_monitoring", "5000");
+        //fHttpServer->SetItemField ("/", "_layout", "grid2x2");
 
         gethostname (hostname, HOST_NAME_MAX);
     }
@@ -109,6 +109,7 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     }
 
     LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDBLUE << "Opening THttpServer on port " << fServerPort << ". Point your browser to: " << BOLDGREEN << hostname << ":" << fServerPort << RESET);
+    fGUI->fHostString = std::string (hostname) + ":" + std::to_string (fServerPort);
 #else
     LOG4CPLUS_ERROR (this->getApplicationLogger(), BOLDRED << "Error, ROOT version < 5.34 detected or not compiled with Http Server support!"  << " No THttpServer available! - The webgui will fail to show plots!" << RESET);
 #endif
@@ -149,8 +150,6 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         fGUI->fEventCounter = &fEventCounter;
         fGUI->fRAWFile = &fRAWFile;
         fGUI->fDAQFile = &fDAQFile;
-        fGUI->fServerPort = &fServerPort;
-
 
         //load the HWFile we have just set - user can always reload it but this is the default for settings and HWDescription
         fGUI->loadHWFile();
@@ -196,6 +195,7 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
         fHttpServer->AddLocation ("Calibrations/", cResultDirectory.c_str() );
 #endif
         cTool->InitResultFile ("CommissioningCycle");
+        fGUI->appendResultFiles (cTool->getResultFileName() );
         fACFLock.give();
 
         auto cProcedure = fGUI->fProcedureMap.find ("Calibration");
@@ -256,13 +256,13 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
         }
 
         //TODO: check if this does not cause trouble!
-        std::string cResultFileName = cTool->getResultFileName();
         fACFLock.take();
         cTool->SoftDestroy();
         delete cTool;
-#ifdef __HTTP__
-        fHttpServer->ReadFileContent (cResultFileName.c_str() );
-#endif
+        //#ifdef __HTTP__
+        //int cLen = 0;
+        //fHttpServer->ReadFileContent (cResultFileName.c_str(), cLen );
+        //#endif
         fACFLock.give();
     }
     catch (std::exception& e)
