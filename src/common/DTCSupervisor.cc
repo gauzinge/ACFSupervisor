@@ -92,6 +92,10 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
         int cServerPort = fServerPort;
         fHttpServer = new THttpServer ( string_format ( "http:%d", cServerPort ).c_str() );
         fHttpServer->SetReadOnly ( true );
+#ifdef __ROOT6__
+        std::cout << BOLDRED << fHttpServer->GetCors() << RESET << std::endl;
+        fHttpServer->SetCors ("cern.ch");
+#endif
         //fHttpServer->SetTimer ( pRefreshTime, kTRUE );
         fHttpServer->SetTimer (1000, kFALSE);
         fHttpServer->SetJSROOT ("https://root.cern.ch/js/latest/");
@@ -168,6 +172,14 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         ss << "All Default Values set!" << std::endl;
         ss << BOLDYELLOW <<  "***********************************************************" << RESET << std::endl;
         LOG4CPLUS_INFO (this->getApplicationLogger(), ss.str() );
+
+        //TODO: Debug
+        //#ifdef __HTTP__
+        //fHttpServer->AddLocation ("Calibrations/", "/afs/cern.ch/user/g/gauzinge/DTCSupervisor/Results/CommissioningCycle_06-09-17_19:00/" );
+        //int len;
+        //fHttpServer->ReadFileContent ("/afs/cern.ch/user/g/gauzinge/DTCSupervisor/Results/CommissioningCycle_06-09-17_19:00/", len);
+        //fGUI->appendResultFiles ("http://cmsuptrackerdaq.cern.ch:8080/Calibrations/CommissioningCycle.root");
+        //#endif
     }
 }
 
@@ -195,7 +207,8 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
         fHttpServer->AddLocation ("Calibrations/", cResultDirectory.c_str() );
 #endif
         cTool->InitResultFile ("CommissioningCycle");
-        fGUI->appendResultFiles (cTool->getResultFileName() );
+        //fGUI->appendResultFiles (cTool->getResultFileName() );
+        fGUI->appendResultFiles ("http://cmsuptrackerdaq.cern.ch:8080/Calibrations/CommissioningCycle.root");
         fACFLock.give();
 
         auto cProcedure = fGUI->fProcedureMap.find ("Calibration");

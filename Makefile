@@ -2,17 +2,24 @@ BUILD_HOME:=$(shell pwd)/..
 include $(XDAQ_ROOT)/config/mfAutoconf.rules
 include $(XDAQ_ROOT)/config/mfDefs.$(XDAQ_OS)
 
-ROOTVERSION := $(shell root-config --has-http)
+ROOTHTTP := $(shell root-config --has-http)
+ROOTHTTP := $(shell root-config --version)
 
 ##################################################
 ## check if Root has Http
 ##################################################
-ifneq (,$(findstring yes,$(ROOTVERSION)))
+ifneq (,$(findstring yes,$(ROOTHTTP)))
 	RootExtraLinkFlags= -lRHTTP
 	RootExtraFlags=-D__HTTP__
 else
 	RootExtraLinkFlags=
 	RootExtraFlags=
+endif
+##################################################
+## check Root version
+##################################################
+ifneq (,$(findstring 6.,$(ROOTHTTP)))
+	RootExtraFlags+=-D__ROOT6__
 endif
 
 #Project=Ph2_TkDAQ

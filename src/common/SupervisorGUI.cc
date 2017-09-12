@@ -27,9 +27,9 @@ SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMa
     fURN =  pApp->getApplicationDescriptor()->getContextDescriptor()->getURL() + "/" + pApp->getApplicationDescriptor()->getURN() + "/";
 
     //when I am at home
-    size_t cPos = fURN.find (".cern.ch");
-    fURN.erase (cPos, 8);
-    std::cout << fURN << std::endl;
+    //size_t cPos = fURN.find (".cern.ch");
+    //fURN.erase (cPos, 8);
+    //std::cout << fURN << std::endl;
 
     //bind xgi and xoap commands to methods
     //methods for tab navigation
@@ -129,15 +129,18 @@ void SupervisorGUI::CalibrationPage (xgi::Input* in, xgi::Output* out) throw (xg
     char cState = fFSM->getCurrentState();
 
     //*out << script ().set ("type", "text/javascript").set ("src", "http://" + fHostString + "/jsrootsys/scripts/JSRootCore.js?more2d&io")  << script() << std::endl;
-    //*out << script ().set ("type", "text/javascript").set ("src", "https://root.cern/js/latest/scripts/JSRootCore.js?more2d&io&tree")  << script() << std::endl;
-    //*out << script (parseExternalResource ("html/jsplots.js", cLogStream) ).set ("type", "text/javascript") <<  std::endl;
+    *out << script ().set ("type", "text/javascript").set ("src", "https://root.cern/js/latest/scripts/JSRootCore.js?more2d&io&gui")  << script() << std::endl;
+    *out << script (parseExternalResource ("html/jsplots.js", cLogStream) ).set ("type", "text/javascript") <<  std::endl;
     //*out << script ("createGUI ('/afs/cern.ch/user/g/gauzinge/DTCSupervisor/Results/CommissioningCycle_11-09-17_15:47/CommissioningCycle.root');" ).set ("type", "text/javascript") << std::endl;
-    *out << "<div style=\"display:inline; height:90%;\">" << std::endl;
-    //*out << cgicc::div().set ("id", "simpleGUI").set ("files", "/afs/cern.ch/user/g/gauzinge/DTCSupervisor/Results/CommissioningCycle_11-09-17_15:47/CommissioningCycle.root") << std::endl;
-    //*out << cgicc::div().set ("id", "FileContentDiv").set ("style", "width: 250px;float:left;") << std::endl;
-    //*out << cgicc::div().set ("id", "MainDiv").set ("style", "width:calc(100\%-250px;float:right;") << std::endl;
-    *out << iframe ().set ("src", "http://" + fHostString + "?monitoring=1000").set ("style", "width:100%;height:100%;") << std::endl;
 
+    *out << "<div style=\"display:inline; height:90%;\">" << std::endl;
+    //*out << cgicc::div().set ("id", "simpleGUI").set ("files", "http://cmsuptrackerdaq.cern.ch:8080/Calibrations/CommissioningCycle.root") << std::endl;
+    //*out << cgicc::div().set ("id", "simpleGUI").set ("files", "../../Results/CommissioningCycle_06-09-17_19:00/CommissioningCycle.root") << std::endl;
+    //*out << cgicc::div().set ("id", "FileContentDiv").set ("style", "width: 250px;float:left;") << std::endl;
+    //*out << cgicc::div().set ("id", "MainDiv").set ("style", "width:calc(100\%-250px;float:right;").set ("onload", "StatGUI();") << std::endl;
+#ifdef __ROOT6__
+    *out << iframe ().set ("src", "http://" + fHostString + "?monitoring=1000").set ("style", "width:100%;height:100%;") << std::endl;
+#endif
 
     *out << "</div>" << std::endl;
     this->createHtmlFooter (in, out);
