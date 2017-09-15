@@ -15,8 +15,9 @@ function updateGUI() {
    // To run demo, one should generate rootXX.json files using demo.C macro
    
    //var request_addr = "root" + (cnt%20) + ".json?dummy=" + cnt;
-   var request_addr = "http://cmsuptrackerdaq.cern.ch:8080/Canvases/Occupancy/root.json?dummy=" + cnt;
-   //var request_addr = "http://cmsuptrackerdaq.cern.ch:8080/Calibrations/CommissioningCycle.root/Occupancy/root.json?dummy=" + cnt;
+   //var request_addr = "http://cmsuptrackerdaq.cern.ch:8080/Canvases/Occupancy/root.json?dummy=" + cnt;
+    var request_addr = "http://cmsuptrackerdaq.cern.ch:8080/Calibrations/CommissioningCycle.root";
+    ///Occupancy/root.json?dummy=" + cnt;
    cnt++;
    
    if (addr!=null) request_addr = addr; 
@@ -32,6 +33,7 @@ function updateGUI() {
       } else { 
          painter = JSROOT.redraw('drawing', histo, drawopt);
       } 
+       console.log(histo)
     });
     
     req.send(null); 
@@ -56,7 +58,7 @@ function startGUI() {
 
    setInterval(updateGUI, monitor);
    
-   JSROOT.RegisterForResize(function() { if (painter) painter.CheckResize(); if (mdi) mdi.CheckResize(); });
+   //JSROOT.RegisterForResize(function() { if (painter) painter.CheckResize(); if (mdi) mdi.CheckResize(); });
 }
 
 function addLoadEvent(func) { 
@@ -73,4 +75,4 @@ function addLoadEvent(func) {
   } 
 } 
 
-//addLoadEvent(startGUI); 
+addLoadEvent(startGUI); 

@@ -22,7 +22,7 @@
         </xc:Application>
 
         <!-- Shared object library that contains the HelloWorld inplementation -->
-        <xc:Module>${DTCSUPERVISOR_ROOT}/lib/linux/x86_64_slc6/libDTCSupervisor.so</xc:Module>
+        <xc:Module>${DTCSUPERVISOR_ROOT}/lib/linux/x86_64_centos7/libDTCSupervisor.so</xc:Module>
 
     </xc:Context>
 </xc:Partition>

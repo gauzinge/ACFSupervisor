@@ -3,7 +3,7 @@ include $(XDAQ_ROOT)/config/mfAutoconf.rules
 include $(XDAQ_ROOT)/config/mfDefs.$(XDAQ_OS)
 
 ROOTHTTP := $(shell root-config --has-http)
-ROOTHTTP := $(shell root-config --version)
+ROOTVERSION := $(shell root-config --version)
 
 ##################################################
 ## check if Root has Http
@@ -18,7 +18,7 @@ endif
 ##################################################
 ## check Root version
 ##################################################
-ifneq (,$(findstring 6.,$(ROOTHTTP)))
+ifneq (,$(findstring 6.1,$(ROOTVERSION)))
 	RootExtraFlags+=-D__ROOT6__
 endif
 

@@ -90,12 +90,13 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     try
     {
         int cServerPort = fServerPort;
-        fHttpServer = new THttpServer ( string_format ( "http:%d", cServerPort ).c_str() );
-        fHttpServer->SetReadOnly ( true );
 #ifdef __ROOT6__
-        std::cout << BOLDRED << fHttpServer->GetCors() << RESET << std::endl;
-        fHttpServer->SetCors ("cern.ch");
+        fHttpServer = new THttpServer ( string_format ( "http:%d?cors", cServerPort ).c_str() );
+        //fHttpServer = new THttpServer ( string_format ( "http:%d", cServerPort ).c_str() );
+#else
+        fHttpServer = new THttpServer ( string_format ( "http:%d", cServerPort ).c_str() );
 #endif
+        fHttpServer->SetReadOnly ( true );
         //fHttpServer->SetTimer ( pRefreshTime, kTRUE );
         fHttpServer->SetTimer (1000, kFALSE);
         fHttpServer->SetJSROOT ("https://root.cern.ch/js/latest/");
@@ -174,12 +175,10 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         LOG4CPLUS_INFO (this->getApplicationLogger(), ss.str() );
 
         //TODO: Debug
-        //#ifdef __HTTP__
-        //fHttpServer->AddLocation ("Calibrations/", "/afs/cern.ch/user/g/gauzinge/DTCSupervisor/Results/CommissioningCycle_06-09-17_19:00/" );
-        //int len;
-        //fHttpServer->ReadFileContent ("/afs/cern.ch/user/g/gauzinge/DTCSupervisor/Results/CommissioningCycle_06-09-17_19:00/", len);
-        //fGUI->appendResultFiles ("http://cmsuptrackerdaq.cern.ch:8080/Calibrations/CommissioningCycle.root");
-        //#endif
+#ifdef __HTTP__
+        fHttpServer->AddLocation ("Calibrations/", "/afs/cern.ch/user/g/gauzinge/DTCSupervisor/Results/CommissioningCycle_06-09-17_19:00/" );
+        fGUI->appendResultFiles ("http://cmsuptrackerdaq.cern.ch:8080/Calibrations/CommissioningCycle.root");
+#endif
     }
 }
 
@@ -203,12 +202,12 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
         cTool->Inherit (fSystemController);
         std::string cResultDirectory = fResultDirectory.toString() + "CommissioningCycle";
         cTool->CreateResultDirectory (cResultDirectory, false, true);
-#ifdef __HTTP__
-        fHttpServer->AddLocation ("Calibrations/", cResultDirectory.c_str() );
-#endif
         cTool->InitResultFile ("CommissioningCycle");
-        //fGUI->appendResultFiles (cTool->getResultFileName() );
+#ifdef __HTTP__
+        fHttpServer->AddLocation ("latest/", cResultDirectory.c_str() );
         fGUI->appendResultFiles ("http://cmsuptrackerdaq.cern.ch:8080/Calibrations/CommissioningCycle.root");
+        //fGUI->appendResultFiles (cTool->getResultFileName() );
+#endif
         fACFLock.give();
 
         auto cProcedure = fGUI->fProcedureMap.find ("Calibration");
