@@ -6,6 +6,8 @@
 #include "toolbox/mem/Reference.h"
 #include "interface/evb/i2oEVBMsgs.h"
 
+#include <iostream>
+
 
 class I2OMsg
 {
