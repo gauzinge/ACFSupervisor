@@ -74,6 +74,11 @@ namespace Ph2TkDAQ {
         toolbox::task::WorkLoop* fDAQWorkloop;
         bool DAQJob (toolbox::task::WorkLoop* wl);
 
+        // the workloop, action signature and job for Data sending to EVM
+        toolbox::task::ActionSignature* fDSAction;
+        toolbox::task::WorkLoop* fDSWorkloop;
+        //bool SendDataJob (toolbox::task::WorkLoop* wl);
+
       protected:
         xdata::String fHWDescriptionFile;
         xdata::String fDataDirectory;
@@ -88,6 +93,12 @@ namespace Ph2TkDAQ {
 #ifdef __HTTP__
         THttpServer* fHttpServer;
 #endif
+        //for sending data to EVM
+        xdata::Boolean fSendData;
+        xdata::String fSourceHost;
+        xdata::Integer fSourcePort;
+        xdata::String fSinkHost;
+        xdata::Integer fSinkPort;
 
       private:
         toolbox::BSem fACFLock;

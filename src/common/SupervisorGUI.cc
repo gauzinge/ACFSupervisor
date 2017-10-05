@@ -610,6 +610,11 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
             *out << td().add (label ("Write DAQ File") ).add (input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("checked", "checked").set ("id", "fileOptions_daq") )  << std::endl;
         else
             *out << td().add (label ("Write DAQ File") ).add (input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("id", "fileOptions_daq") )  << std::endl;
+
+        if (*fSendData)
+            *out << td().add (label ("Send Data") ).add (input().set ("type", "checkbox").set ("name", "send_data").set ("value", "on").set ("checked", "checked").set ("id", "Options_send") )  << std::endl;
+        else
+            *out << td().add (label ("Send Data") ).add (input().set ("type", "checkbox").set ("name", "send_data").set ("value", "on").set ("id", "Options_send") )  << std::endl;
     }
     else
     {
@@ -719,6 +724,7 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
 
         *fRAWFile = cgi.queryCheckbox ("raw_file");
         *fDAQFile = cgi.queryCheckbox ("daq_file");
+        *fSendData = cgi.queryCheckbox ("send_data");
 
         fLatency = cgi.queryCheckbox ("latency");
         fStubLatency = cgi.queryCheckbox ("stublatency");

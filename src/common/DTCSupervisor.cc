@@ -57,6 +57,13 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     this->getApplicationInfoSpace()->fireItemAvailable ("ShortPause", &fShortPause);
     this->getApplicationInfoSpace()->fireItemAvailable ("THttpServerPort", &fServerPort);
 
+    //Data to EVM
+    this->getApplicationInfoSpace()->fireItemAvailable ("SendData", &fSendData);
+    this->getApplicationInfoSpace()->fireItemAvailable ("SourceHost", &fSourceHost);
+    this->getApplicationInfoSpace()->fireItemAvailable ("SourcePort", &fSourcePort);
+    this->getApplicationInfoSpace()->fireItemAvailable ("SinkHost", &fSinkHost);
+    this->getApplicationInfoSpace()->fireItemAvailable ("SinkPort", &fSinkPort);
+
     //bind the action signature for the calibration action and create the workloop
     this->fCalibrationAction = toolbox::task::bind (this, &DTCSupervisor::CalibrationJob, "Calibration");
     this->fCalibrationWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "Calibrating", "waiting");
@@ -64,6 +71,10 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     //bind the action signature for the DAQ action and create the workloop
     this->fDAQAction = toolbox::task::bind (this, &DTCSupervisor::DAQJob, "DAQ");
     this->fDAQWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "DAQ", "waiting");
+
+    //bind the action signature for the DS action and create the workloop
+    //this->fDSAction = toolbox::task::bind (this, &DTCSupervisor::fTCPDataSender::sendData, "DS");
+    //this->fDSWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "DS", "waiting");
 
     //detect when default values have been set
     this->getApplicationInfoSpace()->addListener (this, "urn:xdaq-event:setDefaultValues");
@@ -155,6 +166,7 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         fGUI->fEventCounter = &fEventCounter;
         fGUI->fRAWFile = &fRAWFile;
         fGUI->fDAQFile = &fDAQFile;
+        fGUI->fSendData = &fSendData;
 
         //load the HWFile we have just set - user can always reload it but this is the default for settings and HWDescription
         fGUI->loadHWFile();
@@ -165,6 +177,14 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         ss <<  GREEN << "HW Description file: " << RED << fHWDescriptionFile.toString() << GREEN << " set!" << std::endl;
         ss << "Write RAW data: " << RED << fRAWFile.toString() << GREEN << " set!" << std::endl;
         ss << "Write DAQ data: " << RED << fDAQFile.toString() << GREEN << " set!" << std::endl;
+        ss << "Send DAQ data: " << RED << fSendData.toString() << GREEN << " set!" << std::endl;
+
+        if (fSendData)
+        {
+            ss << "Data Source: " << RED << fSourceHost.toString() << ":" << fSourcePort.toString() << GREEN << " set!" << std::endl;
+            ss << "Data Sink: " << RED << fSinkHost.toString() << ":" << fSinkPort.toString() << GREEN << " set!" << std::endl;
+        }
+
         ss << "Data Directory: " << RED << fDataDirectory.toString() << GREEN << " set!" << std::endl;
         ss << "Result Directory: " << RED << fResultDirectory.toString() << GREEN << " set!" << std::endl;
         ss << "Run Number: " << RED << fRunNumber << GREEN << " set!" << std::endl;

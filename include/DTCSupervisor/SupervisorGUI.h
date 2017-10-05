@@ -241,6 +241,7 @@ namespace Ph2TkDAQ {
         uint32_t* fEventCounter;
         xdata::Boolean* fRAWFile;
         xdata::Boolean* fDAQFile;
+        xdata::Boolean* fSendData;
         std::string fHostString;
 
         FormData* fHWFormData;
