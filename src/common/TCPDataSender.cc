@@ -34,7 +34,56 @@ TCPDataSender::~TCPDataSender()
 
 void TCPDataSender::generateTCPPackets()
 {
+    fBufferVec.clear();
+    const uint32_t ferolBlockSize64 = 512;//in Bytes
+    const uint32_t ferolHeaderSize64 = 2;//in Bytes
+    const uint32_t ferolPayloadSize64 = ferolBlockSize - ferolHeaderSize;
 
+    //first, figure out the size of my slink event
+    size_t cEventSize64  = fEvent.getSize64();
+    //instead of ceil
+    uint32_t cNbBlock = (cEventSize64 + ferolPayloadSize64 - 1) / ferolPayloadSize64;
+
+    bool cFirst = true;
+    bool cLast = false;
+    uint32_t cBlockIdx = 0;
+
+    wile (!cLast)
+    {
+        if (cNbBlock == 1 && cBlockIdx == 0)
+        {
+            //one and only one block as vector of uint64_t
+            cLast = true;
+            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (cBlockIdx, cFirst, cLast, cEventSize64, fEvent.getSourceId(), fEvent.getLV1Id() );
+            cTmpVec.insert (cTmpVec.end(), fEvent.getData<uint64_t>().begin(), fEvent.getData<uint64_t>().end() )
+            fBufferVec.push_back (cTmpVec);
+        }
+        else if (cNbBlock > 1 && cBlockIdx == 0)
+        {
+            //first block of multi block event
+            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (cBlockIdx, cFirst, cLast, ferolPayloadSize64, fEvent.getSourceId(), fEvent.getLV1Id() );
+            cTmpVec.insert (cTmpVec.end(), fEvent.getData<uint64_t>().begin(), fEvent.getData<uint64_t>().begin() + ferolPayloadSize64);
+            fBufferVec.push_back (cTmpVec);
+        }
+        else if (cBlockIdx > 0 && cBlockIdx < cNbBlock)
+        {
+            //a Block in the middle of a multi-block event
+            cFirst = false;
+            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (cBlockIdx, cFirst, cLast, ferolPayloadSize64, fEvent.getSourceId(), fEvent.getLV1Id() );
+            cTmpVec.insert (cTmpVec.end(), fEvent.getData<uint64_t>().begin() + cBlockIdx * ferolPayloadSize64, fEvent.getData<uint64_t>().begin() + (cBlockIdx + 1) *ferolPayloadSize64);
+            fBufferVec.push_back (cTmpVec);
+        }
+        else if (cBlockIdx > 0 && cBlockIdx + 1 == cNbBlock)
+        {
+            cFirst = false;
+            cLast = true;
+            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (cBlockIdx, cFirst, cLast, cEventSize64 - (cBlockIdx * ferolPayloadSize64), fEvent.getSourceId(), fEvent.getLV1Id() );
+            cTmpVec.insert (cTmpVec.end(), fEvent.getData<uint64_t>().begin() + cBlockIdx * ferolPayloadSize64, fEvent.getData<uint64_t>().end() );
+            fBufferVec.push_back (cTmpVec);
+        }
+
+        cBlockIdx++;
+    }
 }
 
 void TCPDataSender::openConnection()
@@ -170,7 +219,6 @@ void TCPDataSender::closeConnection()
 bool TCPDataSender::sendData (toolbox::task::WorkLoop* wl)
 {
     //first, dequeue event - this blocks for some period and then returns
-    fEvent.clear();
 
     if (this->dequeueEvent() )
     {
@@ -180,7 +228,7 @@ bool TCPDataSender::sendData (toolbox::task::WorkLoop* wl)
 
         for (auto cBuff : fBufferVec)
         {
-            ssize_t len = cBuff.size() * 8; //in bytes?? //size of the buffer
+            ssize_t len = cBuff.size() * sizeof (uint64_t); //in bytes?? //size of the buffer
             char* buf = &cBuff[0];
 
             while ( len > 0 && fSocketOpen )
@@ -224,9 +272,60 @@ std::vector<uint64_t> TCPDataSender::generateFEROLHeader (uint16_t pBlockNumber,
 
         if (pFirst) cFirstWord |= (uint64_t) 1 << 31;
 
-        if (pLAst) cFirstWord |= (uint64_t) 1 << 31;
+        if (pLast) cFirstWord |= (uint64_t) 1 << 30;
+
+        cSecondWord |= ( (uint64_t) pFEDId & 0xFFF) << 32 | ( (uint64_t) pL1AId & 0xFFFFF);
+        cVec.push_back (cFirstWord);
+        cVec.push_back (cSecondWord);
     }
     else
         LOG4CPLUS_ERROR (fLogger, "Error, SlinkEvent in memory is empty!");
 
+    return cVec;
+}
+
+void TCPDataSender::enqueueEvent (SLinkEvent pEvent)
+{
+    std::lock_guard<std::mutex> cLock (fMutex);
+    fQueue.push (pVector);
+    fEventSet.notify_one();
+}
+
+bool TCPDataSender::dequeueEvent()
+{
+    std::unique_lock<std::mutex> cLock (fMutex);
+
+    if (!fQueue.empty() )
+    {
+        //there is something in the queue still, event without the condition variable
+        fEvent.clear();
+        fEvent = fQueue.front();
+        fQueue.pop();
+        return true;
+    }
+    else
+    {
+        if (fEventSet.wait_for (cLock, std::chrono::milliseconds (500), [ {return true;}]) )
+        {
+            std::cout << "received signal from condition variable" << std::endl;
+            fEvent.clear();
+            fEvent = fQueue.front();
+            fQueue.pop();
+            return true;
+        }
+        else
+        {
+            std::cout << "timed out after 500 ms!" << std::endl;
+            return false;
+        }
+    }
+
+    //original implementation
+    //std::unique_lock<std::mutex> cLock (fMutex);
+
+    //while (fQueue.empty() )
+    //fEventSet.wait (cLock);
+
+    //fEvent = fQueue.front();
+    //fQueue.pop();
 }
