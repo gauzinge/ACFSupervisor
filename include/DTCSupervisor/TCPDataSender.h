@@ -56,10 +56,11 @@ namespace Ph2TkDAQ {
         //to be called in the main DAQ workloop when the data is there
         void enqueueEvent (SLinkEvent pEvent);
         //to be called inside SendData
-        void dequeueEvent();
+        bool dequeueEvent();
 
       private:
-        void generateFEROLHeader();
+        void generateTCPPackets();
+        std::vector<uint64_t> generateFEROLHeader (uint16_t pBlockNumber, bool pFirst, bool pLast, uint16_t pNWords64, uint16_t pFEDId, uint32_t pL1AId);
 
       public:
         std::string fSourceHost;
@@ -69,12 +70,13 @@ namespace Ph2TkDAQ {
 
       private:
         SLinkEvent fEvent; /*!<SLinkEvent object to operate on after the dequeue operation */
-        uint64_t fBuffer[512]; //not sure if this is needed - I am going to memcopy anyway?!
+        std::vector<std::vector<uint64_t>> fBufferVec; //not sure if this is needed - I am going to memcopy anyway?!
         mutable std::mutex fMutex;/*!< Mutex */
         std::queue<SLinkEvent> fQueue; /*!<Queue to populate from set() and depopulate in writeFile() */
         std::condition_variable fEventSet;/*!< condition variable to notify writer thread of new data*/
         bool fSocketOpen;
         log4cplus::Logger fLogger;
+        int fSockfd;
     };
 }
 #endif
