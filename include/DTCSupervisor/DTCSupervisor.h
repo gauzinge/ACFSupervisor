@@ -26,6 +26,7 @@
 
 #include "DTCSupervisor/SupervisorGUI.h"
 #include "DTCSupervisor/DTCStateMachine.h"
+#include "DTCSupervisor/TCPDataSender.h"
 
 //Ph2 ACF Includes
 #include "System/SystemController.h"
@@ -77,7 +78,7 @@ namespace Ph2TkDAQ {
         // the workloop, action signature and job for Data sending to EVM
         toolbox::task::ActionSignature* fDSAction;
         toolbox::task::WorkLoop* fDSWorkloop;
-        //bool SendDataJob (toolbox::task::WorkLoop* wl);
+        bool SendDataJob (toolbox::task::WorkLoop* wl);
 
       protected:
         xdata::String fHWDescriptionFile;
@@ -109,6 +110,7 @@ namespace Ph2TkDAQ {
         //File Handler for SLINK Data - the one for raw data is part of SystemController
         FileHandler* fSLinkFileHandler;
         bool fGetRunnumberFromFile;
+        Ph2TkDAQ::TCPDataSender* fDataSender;
 
 
       public:

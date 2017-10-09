@@ -26,6 +26,9 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     //instance of my GUI object
     fGUI = new SupervisorGUI (this, &fFSM);
 
+    //instance of TCP Data Sender
+    fDataSender = new TCPDataSender (this->getApplicationLogger() );
+
     //programatically bind all GUI methods to the Default method of this piece of code
     std::vector<toolbox::lang::Method*> v = fGUI->getMethods();
     std::vector<toolbox::lang::Method*>::iterator cMethod;
@@ -59,10 +62,10 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
 
     //Data to EVM
     this->getApplicationInfoSpace()->fireItemAvailable ("SendData", &fSendData);
-    this->getApplicationInfoSpace()->fireItemAvailable ("SourceHost", &fSourceHost);
-    this->getApplicationInfoSpace()->fireItemAvailable ("SourcePort", &fSourcePort);
-    this->getApplicationInfoSpace()->fireItemAvailable ("SinkHost", &fSinkHost);
-    this->getApplicationInfoSpace()->fireItemAvailable ("SinkPort", &fSinkPort);
+    this->getApplicationInfoSpace()->fireItemAvailable ("DataSourceHost", &fSourceHost);
+    this->getApplicationInfoSpace()->fireItemAvailable ("DataSourcePort", &fSourcePort);
+    this->getApplicationInfoSpace()->fireItemAvailable ("DataSinkHost", &fSinkHost);
+    this->getApplicationInfoSpace()->fireItemAvailable ("DataSinkPort", &fSinkPort);
 
     //bind the action signature for the calibration action and create the workloop
     this->fCalibrationAction = toolbox::task::bind (this, &DTCSupervisor::CalibrationJob, "Calibration");
@@ -73,8 +76,9 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     this->fDAQWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "DAQ", "waiting");
 
     //bind the action signature for the DS action and create the workloop
-    //this->fDSAction = toolbox::task::bind (this, &DTCSupervisor::fTCPDataSender::sendData, "DS");
-    //this->fDSWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "DS", "waiting");
+    //this->fDSAction = toolbox::task::bind (this, &TCPDataSender::sendData, "DS");
+    this->fDSAction = toolbox::task::bind (this, &DTCSupervisor::SendDataJob, "DS");
+    this->fDSWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "DS", "waiting");
 
     //detect when default values have been set
     this->getApplicationInfoSpace()->addListener (this, "urn:xdaq-event:setDefaultValues");
@@ -137,6 +141,8 @@ DTCSupervisor::~DTCSupervisor()
     if (fSystemController) delete fSystemController;
 
     if (fSLinkFileHandler) delete fSLinkFileHandler;
+
+    if (fDataSender) delete fDataSender;
 }
 
 //configure action listener
@@ -199,6 +205,10 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         fHttpServer->AddLocation ("Calibrations/", "/afs/cern.ch/user/g/gauzinge/DTCSupervisor/Results/CommissioningCycle_06-09-17_19:00/" );
         fGUI->appendResultFiles ("http://cmsuptrackerdaq.cern.ch:8080/Calibrations/CommissioningCycle.root");
 #endif
+
+        //set the source and sink for the TCP data sender
+        fDataSender->setSource (fSourceHost.toString(), fSourcePort);
+        fDataSender->setSink (fSinkHost.toString(), fSinkPort);
     }
 }
 
@@ -319,16 +329,24 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
         uint32_t cEventCount = fSystemController->ReadData (cBoard, false );
         fEventCounter += cEventCount;
 
-        if (cEventCount != 0 && fDAQFile)
+        if (cEventCount != 0 && (fDAQFile || fSendData) )
+            //if (cEventCount != 0)
         {
             const std::vector<Event*>& events = fSystemController->GetEvents ( cBoard );
 
             for (auto cEvent : events)
             {
                 SLinkEvent cSLev =  cEvent->GetSLinkEvent (cBoard);
-                fSLinkFileHandler->set (cSLev.getData<uint32_t>() );
-            }
 
+                if (fDAQFile)
+                    fSLinkFileHandler->set (cSLev.getData<uint32_t>() );
+
+                LOG4CPLUS_INFO (this->getApplicationLogger(), RED << cSLev << RESET);
+
+                if (fSendData)
+                    fDataSender->enqueueEvent (cSLev);
+
+            }
         }
     }
     catch (std::exception& e)
@@ -356,6 +374,11 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
     }
 
     std::this_thread::sleep_for (std::chrono::milliseconds (fShortPause) );
+}
+
+bool DTCSupervisor::SendDataJob (toolbox::task::WorkLoop* wl)
+{
+    return this->fDataSender->sendData (wl);
 }
 
 bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
@@ -448,7 +471,12 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
             }
         }
 
-        fACFLock.take();
+        //open the connection for the TCP Data  Sender
+        if (fSendData)
+            //TODO
+            //fDataSender->openConnection();
+
+            fACFLock.take();
 
         //first, make sure that the event counter is 0 since we are just configuring and havent taken any data yet
         if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
@@ -520,6 +548,25 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
         //then we can re-enable and the below will be true
         if (cDataTaking && cEnabledProcedures == 0)
         {
+            //if SendData is enabled, here we need to start the SendData workloop
+            if (fSendData)
+            {
+                if (!fDSWorkloop->isActive() )
+                {
+                    fDSWorkloop->activate();
+                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Starting workloop for data sending!" << RESET);
+
+                    try
+                    {
+                        fDSWorkloop->submit (fDSAction);
+                    }
+                    catch (xdaq::exception::Exception& e)
+                    {
+                        LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
+                    }
+                }
+            }
+
             //first, make sure that the event counter is 0 since we are just starting the run
             if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
 
@@ -541,7 +588,6 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
                     LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
                 }
             }
-
         }
     }
     catch (std::exception& e)
@@ -573,6 +619,15 @@ bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
         //reset the internal runnumber so we pick up on it on the next initialise
         if (fGetRunnumberFromFile)
             fRunNumber = -1;
+
+        if (fSendData)
+        {
+            if (fDSWorkloop->isActive() )
+                fDSWorkloop->cancel();
+
+            //TODO
+            //fDataSender->closeConnection();
+        }
     }
     catch (std::exception& e)
     {

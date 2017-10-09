@@ -24,7 +24,7 @@ endif
 
 #Project=Ph2_TkDAQ
 Package=DTCSupervisor
-Sources= DTCSupervisor.cc SupervisorGUI.cc DTCStateMachine.cc version.cc XMLUtils.cc #LogReader.h
+Sources= DTCSupervisor.cc SupervisorGUI.cc DTCStateMachine.cc TCPDataSender.cc version.cc XMLUtils.cc #LogReader.h
 
 IncludeDirs = \
 	 ${BOOST_INCLUDE} \

@@ -5,6 +5,9 @@
 #include "toolbox/task/WorkLoopFactory.h"
 #include "toolbox/task/Action.h"
 #include "toolbox/BSem.h"
+#include <exception>
+#include "xdaq/exception/Exception.h"
+#include "xcept/Exception.h"
 #include "toolbox/Runtime.h"
 // ferol header but why?
 #include "interface/shared/ferol_header.h"
@@ -42,9 +45,20 @@ namespace Ph2TkDAQ {
 #define FEROLMAGICWORD 0x475A
 
       public:
-        TCPDataSender (log4plus::Logger pLogger);
-        TCPDataSender (std::string pSourceHost, uint32_t pSourcePort, std::string pSinkHost, uint32_t pSinkPort, log4plus::Logger pLogger);
+        TCPDataSender (log4cplus::Logger pLogger);
+        TCPDataSender (std::string pSourceHost, uint32_t pSourcePort, std::string pSinkHost, uint32_t pSinkPort, log4cplus::Logger pLogger);
         ~TCPDataSender();
+
+        void setSource (std::string pSourceHost, uint32_t pSourcePort)
+        {
+            fSourceHost = pSourceHost;
+            fSourcePort = pSourcePort;
+        }
+        void setSink (std::string pSinkHost, uint32_t pSinkPort)
+        {
+            fSinkHost = pSinkHost;
+            fSinkPort = pSinkPort;
+        }
 
         //to be called in DTCSupervisor::Configure
         void openConnection();

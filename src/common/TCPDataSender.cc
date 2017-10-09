@@ -1,5 +1,7 @@
 #include "DTCSupervisor/TCPDataSender.h"
 
+using namespace Ph2TkDAQ;
+
 TCPDataSender::TCPDataSender (log4cplus::Logger pLogger) :
     fSourceHost (""),
     fSourcePort (0),
@@ -13,7 +15,7 @@ TCPDataSender::TCPDataSender (log4cplus::Logger pLogger) :
 
 }
 
-TCPDataSender::TCPDataSender (std::string pSourceHost, uint32_t pSourcePort, std::string pSinkHost, uint32_t pSinkPortlog4cplus::Logger pLogger) :
+TCPDataSender::TCPDataSender (std::string pSourceHost, uint32_t pSourcePort, std::string pSinkHost, uint32_t pSinkPort, log4cplus::Logger pLogger) :
     fSourceHost (pSourceHost),
     fSourcePort (pSourcePort),
     fSinkHost (pSinkHost),
@@ -37,7 +39,7 @@ void TCPDataSender::generateTCPPackets()
     fBufferVec.clear();
     const uint32_t ferolBlockSize64 = 512;//in Bytes
     const uint32_t ferolHeaderSize64 = 2;//in Bytes
-    const uint32_t ferolPayloadSize64 = ferolBlockSize - ferolHeaderSize;
+    const uint32_t ferolPayloadSize64 = ferolBlockSize64 - ferolHeaderSize64;
 
     //first, figure out the size of my slink event
     size_t cEventSize64  = fEvent.getSize64();
@@ -48,14 +50,14 @@ void TCPDataSender::generateTCPPackets()
     bool cLast = false;
     uint32_t cBlockIdx = 0;
 
-    wile (!cLast)
+    while (!cLast)
     {
         if (cNbBlock == 1 && cBlockIdx == 0)
         {
             //one and only one block as vector of uint64_t
             cLast = true;
             std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (cBlockIdx, cFirst, cLast, cEventSize64, fEvent.getSourceId(), fEvent.getLV1Id() );
-            cTmpVec.insert (cTmpVec.end(), fEvent.getData<uint64_t>().begin(), fEvent.getData<uint64_t>().end() )
+            cTmpVec.insert (cTmpVec.end(), fEvent.getData<uint64_t>().begin(), fEvent.getData<uint64_t>().end() );
             fBufferVec.push_back (cTmpVec);
         }
         else if (cNbBlock > 1 && cBlockIdx == 0)
@@ -93,7 +95,7 @@ void TCPDataSender::openConnection()
     if (gethostname (myname, 100) != 0)
     {
         std::cout << "DS:: Failed to get hostname" << ": " << strerror (errno) << std::endl;
-        XCEPT_RAISE (toolbox::fsm::exception::Exception, "DS:: Failed to get hostname");
+        XCEPT_RAISE (xdaq::exception::Exception, "DS:: Failed to get hostname");
     }
 
     if (std::string (myname) != fSourceHost)
@@ -104,7 +106,7 @@ void TCPDataSender::openConnection()
 
     if ( fSockfd < 0 )
     {
-        XCEPT_RAISE (exception::TCP, "Failed to open socket");
+        XCEPT_RAISE (xdaq::exception::Exception, "Failed to open socket");
         fSocketOpen = false;
     }
 
@@ -117,7 +119,7 @@ void TCPDataSender::openConnection()
         fSocketOpen = false;
         std::ostringstream msg;
         msg << "Failed to set SO_REUSEADDR on socket: " << strerror (errno);
-        XCEPT_RAISE (exception::TCP, msg.str() );
+        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
     }
 
     // Allow socket to reuse the port
@@ -127,7 +129,7 @@ void TCPDataSender::openConnection()
         fSocketOpen = false;
         std::ostringstream msg;
         msg << "Failed to set SO_REUSEPORT on socket: " << strerror (errno);
-        XCEPT_RAISE (exception::TCP, msg.str() );
+        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
     }
 
     // Set connection Abort on close
@@ -141,7 +143,7 @@ void TCPDataSender::openConnection()
         fSocketOpen = false;
         std::ostringstream msg;
         msg << "Failed to set SO_LINGER on socket: " << strerror (errno);
-        XCEPT_RAISE (exception::TCP, msg.str() );
+        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
     }
 
     sockaddr_in sa_local;
@@ -157,7 +159,7 @@ void TCPDataSender::openConnection()
         std::ostringstream msg;
         msg << "Failed to bind socket to local port " << fSourceHost << ":" << fSourcePort;
         msg << " : " << strerror (errno);
-        XCEPT_RAISE (exception::TCP, msg.str() );
+        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
     }
 
     addrinfo hints, *servinfo;
@@ -177,7 +179,7 @@ void TCPDataSender::openConnection()
         std::ostringstream msg;
         msg << "Failed to get server info for " << fSinkHost << ":" << fSinkPort;
         msg << " : " << gai_strerror (result);
-        XCEPT_RAISE (exception::TCP, msg.str() );
+        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
     }
 
     if ( connect (fSockfd, servinfo->ai_addr, servinfo->ai_addrlen) < 0 )
@@ -187,7 +189,7 @@ void TCPDataSender::openConnection()
         std::ostringstream msg;
         msg << "Failed to connect to " << fSinkHost << ":" << fSinkPort;
         msg << " : " << strerror (errno);
-        XCEPT_RAISE (exception::TCP, msg.str() );
+        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
     }
 
     // Set socket to non-blocking
@@ -199,7 +201,7 @@ void TCPDataSender::openConnection()
         fSocketOpen = false;
         std::ostringstream msg;
         msg << "Failed to set O_NONBLOCK on socket: " << strerror (errno);
-        XCEPT_RAISE (exception::TCP, msg.str() );
+        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
     }
 }
 
@@ -210,7 +212,7 @@ void TCPDataSender::closeConnection()
         std::ostringstream msg;
         msg << "Failed to close socket to " << fSinkHost << ":" << fSinkPort;
         msg << " : " << strerror (errno);
-        XCEPT_RAISE (exception::TCP, msg.str() );
+        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
     }
 
     fSockfd = 0;
@@ -218,6 +220,7 @@ void TCPDataSender::closeConnection()
 
 bool TCPDataSender::sendData (toolbox::task::WorkLoop* wl)
 {
+    std::cout << "Data sending workloop! " << std::endl;
     //first, dequeue event - this blocks for some period and then returns
 
     if (this->dequeueEvent() )
@@ -226,33 +229,41 @@ bool TCPDataSender::sendData (toolbox::task::WorkLoop* wl)
         // this generates a vector of vectors fBufferVec that includes the FEROL headers
         this->generateTCPPackets();
 
-        for (auto cBuff : fBufferVec)
+        for (auto& cBuff : fBufferVec)
         {
             ssize_t len = cBuff.size() * sizeof (uint64_t); //in bytes?? //size of the buffer
-            char* buf = &cBuff[0];
+            char buf[4096];
+            memcpy (&buf, &cBuff[0], len);
 
-            while ( len > 0 && fSocketOpen )
+            for (int i = 0; i < cBuff.size(); i++)
             {
-                const ssize_t written = write (fSockfd, buf, len);
-
-                if ( written < 0 )
-                {
-                    if ( errno == EWOULDBLOCK )
-                        ::usleep (100);
-                    else
-                    {
-                        std::ostringstream msg;
-                        msg << "Failed to send data to " << fSinkHost << ":" << fSinkPort;
-                        msg << " : " << strerror (errno);
-                        XCEPT_RAISE (exception::TCP, msg.str() );
-                    }
-                }
-                else
-                {
-                    len -= written;
-                    buf += written;
-                }
+                std::cout << "DEBUG #" << i << " " << std::hex << cBuff.at (i) << " " << buf[i] << buf[i + 1] << buf[i + 2] << buf[i + 3] << buf[i + 4] << buf[i + 5] << buf[i + 6] << buf[i + 7] << std::dec << std::endl;
+                std::cout << std::endl;
             }
+
+            //TODO
+            //while ( len > 0 && fSocketOpen )
+            //{
+            //const ssize_t written = write (fSockfd, buf, len);
+
+            //if ( written < 0 )
+            //{
+            //if ( errno == EWOULDBLOCK )
+            //::usleep (100);
+            //else
+            //{
+            //std::ostringstream msg;
+            //msg << "Failed to send data to " << fSinkHost << ":" << fSinkPort;
+            //msg << " : " << strerror (errno);
+            //XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+            //}
+            //}
+            //else
+            //{
+            //len -= written;
+            //*buf += written;
+            //}
+            //}
         }
     }
 
@@ -287,7 +298,7 @@ std::vector<uint64_t> TCPDataSender::generateFEROLHeader (uint16_t pBlockNumber,
 void TCPDataSender::enqueueEvent (SLinkEvent pEvent)
 {
     std::lock_guard<std::mutex> cLock (fMutex);
-    fQueue.push (pVector);
+    fQueue.push (pEvent);
     fEventSet.notify_one();
 }
 
@@ -301,16 +312,18 @@ bool TCPDataSender::dequeueEvent()
         fEvent.clear();
         fEvent = fQueue.front();
         fQueue.pop();
+        LOG4CPLUS_INFO (fLogger,  fEvent);
         return true;
     }
     else
     {
-        if (fEventSet.wait_for (cLock, std::chrono::milliseconds (500), [ {return true;}]) )
+        if (fEventSet.wait_for (cLock, std::chrono::milliseconds (500), [] {return true;}) )
         {
             std::cout << "received signal from condition variable" << std::endl;
             fEvent.clear();
             fEvent = fQueue.front();
             fQueue.pop();
+            LOG4CPLUS_INFO (fLogger,  fEvent);
             return true;
         }
         else
