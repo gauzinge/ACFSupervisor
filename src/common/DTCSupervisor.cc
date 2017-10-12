@@ -378,7 +378,7 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
 
 bool DTCSupervisor::SendDataJob (toolbox::task::WorkLoop* wl)
 {
-    return this->fDataSender->sendData (wl);
+    return this->fDataSender->sendData ();
 }
 
 bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)

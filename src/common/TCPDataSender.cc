@@ -218,7 +218,7 @@ void TCPDataSender::closeConnection()
     fSockfd = 0;
 }
 
-bool TCPDataSender::sendData (toolbox::task::WorkLoop* wl)
+bool TCPDataSender::sendData ()
 {
     std::cout << "Data sending workloop! " << std::endl;
     //first, dequeue event - this blocks for some period and then returns
@@ -227,44 +227,44 @@ bool TCPDataSender::sendData (toolbox::task::WorkLoop* wl)
     {
         // if dequeue event returned true, we have a new SLinkEvent that we need to process!
         // this generates a vector of vectors fBufferVec that includes the FEROL headers
-        this->generateTCPPackets();
+        //this->generateTCPPackets();
 
-        for (auto& cBuff : fBufferVec)
-        {
-            ssize_t len = cBuff.size() * sizeof (uint64_t); //in bytes?? //size of the buffer
-            char buf[4096];
-            memcpy (&buf, &cBuff[0], len);
+        //for (auto& cBuff : fBufferVec)
+        //{
+        //ssize_t len = cBuff.size() * sizeof (uint64_t); //in bytes?? //size of the buffer
+        //char buf[4096];
+        //memcpy (&buf, &cBuff[0], len);
 
-            for (int i = 0; i < cBuff.size(); i++)
-            {
-                std::cout << "DEBUG #" << i << " " << std::hex << cBuff.at (i) << " " << buf[i] << buf[i + 1] << buf[i + 2] << buf[i + 3] << buf[i + 4] << buf[i + 5] << buf[i + 6] << buf[i + 7] << std::dec << std::endl;
-                std::cout << std::endl;
-            }
+        //for (int i = 0; i < cBuff.size(); i++)
+        //{
+        //std::cout << "DEBUG #" << i << " " << std::hex << cBuff.at (i) << " " << buf[i] << buf[i + 1] << buf[i + 2] << buf[i + 3] << buf[i + 4] << buf[i + 5] << buf[i + 6] << buf[i + 7] << std::dec << std::endl;
+        //std::cout << std::endl;
+        //}
 
-            //TODO
-            //while ( len > 0 && fSocketOpen )
-            //{
-            //const ssize_t written = write (fSockfd, buf, len);
+        //TODO
+        //while ( len > 0 && fSocketOpen )
+        //{
+        //const ssize_t written = write (fSockfd, buf, len);
 
-            //if ( written < 0 )
-            //{
-            //if ( errno == EWOULDBLOCK )
-            //::usleep (100);
-            //else
-            //{
-            //std::ostringstream msg;
-            //msg << "Failed to send data to " << fSinkHost << ":" << fSinkPort;
-            //msg << " : " << strerror (errno);
-            //XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
-            //}
-            //}
-            //else
-            //{
-            //len -= written;
-            //*buf += written;
-            //}
-            //}
-        }
+        //if ( written < 0 )
+        //{
+        //if ( errno == EWOULDBLOCK )
+        //::usleep (100);
+        //else
+        //{
+        //std::ostringstream msg;
+        //msg << "Failed to send data to " << fSinkHost << ":" << fSinkPort;
+        //msg << " : " << strerror (errno);
+        //XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+        //}
+        //}
+        //else
+        //{
+        //len -= written;
+        //*buf += written;
+        //}
+        //}
+        //}
     }
 
     return true;
