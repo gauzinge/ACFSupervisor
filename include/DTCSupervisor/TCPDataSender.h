@@ -33,6 +33,7 @@
 
 //from Ph2_ACF
 #include "Utils/SLinkEvent.h"
+#include "Utils/Timer.h"
 
 //generic
 #include <vector>
@@ -72,9 +73,17 @@ namespace Ph2TkDAQ {
         //to be called inside SendData
         bool dequeueEvent (std::vector<SLinkEvent>& pEventVector);
 
+        //get the number of processed events
+        uint64_t getNEventsProcessed();
+        double getEventFrequency();
+        void StartTimer();
+        void StopTimer();
+        void ResetTimer();
+
       private:
-        std::vector<std::vector<uint64_t>> generateTCPPackets (SLinkEvent& pEvent);
+        std::vector<uint64_t> generateTCPPackets (SLinkEvent& pEvent);
         std::vector<uint64_t> generateFEROLHeader (uint16_t pBlockNumber, bool pFirst, bool pLast, uint16_t pNWords64, uint16_t pFEDId, uint32_t pL1AId);
+        void print_databuffer (std::vector<uint64_t>& pBufVec, std::ostream& os);
 
       public:
         std::string fSourceHost;
@@ -86,11 +95,15 @@ namespace Ph2TkDAQ {
         //SLinkEvent fEvent; [>!<SLinkEvent object to operate on after the dequeue operation <]
         //std::vector<std::vector<uint64_t>> fBufferVec; //not sure if this is needed - I am going to memcopy anyway?!
         mutable std::mutex fMutex;/*!< Mutex */
+        mutable std::mutex fCounterMutex;/*!< Mutex */
         std::queue<std::vector<SLinkEvent>> fQueue; /*!<Queue to populate from set() and depopulate in writeFile() */
         std::condition_variable fEventSet;/*!< condition variable to notify writer thread of new data*/
         bool fSocketOpen;
         log4cplus::Logger fLogger;
         int fSockfd;
+        uint64_t fEventsProcessed;
+        Timer fTimer;
+        double fEventFrequency;
     };
 }
 #endif

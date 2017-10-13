@@ -330,7 +330,6 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
         fEventCounter += cEventCount;
 
         if (cEventCount != 0 && (fDAQFile || fSendData) )
-            //if (cEventCount != 0)
         {
             const std::vector<Event*>& events = fSystemController->GetEvents ( cBoard );
             std::vector<SLinkEvent> cSLinkEventVec;
@@ -340,16 +339,12 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
                 SLinkEvent cSLev =  cEvent->GetSLinkEvent (cBoard);
                 cSLinkEventVec.push_back (cSLev);
 
-
                 if (fDAQFile)
                     fSLinkFileHandler->set (cSLev.getData<uint32_t>() );
-
-                //LOG4CPLUS_INFO (this->getApplicationLogger(), RED << cSLev << RESET);
-
-                if (fSendData)
-                    fDataSender->enqueueEvent (cSLinkEventVec);
-
             }
+
+            if (fSendData)
+                fDataSender->enqueueEvent (cSLinkEventVec);
         }
     }
     catch (std::exception& e)
@@ -476,10 +471,12 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
 
         //open the connection for the TCP Data  Sender
         if (fSendData)
+        {
             //TODO
             //fDataSender->openConnection();
+        }
 
-            fACFLock.take();
+        fACFLock.take();
 
         //first, make sure that the event counter is 0 since we are just configuring and havent taken any data yet
         if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
@@ -559,6 +556,9 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
                     fDSWorkloop->activate();
                     LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Starting workloop for data sending!" << RESET);
 
+                    fDataSender->ResetTimer();
+                    fDataSender->StartTimer();
+
                     try
                     {
                         fDSWorkloop->submit (fDSAction);
@@ -567,6 +567,7 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
                     {
                         LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
                     }
+
                 }
             }
 
@@ -628,6 +629,8 @@ bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
             if (fDSWorkloop->isActive() )
                 fDSWorkloop->cancel();
 
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Data Sender Workloop processed " << fDataSender->getNEventsProcessed() << "Events with a frequencey of " << fDataSender->getEventFrequency() << "Hz" << RESET);
+
             //TODO
             //fDataSender->closeConnection();
         }
@@ -688,12 +691,16 @@ bool DTCSupervisor::stopping (toolbox::task::WorkLoop* wl)
             fACFLock.take();
             fSystemController->Stop();
             fACFLock.give();
-
         }
 
         if (fCalibrationWorkloop->isActive() )
             fCalibrationWorkloop->cancel();
 
+        if (fSendData)
+        {
+            fDataSender->StopTimer();
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Data Sender Workloop processed " << fDataSender->getNEventsProcessed() << "Events with a frequencey of " << fDataSender->getEventFrequency() << "Hz" << RESET );
+        }
     }
     catch (std::exception& e)
     {
@@ -715,6 +722,9 @@ bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
         if (fCalibrationWorkloop->isActive() )
             fCalibrationWorkloop->cancel();
 
+        if (fDSWorkloop->isActive() )
+            fDSWorkloop->cancel();
+
         fACFLock.take();
         fSystemController->Destroy();
         delete fSystemController;
@@ -722,13 +732,14 @@ bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
         fACFLock.give();
         fGUI->fHwXMLString.clear();
         fGUI->fSettingsXMLString.clear();
-
     }
     catch (std::exception& e)
     {
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
         fFSM.fireFailed ("Error on destroying", this);
     }
+
+    std::cout << "I get here!" << std::endl;
 
     fFSM.fireEvent ("DestroyDone", this);
     return false;
