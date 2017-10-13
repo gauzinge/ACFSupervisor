@@ -34,6 +34,26 @@ TCPDataSender::~TCPDataSender()
     LOG4CPLUS_INFO (fLogger, "Destroying TCPDataSender");
 }
 
+std::vector<uint64_t> TCPDataSender::generateFEROLHeader (uint16_t pBlockNumber, bool pFirst, bool pLast, uint16_t pNWords64, uint16_t pFEDId, uint32_t pL1AId)
+{
+    std::vector<uint64_t> cVec;
+
+    uint64_t cFirstWord = 0;
+    uint64_t cSecondWord = 0;
+
+    cFirstWord |= ( (uint64_t) FEROLMAGICWORD & 0xFFFF) << 48 | ( (uint64_t) pBlockNumber & 0x7FF) << 32 | ( (uint64_t) pNWords64 & 0x3FF);
+
+    if (pFirst) cFirstWord |= (uint64_t) 1 << 31;
+
+    if (pLast) cFirstWord |= (uint64_t) 1 << 30;
+
+    cSecondWord |= ( (uint64_t) pFEDId & 0xFFF) << 32 | ( (uint64_t) pL1AId & 0xFFFFF);
+    cVec.push_back (cFirstWord);
+    cVec.push_back (cSecondWord);
+
+    return cVec;
+}
+
 std::vector<std::vector<uint64_t>> TCPDataSender::generateTCPPackets (SLinkEvent& pEvent)
 {
     std::vector<std::vector<uint64_t>> cBufVec;
@@ -44,9 +64,13 @@ std::vector<std::vector<uint64_t>> TCPDataSender::generateTCPPackets (SLinkEvent
 
     //first, figure out the size of my slink event
     size_t cEventSize64  = pEvent.getSize64();
+    uint16_t cSourceId = pEvent.getSourceId();
+    uint32_t cL1AId = pEvent.getLV1Id();
     //instead of ceil
     uint32_t cNbBlock = (cEventSize64 + ferolPayloadSize64 - 1) / ferolPayloadSize64;
-    LOG4CPLUS_INFO (fLogger, BOLDGREEN << "This event: lenght: " << cEventSize64 << " NBlock: (eventSize/" << ferolPayloadSize64 << "): " << cNbBlock << RESET);
+
+    //get the Event Data as vector of uint64_t
+    std::vector<uint64_t> cEventData = pEvent.getData<uint64_t>();
 
     bool cFirst = true;
     bool cLast = false;
@@ -58,38 +82,36 @@ std::vector<std::vector<uint64_t>> TCPDataSender::generateTCPPackets (SLinkEvent
         {
             //one and only one block as vector of uint64_t
             cLast = true;
-            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (pEvent, cBlockIdx, cFirst, cLast, cEventSize64, pEvent.getSourceId(), pEvent.getLV1Id() );
+            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (cBlockIdx, cFirst, cLast, cEventSize64, cSourceId, cL1AId);
 
-            for (auto cWord : cTmpVec)
-                std::cout << std::hex << cWord << std::dec << std::endl;
-
-            //cTmpVec.insert (cTmpVec.end(), pEvent.getData<uint64_t>().begin(), pEvent.getData<uint64_t>().end() );
-            //cBufVec.push_back (cTmpVec);
+            cTmpVec.insert (cTmpVec.end(), cEventData.begin(), cEventData.end() );
+            cBufVec.push_back (cTmpVec);
         }
 
-        //else if (cNbBlock > 1 && cBlockIdx == 0)
-        //{
-        ////first block of multi block event
-        //std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (pEvent, cBlockIdx, cFirst, cLast, ferolPayloadSize64, pEvent.getSourceId(), pEvent.getLV1Id() );
-        //cTmpVec.insert (cTmpVec.end(), pEvent.getData<uint64_t>().begin(), pEvent.getData<uint64_t>().begin() + ferolPayloadSize64);
-        //cBufVec.push_back (cTmpVec);
-        //}
-        //else if (cBlockIdx > 0 && cBlockIdx < cNbBlock)
-        //{
-        ////a Block in the middle of a multi-block event
-        //cFirst = false;
-        //std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (pEvent, cBlockIdx, cFirst, cLast, ferolPayloadSize64, pEvent.getSourceId(), pEvent.getLV1Id() );
-        //cTmpVec.insert (cTmpVec.end(), pEvent.getData<uint64_t>().begin() + cBlockIdx * ferolPayloadSize64, pEvent.getData<uint64_t>().begin() + (cBlockIdx + 1) *ferolPayloadSize64);
-        //cBufVec.push_back (cTmpVec);
-        //}
-        //else if (cBlockIdx > 0 && cBlockIdx + 1 == cNbBlock)
-        //{
-        //cFirst = false;
-        //cLast = true;
-        //std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (pEvent, cBlockIdx, cFirst, cLast, cEventSize64 - (cBlockIdx * ferolPayloadSize64), pEvent.getSourceId(), pEvent.getLV1Id() );
-        //cTmpVec.insert (cTmpVec.end(), pEvent.getData<uint64_t>().begin() + cBlockIdx * ferolPayloadSize64, pEvent.getData<uint64_t>().end() );
-        //cBufVec.push_back (cTmpVec);
-        //}
+        else if (cNbBlock > 1 && cBlockIdx == 0)
+        {
+            //first block of multi block event
+            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (cBlockIdx, cFirst, cLast, ferolPayloadSize64, cSourceId, cL1AId);
+            cTmpVec.insert (cTmpVec.end(), cEventData.begin(), cEventData.begin() + ferolPayloadSize64);
+            cBufVec.push_back (cTmpVec);
+        }
+        else if (cBlockIdx > 0 && cBlockIdx < cNbBlock)
+        {
+            //a Block in the middle of a multi-block event
+            cFirst = false;
+            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (cBlockIdx, cFirst, cLast, ferolPayloadSize64, cSourceId, cL1AId);
+            cTmpVec.insert (cTmpVec.end(), cEventData.begin() + cBlockIdx * ferolPayloadSize64, cEventData.begin() + (cBlockIdx + 1) *ferolPayloadSize64);
+            cBufVec.push_back (cTmpVec);
+        }
+        else if (cBlockIdx > 0 && cBlockIdx + 1 == cNbBlock)
+        {
+            //the last block of an event
+            cFirst = false;
+            cLast = true;
+            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (cBlockIdx, cFirst, cLast, cEventSize64 - (cBlockIdx * ferolPayloadSize64), cSourceId, cL1AId);
+            cTmpVec.insert (cTmpVec.end(), cEventData.begin() + cBlockIdx * ferolPayloadSize64, cEventData.end() );
+            cBufVec.push_back (cTmpVec);
+        }
 
         cBlockIdx++;
     }
@@ -97,6 +119,83 @@ std::vector<std::vector<uint64_t>> TCPDataSender::generateTCPPackets (SLinkEvent
     return cBufVec;
 }
 
+bool TCPDataSender::sendData ()
+{
+    std::cout << "Data sending workloop! " << std::endl;
+    //first, dequeue event - this blocks for some period and then returns
+    std::vector<SLinkEvent> cEventVec;
+    bool cData = this->dequeueEvent (cEventVec);
+
+    if (cData)
+    {
+        // if dequeue event returned true, we have a new SLinkEventVector that we need to process!
+        for (auto& cEvent : cEventVec)
+        {
+            std::cout << cEvent << std::endl;
+            std::vector<std::vector<uint64_t>> cBufVec = this->generateTCPPackets (cEvent);
+
+            //this needs some work
+            for (auto& cBuff : cBufVec)
+            {
+                ssize_t len = cBuff.size() * sizeof (uint64_t); //in bytes?? //size of the buffer
+                char buf[4096];
+                memcpy (&buf, &cBuff[0], len);
+
+                for (int i = 0; i < cBuff.size(); i++)
+                {
+                    std::cout << "DEBUG #" << i << " " << std::hex << cBuff.at (i) << " " << +buf[i] << +buf[i + 1] << +buf[i + 2] << +buf[i + 3] << +buf[i + 4] << +buf[i + 5] << +buf[i + 6] << +buf[i + 7] << std::dec << std::endl;
+                    std::cout << std::endl;
+                }
+            }
+        }
+    }
+
+    //if (this->dequeueEvent() )
+    //{
+    // if dequeue event returned true, we have a new SLinkEvent that we need to process!
+    // this generates a vector of vectors fBufferVec that includes the FEROL headers
+    //this->generateTCPPackets();
+
+    //for (auto& cBuff : fBufferVec)
+    //{
+    //ssize_t len = cBuff.size() * sizeof (uint64_t); //in bytes?? //size of the buffer
+    //char buf[4096];
+    //memcpy (&buf, &cBuff[0], len);
+
+    //for (int i = 0; i < cBuff.size(); i++)
+    //{
+    //std::cout << "DEBUG #" << i << " " << std::hex << cBuff.at (i) << " " << buf[i] << buf[i + 1] << buf[i + 2] << buf[i + 3] << buf[i + 4] << buf[i + 5] << buf[i + 6] << buf[i + 7] << std::dec << std::endl;
+    //std::cout << std::endl;
+    //}
+
+    //TODO
+    //while ( len > 0 && fSocketOpen )
+    //{
+    //const ssize_t written = write (fSockfd, buf, len);
+
+    //if ( written < 0 )
+    //{
+    //if ( errno == EWOULDBLOCK )
+    //::usleep (100);
+    //else
+    //{
+    //std::ostringstream msg;
+    //msg << "Failed to send data to " << fSinkHost << ":" << fSinkPort;
+    //msg << " : " << strerror (errno);
+    //XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+    //}
+    //}
+    //else
+    //{
+    //len -= written;
+    //*buf += written;
+    //}
+    //}
+    //}
+    //}
+
+    return true;
+}
 void TCPDataSender::openConnection()
 {
     char myname[100];
@@ -227,107 +326,6 @@ void TCPDataSender::closeConnection()
     fSockfd = 0;
 }
 
-bool TCPDataSender::sendData ()
-{
-    std::cout << "Data sending workloop! " << std::endl;
-    //first, dequeue event - this blocks for some period and then returns
-    std::vector<SLinkEvent> cEventVec;
-    bool cData = this->dequeueEvent (cEventVec);
-
-    if (cData)
-    {
-        // if dequeue event returned true, we have a new SLinkEventVector that we need to process!
-        for (auto& cEvent : cEventVec)
-        {
-            std::cout << cEvent << std::endl;
-            std::vector<std::vector<uint64_t>> cBufVec = this->generateTCPPackets (cEvent);
-
-            //for (auto& cBuff : cBufVec)
-            //{
-            //ssize_t len = cBuff.size() * sizeof (uint64_t); //in bytes?? //size of the buffer
-            //char buf[4096];
-            //memcpy (&buf, &cBuff[0], len);
-
-            //for (int i = 0; i < cBuff.size(); i++)
-            //{
-            //std::cout << "DEBUG #" << i << " " << std::hex << cBuff.at (i) << " " << buf[i] << buf[i + 1] << buf[i + 2] << buf[i + 3] << buf[i + 4] << buf[i + 5] << buf[i + 6] << buf[i + 7] << std::dec << std::endl;
-            //std::cout << std::endl;
-            //}
-            //}
-        }
-    }
-
-    //if (this->dequeueEvent() )
-    //{
-    // if dequeue event returned true, we have a new SLinkEvent that we need to process!
-    // this generates a vector of vectors fBufferVec that includes the FEROL headers
-    //this->generateTCPPackets();
-
-    //for (auto& cBuff : fBufferVec)
-    //{
-    //ssize_t len = cBuff.size() * sizeof (uint64_t); //in bytes?? //size of the buffer
-    //char buf[4096];
-    //memcpy (&buf, &cBuff[0], len);
-
-    //for (int i = 0; i < cBuff.size(); i++)
-    //{
-    //std::cout << "DEBUG #" << i << " " << std::hex << cBuff.at (i) << " " << buf[i] << buf[i + 1] << buf[i + 2] << buf[i + 3] << buf[i + 4] << buf[i + 5] << buf[i + 6] << buf[i + 7] << std::dec << std::endl;
-    //std::cout << std::endl;
-    //}
-
-    //TODO
-    //while ( len > 0 && fSocketOpen )
-    //{
-    //const ssize_t written = write (fSockfd, buf, len);
-
-    //if ( written < 0 )
-    //{
-    //if ( errno == EWOULDBLOCK )
-    //::usleep (100);
-    //else
-    //{
-    //std::ostringstream msg;
-    //msg << "Failed to send data to " << fSinkHost << ":" << fSinkPort;
-    //msg << " : " << strerror (errno);
-    //XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
-    //}
-    //}
-    //else
-    //{
-    //len -= written;
-    //*buf += written;
-    //}
-    //}
-    //}
-    //}
-
-    return true;
-}
-
-std::vector<uint64_t> TCPDataSender::generateFEROLHeader (SLinkEvent& pEvent, uint16_t pBlockNumber, bool pFirst, bool pLast, uint16_t pNWords64, uint16_t pFEDId, uint32_t pL1AId)
-{
-    std::vector<uint64_t> cVec;
-
-    if (pEvent.getSize64() != 0)
-    {
-        uint64_t cFirstWord = 0;
-        uint64_t cSecondWord = 0;
-
-        cFirstWord |= ( (uint64_t) FEROLMAGICWORD & 0xFFFF) << 48 | ( (uint64_t) pBlockNumber & 0x7FF) << 32 | ( (uint64_t) pNWords64 & 0x3FF);
-
-        if (pFirst) cFirstWord |= (uint64_t) 1 << 31;
-
-        if (pLast) cFirstWord |= (uint64_t) 1 << 30;
-
-        cSecondWord |= ( (uint64_t) pFEDId & 0xFFF) << 32 | ( (uint64_t) pL1AId & 0xFFFFF);
-        cVec.push_back (cFirstWord);
-        cVec.push_back (cSecondWord);
-    }
-    else
-        LOG4CPLUS_ERROR (fLogger, "Error, this SlinkEvent is empty!");
-
-    return cVec;
-}
 
 void TCPDataSender::enqueueEvent (std::vector<SLinkEvent> pEventVector)
 {
