@@ -406,3 +406,17 @@ void TCPDataSender::ResetTimer()
 {
     this->fTimer.reset();
 }
+cgicc::table TCPDataSender::generateStatTable()
+{
+    cgicc::table cTable;
+    cTable.set ("style", "margin-top: 20px; margin-left: 30px; font-size: 15pt;");
+
+    cTable.add (cgicc::tr().add (cgicc::td ("Source Host") ).add (cgicc::td (fSourceHost ) ) );
+    cTable.add (cgicc::tr().add (cgicc::td ("Source Port") ).add (cgicc::td (std::to_string (fSourcePort) ) ) );
+    cTable.add (cgicc::tr().add (cgicc::td ("Destination Host") ).add (cgicc::td (fSinkHost ) ) );
+    cTable.add (cgicc::tr().add (cgicc::td ("Destination Port") ).add (cgicc::td (std::to_string (fSinkPort) ) ) );
+    cTable.add (cgicc::tr().add (cgicc::td ("Processed Events") ).add (cgicc::td (std::to_string (fEventsProcessed) ) ) );
+    cTable.add (cgicc::tr().add (cgicc::td ("Event processing Frequency") ).add (cgicc::td (std::to_string (fEventFrequency) ) ) );
+
+    return cTable;
+}

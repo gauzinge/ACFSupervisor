@@ -100,6 +100,9 @@ namespace Ph2TkDAQ {
         xdata::Integer fSourcePort;
         xdata::String fSinkHost;
         xdata::Integer fSinkPort;
+        //for playback mode
+        xdata::Boolean fPlaybackMode;
+        xdata::String fPlaybackFile;
 
       private:
         toolbox::BSem fACFLock;

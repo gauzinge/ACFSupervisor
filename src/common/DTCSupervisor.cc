@@ -67,6 +67,10 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     this->getApplicationInfoSpace()->fireItemAvailable ("DataSinkHost", &fSinkHost);
     this->getApplicationInfoSpace()->fireItemAvailable ("DataSinkPort", &fSinkPort);
 
+    //Playback Mode
+    this->getApplicationInfoSpace()->fireItemAvailable ("PlaybackMode", &fPlaybackMode);
+    this->getApplicationInfoSpace()->fireItemAvailable ("PlaybackFile", &fPlaybackFile);
+
     //bind the action signature for the calibration action and create the workloop
     this->fCalibrationAction = toolbox::task::bind (this, &DTCSupervisor::CalibrationJob, "Calibration");
     this->fCalibrationWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "Calibrating", "waiting");
@@ -76,7 +80,6 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     this->fDAQWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "DAQ", "waiting");
 
     //bind the action signature for the DS action and create the workloop
-    //this->fDSAction = toolbox::task::bind (this, &TCPDataSender::sendData, "DS");
     this->fDSAction = toolbox::task::bind (this, &DTCSupervisor::SendDataJob, "DS");
     this->fDSWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "DS", "waiting");
 
@@ -161,6 +164,9 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         fDataDirectory = Ph2TkDAQ::appendSlash (fDataDirectory.toString() );
         fResultDirectory = Ph2TkDAQ::appendSlash (fResultDirectory.toString() );
 
+        fPlaybackFile = Ph2TkDAQ::expandEnvironmentVariables (fPlaybackFile.toString() );
+        fPlaybackFile = Ph2TkDAQ::removeFilePrefix (fPlaybackFile.toString() );
+
         fEventCounter = 0;
 
         //need to nofify the GUI of these variables
@@ -170,9 +176,18 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         fGUI->fRunNumber = &fRunNumber;
         fGUI->fNEvents = &fNEvents;
         fGUI->fEventCounter = &fEventCounter;
+
         fGUI->fRAWFile = &fRAWFile;
         fGUI->fDAQFile = &fDAQFile;
+
         fGUI->fSendData = &fSendData;
+        fGUI->fSourceHost = &fSourceHost;
+        fGUI->fSourcePort = &fSourcePort;
+        fGUI->fSinkHost = &fSinkHost;
+        fGUI->fSinkPort = &fSinkPort;
+
+        fGUI->fPlaybackMode = &fPlaybackMode;
+        fGUI->fPlaybackFile = &fPlaybackFile;
 
         //load the HWFile we have just set - user can always reload it but this is the default for settings and HWDescription
         fGUI->loadHWFile();
@@ -190,6 +205,10 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
             ss << "Data Source: " << RED << fSourceHost.toString() << ":" << fSourcePort.toString() << GREEN << " set!" << std::endl;
             ss << "Data Sink: " << RED << fSinkHost.toString() << ":" << fSinkPort.toString() << GREEN << " set!" << std::endl;
         }
+
+        if (fPlaybackMode)
+            ss << "Playback File: " << RED << fPlaybackFile.toString() << GREEN << " set!" << std::endl;
+
 
         ss << "Data Directory: " << RED << fDataDirectory.toString() << GREEN << " set!" << std::endl;
         ss << "Result Directory: " << RED << fResultDirectory.toString() << GREEN << " set!" << std::endl;
@@ -209,6 +228,7 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         //set the source and sink for the TCP data sender
         fDataSender->setSource (fSourceHost.toString(), fSourcePort);
         fDataSender->setSink (fSinkHost.toString(), fSinkPort);
+        fGUI->fDataSenderTable = fDataSender->generateStatTable();
     }
 }
 
@@ -376,6 +396,7 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
 
 bool DTCSupervisor::SendDataJob (toolbox::task::WorkLoop* wl)
 {
+    fGUI->fDataSenderTable = fDataSender->generateStatTable();
     return this->fDataSender->sendData ();
 }
 
@@ -474,6 +495,7 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
         {
             //TODO
             //fDataSender->openConnection();
+            fGUI->fDataSenderTable = fDataSender->generateStatTable();
         }
 
         fACFLock.take();
@@ -569,6 +591,8 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
                     }
 
                 }
+
+                fGUI->fDataSenderTable = fDataSender->generateStatTable();
             }
 
             //first, make sure that the event counter is 0 since we are just starting the run
@@ -633,6 +657,7 @@ bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
 
             //TODO
             //fDataSender->closeConnection();
+            fGUI->fDataSenderTable = fDataSender->generateStatTable();
         }
     }
     catch (std::exception& e)

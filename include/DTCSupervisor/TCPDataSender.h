@@ -14,7 +14,11 @@
 //for logging
 #include "log4cplus/logger.h"
 #include "log4cplus/loggingmacros.h"
-
+//to produce stat table
+#include "cgicc/CgiDefs.h"
+#include "cgicc/Cgicc.h"
+#include "cgicc/HTTPHTMLHeader.h"
+#include "cgicc/HTMLClasses.h"
 //for the sockets
 #include <fcntl.h>
 #include <sys/socket.h>
@@ -79,6 +83,7 @@ namespace Ph2TkDAQ {
         void StartTimer();
         void StopTimer();
         void ResetTimer();
+        cgicc::table generateStatTable();
 
       private:
         std::vector<uint64_t> generateTCPPackets (SLinkEvent& pEvent);

@@ -38,6 +38,7 @@ SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMa
     xgi::bind (this, &SupervisorGUI::ConfigPage, "ConfigPage");
     xgi::bind (this, &SupervisorGUI::CalibrationPage, "CalibrationPage");
     xgi::bind (this, &SupervisorGUI::FirmwarePage, "FirmwarePage");
+    xgi::bind (this, &SupervisorGUI::PlaybackDSPage, "PlaybackDSPage");
 
     //helper methods for buttons etc
     xgi::bind (this, &SupervisorGUI::reloadHWFile, "reloadHWFile");
@@ -49,6 +50,8 @@ SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMa
     xgi::bind (this, &SupervisorGUI::toggleAutoRefresh, "toggleAutoRefresh");
     xgi::bind (this, &SupervisorGUI::loadImages, "loadImages");
     xgi::bind (this, &SupervisorGUI::handleImages, "handleImages");
+    xgi::bind (this, &SupervisorGUI::processDSForm, "processDSForm");
+    xgi::bind (this, &SupervisorGUI::processPlaybackForm, "processPlaybackForm");
 
     fCurrentPageView = Tab::MAIN;
     fLogFilePath = (expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/logs/DTCSuper.log") );
@@ -197,11 +200,11 @@ void SupervisorGUI::FirmwarePage (xgi::Input* in, xgi::Output* out) throw (xgi::
         *out << tr() << std::endl;
         //now put a couple of inputs(submit type there with the various actions)
         *out << td (input ().set ("type", "submit").set ("name", "loadImage").set ("title", "configure FPGA with cgicc::selected FW image").set ("value", "Load Image") ) << std::endl;
-        *out << td (input ().set ("type", "submit").set ("name", "deleteImage").set ("title", "delete cgicc::selected FW image").set ("value", "Delete Image") ) << std::endl;
+        *out << td (input ().set ("type", "submit").set ("name", "deleteImage").set ("title", "delete selected FW image").set ("value", "Delete Image") ) << std::endl;
         *out << tr() << std::endl;
 
         *out << tr().add (td (label ("Path to Download:  ") ) ).add (td (input ().set ("type", "text").set ("name", "pathdownload").set ("size", "50").set ("value", expandEnvironmentVariables (HOME) + "/myImage.bin" ).set ("title", "download cgicc::selected FW image") ) ) << std::endl;
-        *out << tr().add (td (input ().set ("type", "submit").set ("name", "downloadImage").set ("title", "download cgicc::selected FW image").set ("value", "Download") ) ).add (td (input ().set ("type", "submit").set ("name", "uploadImage").set ("title", "upload cgicc::selected FW image").set ("value", "Upload") ) ) << std::endl;
+        *out << tr().add (td (input ().set ("type", "submit").set ("name", "downloadImage").set ("title", "download selected FW image").set ("value", "Download") ) ).add (td (input ().set ("type", "submit").set ("name", "uploadImage").set ("title", "upload selected FW image").set ("value", "Upload") ) ) << std::endl;
 
         *out << tr().add (td (label ("Image to upload:  ") ) ).add (td (input ().set ("type", "file").set ("name", "Image").set ("size", "70") ) ) << std::endl;
         *out <<   tr().add (td (label ("Image Name:  ") ) ).add (td (input ().set ("type", "text").set ("name", "imagename").set ("size", "30").set ("value", "myImage.bin" ).set ("title", "name for uploaded FW image on SD Card") ) )  << std::endl;
@@ -224,6 +227,83 @@ void SupervisorGUI::FirmwarePage (xgi::Input* in, xgi::Output* out) throw (xgi::
 
     if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
 }
+void SupervisorGUI::PlaybackDSPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    std::ostringstream cLogStream;
+    //define view and create header
+    fCurrentPageView = Tab::PLAYBACKDS;
+    this->createHtmlHeader (in, out, fCurrentPageView);
+    *out << h3 ("DTC Supervisor Playback and Data Sender Page") << std::endl;
+
+    char cState = fFSM->getCurrentState();
+
+    this->displayLoadForm (in, out);
+
+    *out << "<cgicc::div style=\"display: inline-block; widht=100%\">" << std::endl;
+
+    if (cState != 'I')
+    {
+        *out << cgicc::div().set ("class", "acf_left") << std::endl;
+        *out << p (span ("Playback and Data Sender Operations can only be configured in Initial State!!").set ("style", "color:red; font-size: 15pt") ).set ("style", "margin-top: 20px") << std::endl;
+        *out << p ().add (span ("Current State: ").set ("style", "color:blue; font-size: 20pt") ).add (span (fFSM->getStateName (cState) ).set ("style", "color:red; font-size: 20pt") ) << std::endl;
+        *out << cgicc::div() << std::endl;
+
+        if (*fSendData)
+        {
+            *out << cgicc::div().set ("class", "acf_right") << std::endl;
+            *out << cgicc::h4 ("Data Sender Stats").set ("style", "padding-top:20px;") << std::endl;
+            *out << fDataSenderTable << std::endl;
+            *out << cgicc::div() << std::endl;
+        }
+    }
+    else
+    {
+        *out << cgicc::div().set ("class", "DS_left") << std::endl;
+        //display the form
+        *out << legend ("Data Sender Settings").set ("style", "padding-top:20px") << fieldset() << std::endl;
+        //the button / form for loading the stuff
+        *out << form().set ("method", "POST").set ("action", fURN + "processDSForm").set ("enctype", "multipart/form-data") << std::endl;
+        *out << "<table style=\"padding-top:10px; border-spacing:10px; border-collapse:separate;\">" << std::endl;
+
+        //TODO: here goes the DS configuration
+        *out << tr().add (td (label ("Source Host:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sourcehost").set ("size", "30").set ("value", fSourceHost->toString() ).set ("title", "Data Sender Source host") ) ).add (td (label ("  Source Port:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sourceport").set ("size", "6").set ("value", fSourcePort->toString() ).set ("title", "Data Sender Source port") ) ) << std::endl;
+
+        *out << tr().add (td (label ("Destination Host:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sinkhost").set ("size", "30").set ("value", fSinkHost->toString() ).set ("title", "Data Sender Destination host") ) ).add (td (label ("  Destination Port:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sinkport").set ("size", "6").set ("value", fSinkPort->toString() ).set ("title", "Data Sender Destination port") ) ) << std::endl;
+
+        *out << "</table>" << std::endl;
+        *out << input ().set ("type", "submit").set ("title", "Submit Data Sender Settings").set ("name", "sumit_DS").set ("value", "Submit") << std::endl;
+        *out << form() << std::endl;
+        *out << fieldset() << std::endl;
+        *out << legend ("Playback Settings").set ("style", "padding-top:20px") << fieldset() << std::endl;
+        *out << form().set ("method", "POST").set ("action", fURN + "processPlaybackForm").set ("enctype", "multipart/form-data") << std::endl;
+        *out << "<table style=\"padding-top:10px; border-spacing:10px; border-collapse:separate;\">" << std::endl;
+        //TODO: here goes the Playback configuration
+
+        if (*fPlaybackMode)
+            *out << tr().add (td (label ("PlaybackMode:  ") ) ).add (td (input ().set ("type", "checkbox").set ("name", "playbackmode").set ("title", "Playback Mode").set ("value", "on").set ("checked", "checked") ) ).add (td (label ("  Playback File:  ") ) ).add (td (input ().set ("type", "text").set ("name", "playbackfile").set ("size", "50").set ("value", fPlaybackFile->toString() ).set ("title", "Playback Data File") ) ) << std::endl;
+        else
+            *out << tr().add (td (label ("PlaybackMode:  ") ) ).add (td (input ().set ("type", "checkbox").set ("name", "playbackmode").set ("title", "Playback Mode").set ("value", "on") ) ).add (td (label ("  Playback File:  ") ) ).add (td (input ().set ("type", "text").set ("name", "playbackfile").set ("size", "50").set ("value", fPlaybackFile->toString() ).set ("title", "Playback Data File") ) ) << std::endl;
+
+        *out << "</table>" << std::endl;
+        *out << input ().set ("type", "submit").set ("title", "Submit Playback Settings").set ("name", "sumit_playback").set ("value", "Submit") << std::endl;
+        *out << form() << std::endl;
+        *out << fieldset() << std::endl;
+        *out << cgicc::div() << std::endl;
+
+        if (*fSendData)
+        {
+            *out << cgicc::div().set ("class", "DS_right") << std::endl;
+            *out << cgicc::h4 ("Data Sender Stats").set ("style", "padding-top:20px;") << std::endl;
+            *out << fDataSenderTable << std::endl;
+            *out << cgicc::div() << std::endl;
+        }
+    }
+
+    *out << "</div>" << std::endl;
+    this->createHtmlFooter (in, out);
+
+    if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (fLogger, cLogStream.str() );
+}
 
 void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab)
 {
@@ -241,8 +321,8 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     bool cAutoRefresh = false;
     int cRefreshDelay = 3;
 
-    //if (cState == 'E' || fAutoRefresh)
-    if (fAutoRefresh)
+    if (cState == 'E' || fAutoRefresh)
+        //if (fAutoRefresh)
         cAutoRefresh = true;
 
     std::ostringstream cAutoRefreshString;
@@ -254,19 +334,19 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     switch (pTab)
     {
         case Tab::MAIN:
-            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button active") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") ;
+            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button active") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button") ;
             JSfile += "/html/formfields.js";
             cAutoRefreshString << "MainPage";
             break;
 
         case Tab::CONFIG:
-            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button active") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button");
+            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button active") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button");
             JSfile += "/html/HWForm.js";
             cAutoRefreshString << "ConfigPage";
             break;
 
         case Tab::CALIBRATION:
-            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button active") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button");
+            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button active") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button");
             JSfile += "/html/empty.js";
             cAutoRefreshString << "CalibrationPage";
             //*out << script ().set ("type", "text/javascript").set ("src", "https://root.cern/js/latest/scripts/JSRootCore.js?more2d&gui&io") << std::endl;
@@ -274,9 +354,15 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
             break;
 
         case Tab::FIRMWARE:
-            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button active");
+            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button active") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button");
             JSfile += "/html/empty.js";
             cAutoRefreshString << "FirmwarePage";
+            break;
+
+        case Tab::PLAYBACKDS:
+            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button active");
+            JSfile += "/html/empty.js";
+            cAutoRefreshString << "PlaybackDSPage";
             break;
     }
 
@@ -611,10 +697,14 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
         else
             *out << td().add (label ("Write DAQ File") ).add (input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("id", "fileOptions_daq") )  << std::endl;
 
+        *out << tr() << tr() << std::endl;
+
         if (*fSendData)
             *out << td().add (label ("Send Data") ).add (input().set ("type", "checkbox").set ("name", "send_data").set ("value", "on").set ("checked", "checked").set ("id", "Options_send") )  << std::endl;
         else
             *out << td().add (label ("Send Data") ).add (input().set ("type", "checkbox").set ("name", "send_data").set ("value", "on").set ("id", "Options_send") )  << std::endl;
+
+        *out << tr() << std::endl;
     }
     else
     {
@@ -627,9 +717,18 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
             *out << td().add (label ("Write DAQ File" ) ).add (input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("checked", "checked").set ("id", "fileOptions_daq").set ("disabled", "disabled") ) << std::endl;
         else
             *out << td().add (label ("Write DAQ File" ) ).add (input().set ("type", "checkbox").set ("name", "daq_file").set ("value", "on").set ("id", "fileOptions_daq").set ("disabled", "disabled") ) << std::endl;
+
+        //since I need to open the socket on configure, I really only get to choose the send data option when state initial or halted
+        *out << tr() << tr() << std::endl;
+
+        if (*fSendData)
+            *out << td().add (label ("Send Data") ).add (input().set ("type", "checkbox").set ("name", "send_data").set ("value", "on").set ("checked", "checked").set ("id", "Options_send").set ("disabled", "disabled") )  << std::endl;
+        else
+            *out << td().add (label ("Send Data") ).add (input().set ("type", "checkbox").set ("name", "send_data").set ("value", "on").set ("id", "Options_send").set ("disabled", "disabled") )  << std::endl;
+
+        *out << tr() << std::endl;
     }
 
-    *out << tr() << std::endl;
 
     if (cState == 'I' || cState == 'H')
         *out << tr().add (td (label ("Runnumber: ") ) ).add (td (input().set ("type", "text").set ("name", "runnumber").set ("size", "20").set ("value", fRunNumber->toString() ).set ("id", "runnumber") ) ) << std::endl;
@@ -1030,6 +1129,28 @@ void SupervisorGUI::handleImages (xgi::Input* in, xgi::Output* out) throw (xgi::
         //since we are cleaning up behind us, we need to clear the HwXMLString
         this->fHwXMLString.clear();
     }
+    catch (const std::exception& e)
+    {
+        XCEPT_RAISE (xgi::exception::Exception, e.what() );
+    }
+
+    this->lastPage (in, out);
+}
+
+void SupervisorGUI::processDSForm (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    try {}
+    catch (const std::exception& e)
+    {
+        XCEPT_RAISE (xgi::exception::Exception, e.what() );
+    }
+
+    this->lastPage (in, out);
+}
+
+void SupervisorGUI::processPlaybackForm (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
+{
+    try {}
     catch (const std::exception& e)
     {
         XCEPT_RAISE (xgi::exception::Exception, e.what() );

@@ -24,6 +24,8 @@
                 <DataSourcePort xsi:type="xsd:integer">404001</DataSourcePort>
                 <DataSinkHost xsi:type="xsd:string">localhost</DataSinkHost>
                 <DataSinkPort xsi:type="xsd:integer">404002</DataSinkPort>
+                <PlaybackMode xsi:type="xsd:boolean">true</PlaybackMode>
+                <PlaybackFile xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Data/</PlaybackFile>
             </properties>
         </xc:Application>
 

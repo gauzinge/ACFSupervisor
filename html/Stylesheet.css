@@ -216,6 +216,14 @@ input[type=button] {
     float: right;
     width: 60%;
 }
+.content div.DS_left{
+    float: left;
+    width: 60%;
+}
+.content div.DS_right{
+    float: right;
+    width: 40%;
+}
 
 [draggable=true] {
     cursor: move;

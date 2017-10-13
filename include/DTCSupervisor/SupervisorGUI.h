@@ -40,7 +40,7 @@
 
 using FormData = std::map<std::string, std::string>;
 
-enum class Tab {CONFIG, MAIN, CALIBRATION, FIRMWARE};
+enum class Tab {CONFIG, MAIN, CALIBRATION, FIRMWARE, PLAYBACKDS};
 
 namespace Ph2TkDAQ {
 
@@ -55,6 +55,7 @@ namespace Ph2TkDAQ {
         void ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         void CalibrationPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         void FirmwarePage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        void PlaybackDSPage (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
 
         ///HTML header & footer for Hyperdaq interface
         void createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab);
@@ -83,6 +84,9 @@ namespace Ph2TkDAQ {
         //functions to handle FW up and download
         void loadImages (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
         void handleImages (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        //functions to handle the Playback and Data Sending pages
+        void processDSForm (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
+        void processPlaybackForm (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
 
 
       public:
@@ -107,6 +111,10 @@ namespace Ph2TkDAQ {
 
                 case Tab::FIRMWARE:
                     this->FirmwarePage (in, out);
+                    break;
+
+                case Tab::PLAYBACKDS:
+                    this->PlaybackDSPage (in, out);
                     break;
             }
         }
@@ -228,8 +236,6 @@ namespace Ph2TkDAQ {
         std::string fLogFilePath;
         std::vector<std::string> fImageVector;
         std::string fResultFilesForGUI;
-        //Ph2_System::SystemController* fSystemController;
-        //LogReader fLogReader;
 
 
       public:
@@ -241,8 +247,16 @@ namespace Ph2TkDAQ {
         uint32_t* fEventCounter;
         xdata::Boolean* fRAWFile;
         xdata::Boolean* fDAQFile;
-        xdata::Boolean* fSendData;
         std::string fHostString;
+        //for the data sending
+        xdata::Boolean* fSendData;
+        xdata::String* fSourceHost;
+        xdata::Integer* fSourcePort;
+        xdata::String* fSinkHost;
+        xdata::Integer* fSinkPort;
+        //for the playback
+        xdata::Boolean* fPlaybackMode;
+        xdata::String* fPlaybackFile;
 
         FormData* fHWFormData;
         FormData* fSettingsFormData;
@@ -260,6 +274,8 @@ namespace Ph2TkDAQ {
         std::string fPh2_ACFLog;
         Tab fCurrentPageView;
         bool fAutoRefresh;
+
+        cgicc::table fDataSenderTable;
     };
 }
 #endif
