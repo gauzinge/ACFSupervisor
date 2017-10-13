@@ -68,13 +68,13 @@ namespace Ph2TkDAQ {
         bool sendData ();
 
         //to be called in the main DAQ workloop when the data is there
-        void enqueueEvent (SLinkEvent pEvent);
+        void enqueueEvent (std::vector<SLinkEvent> pEventVector);
         //to be called inside SendData
-        bool dequeueEvent();
+        bool dequeueEvent (std::vector<SLinkEvent>& pEventVector);
 
       private:
-        void generateTCPPackets();
-        std::vector<uint64_t> generateFEROLHeader (uint16_t pBlockNumber, bool pFirst, bool pLast, uint16_t pNWords64, uint16_t pFEDId, uint32_t pL1AId);
+        std::vector<std::vector<uint64_t>> generateTCPPackets (SLinkEvent& pEvent);
+        std::vector<uint64_t> generateFEROLHeader (SLinkEvent& pEvent, uint16_t pBlockNumber, bool pFirst, bool pLast, uint16_t pNWords64, uint16_t pFEDId, uint32_t pL1AId);
 
       public:
         std::string fSourceHost;
@@ -83,10 +83,10 @@ namespace Ph2TkDAQ {
         uint32_t fSinkPort;
 
       private:
-        SLinkEvent fEvent; /*!<SLinkEvent object to operate on after the dequeue operation */
-        std::vector<std::vector<uint64_t>> fBufferVec; //not sure if this is needed - I am going to memcopy anyway?!
+        //SLinkEvent fEvent; [>!<SLinkEvent object to operate on after the dequeue operation <]
+        //std::vector<std::vector<uint64_t>> fBufferVec; //not sure if this is needed - I am going to memcopy anyway?!
         mutable std::mutex fMutex;/*!< Mutex */
-        std::queue<SLinkEvent> fQueue; /*!<Queue to populate from set() and depopulate in writeFile() */
+        std::queue<std::vector<SLinkEvent>> fQueue; /*!<Queue to populate from set() and depopulate in writeFile() */
         std::condition_variable fEventSet;/*!< condition variable to notify writer thread of new data*/
         bool fSocketOpen;
         log4cplus::Logger fLogger;

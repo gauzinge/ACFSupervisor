@@ -34,17 +34,19 @@ TCPDataSender::~TCPDataSender()
     LOG4CPLUS_INFO (fLogger, "Destroying TCPDataSender");
 }
 
-void TCPDataSender::generateTCPPackets()
+std::vector<std::vector<uint64_t>> TCPDataSender::generateTCPPackets (SLinkEvent& pEvent)
 {
-    fBufferVec.clear();
+    std::vector<std::vector<uint64_t>> cBufVec;
+
     const uint32_t ferolBlockSize64 = 512;//in Bytes
     const uint32_t ferolHeaderSize64 = 2;//in Bytes
     const uint32_t ferolPayloadSize64 = ferolBlockSize64 - ferolHeaderSize64;
 
     //first, figure out the size of my slink event
-    size_t cEventSize64  = fEvent.getSize64();
+    size_t cEventSize64  = pEvent.getSize64();
     //instead of ceil
     uint32_t cNbBlock = (cEventSize64 + ferolPayloadSize64 - 1) / ferolPayloadSize64;
+    LOG4CPLUS_INFO (fLogger, BOLDGREEN << "This event: lenght: " << cEventSize64 << " NBlock: (eventSize/" << ferolPayloadSize64 << "): " << cNbBlock << RESET);
 
     bool cFirst = true;
     bool cLast = false;
@@ -56,36 +58,43 @@ void TCPDataSender::generateTCPPackets()
         {
             //one and only one block as vector of uint64_t
             cLast = true;
-            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (cBlockIdx, cFirst, cLast, cEventSize64, fEvent.getSourceId(), fEvent.getLV1Id() );
-            cTmpVec.insert (cTmpVec.end(), fEvent.getData<uint64_t>().begin(), fEvent.getData<uint64_t>().end() );
-            fBufferVec.push_back (cTmpVec);
+            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (pEvent, cBlockIdx, cFirst, cLast, cEventSize64, pEvent.getSourceId(), pEvent.getLV1Id() );
+
+            for (auto cWord : cTmpVec)
+                std::cout << std::hex << cWord << std::dec << std::endl;
+
+            //cTmpVec.insert (cTmpVec.end(), pEvent.getData<uint64_t>().begin(), pEvent.getData<uint64_t>().end() );
+            //cBufVec.push_back (cTmpVec);
         }
-        else if (cNbBlock > 1 && cBlockIdx == 0)
-        {
-            //first block of multi block event
-            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (cBlockIdx, cFirst, cLast, ferolPayloadSize64, fEvent.getSourceId(), fEvent.getLV1Id() );
-            cTmpVec.insert (cTmpVec.end(), fEvent.getData<uint64_t>().begin(), fEvent.getData<uint64_t>().begin() + ferolPayloadSize64);
-            fBufferVec.push_back (cTmpVec);
-        }
-        else if (cBlockIdx > 0 && cBlockIdx < cNbBlock)
-        {
-            //a Block in the middle of a multi-block event
-            cFirst = false;
-            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (cBlockIdx, cFirst, cLast, ferolPayloadSize64, fEvent.getSourceId(), fEvent.getLV1Id() );
-            cTmpVec.insert (cTmpVec.end(), fEvent.getData<uint64_t>().begin() + cBlockIdx * ferolPayloadSize64, fEvent.getData<uint64_t>().begin() + (cBlockIdx + 1) *ferolPayloadSize64);
-            fBufferVec.push_back (cTmpVec);
-        }
-        else if (cBlockIdx > 0 && cBlockIdx + 1 == cNbBlock)
-        {
-            cFirst = false;
-            cLast = true;
-            std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (cBlockIdx, cFirst, cLast, cEventSize64 - (cBlockIdx * ferolPayloadSize64), fEvent.getSourceId(), fEvent.getLV1Id() );
-            cTmpVec.insert (cTmpVec.end(), fEvent.getData<uint64_t>().begin() + cBlockIdx * ferolPayloadSize64, fEvent.getData<uint64_t>().end() );
-            fBufferVec.push_back (cTmpVec);
-        }
+
+        //else if (cNbBlock > 1 && cBlockIdx == 0)
+        //{
+        ////first block of multi block event
+        //std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (pEvent, cBlockIdx, cFirst, cLast, ferolPayloadSize64, pEvent.getSourceId(), pEvent.getLV1Id() );
+        //cTmpVec.insert (cTmpVec.end(), pEvent.getData<uint64_t>().begin(), pEvent.getData<uint64_t>().begin() + ferolPayloadSize64);
+        //cBufVec.push_back (cTmpVec);
+        //}
+        //else if (cBlockIdx > 0 && cBlockIdx < cNbBlock)
+        //{
+        ////a Block in the middle of a multi-block event
+        //cFirst = false;
+        //std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (pEvent, cBlockIdx, cFirst, cLast, ferolPayloadSize64, pEvent.getSourceId(), pEvent.getLV1Id() );
+        //cTmpVec.insert (cTmpVec.end(), pEvent.getData<uint64_t>().begin() + cBlockIdx * ferolPayloadSize64, pEvent.getData<uint64_t>().begin() + (cBlockIdx + 1) *ferolPayloadSize64);
+        //cBufVec.push_back (cTmpVec);
+        //}
+        //else if (cBlockIdx > 0 && cBlockIdx + 1 == cNbBlock)
+        //{
+        //cFirst = false;
+        //cLast = true;
+        //std::vector<uint64_t> cTmpVec = this->generateFEROLHeader (pEvent, cBlockIdx, cFirst, cLast, cEventSize64 - (cBlockIdx * ferolPayloadSize64), pEvent.getSourceId(), pEvent.getLV1Id() );
+        //cTmpVec.insert (cTmpVec.end(), pEvent.getData<uint64_t>().begin() + cBlockIdx * ferolPayloadSize64, pEvent.getData<uint64_t>().end() );
+        //cBufVec.push_back (cTmpVec);
+        //}
 
         cBlockIdx++;
     }
+
+    return cBufVec;
 }
 
 void TCPDataSender::openConnection()
@@ -222,59 +231,84 @@ bool TCPDataSender::sendData ()
 {
     std::cout << "Data sending workloop! " << std::endl;
     //first, dequeue event - this blocks for some period and then returns
+    std::vector<SLinkEvent> cEventVec;
+    bool cData = this->dequeueEvent (cEventVec);
 
-    if (this->dequeueEvent() )
+    if (cData)
     {
-        // if dequeue event returned true, we have a new SLinkEvent that we need to process!
-        // this generates a vector of vectors fBufferVec that includes the FEROL headers
-        //this->generateTCPPackets();
+        // if dequeue event returned true, we have a new SLinkEventVector that we need to process!
+        for (auto& cEvent : cEventVec)
+        {
+            std::cout << cEvent << std::endl;
+            std::vector<std::vector<uint64_t>> cBufVec = this->generateTCPPackets (cEvent);
 
-        //for (auto& cBuff : fBufferVec)
-        //{
-        //ssize_t len = cBuff.size() * sizeof (uint64_t); //in bytes?? //size of the buffer
-        //char buf[4096];
-        //memcpy (&buf, &cBuff[0], len);
+            //for (auto& cBuff : cBufVec)
+            //{
+            //ssize_t len = cBuff.size() * sizeof (uint64_t); //in bytes?? //size of the buffer
+            //char buf[4096];
+            //memcpy (&buf, &cBuff[0], len);
 
-        //for (int i = 0; i < cBuff.size(); i++)
-        //{
-        //std::cout << "DEBUG #" << i << " " << std::hex << cBuff.at (i) << " " << buf[i] << buf[i + 1] << buf[i + 2] << buf[i + 3] << buf[i + 4] << buf[i + 5] << buf[i + 6] << buf[i + 7] << std::dec << std::endl;
-        //std::cout << std::endl;
-        //}
-
-        //TODO
-        //while ( len > 0 && fSocketOpen )
-        //{
-        //const ssize_t written = write (fSockfd, buf, len);
-
-        //if ( written < 0 )
-        //{
-        //if ( errno == EWOULDBLOCK )
-        //::usleep (100);
-        //else
-        //{
-        //std::ostringstream msg;
-        //msg << "Failed to send data to " << fSinkHost << ":" << fSinkPort;
-        //msg << " : " << strerror (errno);
-        //XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
-        //}
-        //}
-        //else
-        //{
-        //len -= written;
-        //*buf += written;
-        //}
-        //}
-        //}
+            //for (int i = 0; i < cBuff.size(); i++)
+            //{
+            //std::cout << "DEBUG #" << i << " " << std::hex << cBuff.at (i) << " " << buf[i] << buf[i + 1] << buf[i + 2] << buf[i + 3] << buf[i + 4] << buf[i + 5] << buf[i + 6] << buf[i + 7] << std::dec << std::endl;
+            //std::cout << std::endl;
+            //}
+            //}
+        }
     }
+
+    //if (this->dequeueEvent() )
+    //{
+    // if dequeue event returned true, we have a new SLinkEvent that we need to process!
+    // this generates a vector of vectors fBufferVec that includes the FEROL headers
+    //this->generateTCPPackets();
+
+    //for (auto& cBuff : fBufferVec)
+    //{
+    //ssize_t len = cBuff.size() * sizeof (uint64_t); //in bytes?? //size of the buffer
+    //char buf[4096];
+    //memcpy (&buf, &cBuff[0], len);
+
+    //for (int i = 0; i < cBuff.size(); i++)
+    //{
+    //std::cout << "DEBUG #" << i << " " << std::hex << cBuff.at (i) << " " << buf[i] << buf[i + 1] << buf[i + 2] << buf[i + 3] << buf[i + 4] << buf[i + 5] << buf[i + 6] << buf[i + 7] << std::dec << std::endl;
+    //std::cout << std::endl;
+    //}
+
+    //TODO
+    //while ( len > 0 && fSocketOpen )
+    //{
+    //const ssize_t written = write (fSockfd, buf, len);
+
+    //if ( written < 0 )
+    //{
+    //if ( errno == EWOULDBLOCK )
+    //::usleep (100);
+    //else
+    //{
+    //std::ostringstream msg;
+    //msg << "Failed to send data to " << fSinkHost << ":" << fSinkPort;
+    //msg << " : " << strerror (errno);
+    //XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+    //}
+    //}
+    //else
+    //{
+    //len -= written;
+    //*buf += written;
+    //}
+    //}
+    //}
+    //}
 
     return true;
 }
 
-std::vector<uint64_t> TCPDataSender::generateFEROLHeader (uint16_t pBlockNumber, bool pFirst, bool pLast, uint16_t pNWords64, uint16_t pFEDId, uint32_t pL1AId)
+std::vector<uint64_t> TCPDataSender::generateFEROLHeader (SLinkEvent& pEvent, uint16_t pBlockNumber, bool pFirst, bool pLast, uint16_t pNWords64, uint16_t pFEDId, uint32_t pL1AId)
 {
     std::vector<uint64_t> cVec;
 
-    if (fEvent.getSize64() != 0)
+    if (pEvent.getSize64() != 0)
     {
         uint64_t cFirstWord = 0;
         uint64_t cSecondWord = 0;
@@ -290,55 +324,55 @@ std::vector<uint64_t> TCPDataSender::generateFEROLHeader (uint16_t pBlockNumber,
         cVec.push_back (cSecondWord);
     }
     else
-        LOG4CPLUS_ERROR (fLogger, "Error, SlinkEvent in memory is empty!");
+        LOG4CPLUS_ERROR (fLogger, "Error, this SlinkEvent is empty!");
 
     return cVec;
 }
 
-void TCPDataSender::enqueueEvent (SLinkEvent pEvent)
+void TCPDataSender::enqueueEvent (std::vector<SLinkEvent> pEventVector)
 {
     std::lock_guard<std::mutex> cLock (fMutex);
-    fQueue.push (pEvent);
+    fQueue.push (pEventVector);
     fEventSet.notify_one();
 }
 
-bool TCPDataSender::dequeueEvent()
+bool TCPDataSender::dequeueEvent (std::vector<SLinkEvent>& pEventVector)
 {
-    std::unique_lock<std::mutex> cLock (fMutex);
-
-    if (!fQueue.empty() )
-    {
-        //there is something in the queue still, event without the condition variable
-        fEvent.clear();
-        fEvent = fQueue.front();
-        fQueue.pop();
-        LOG4CPLUS_INFO (fLogger,  fEvent);
-        return true;
-    }
-    else
-    {
-        if (fEventSet.wait_for (cLock, std::chrono::milliseconds (500), [] {return true;}) )
-        {
-            std::cout << "received signal from condition variable" << std::endl;
-            fEvent.clear();
-            fEvent = fQueue.front();
-            fQueue.pop();
-            LOG4CPLUS_INFO (fLogger,  fEvent);
-            return true;
-        }
-        else
-        {
-            std::cout << "timed out after 500 ms!" << std::endl;
-            return false;
-        }
-    }
-
-    //original implementation
     //std::unique_lock<std::mutex> cLock (fMutex);
 
-    //while (fQueue.empty() )
-    //fEventSet.wait (cLock);
-
+    //if (!fQueue.empty() )
+    //{
+    ////there is something in the queue still, event without the condition variable
+    //fEvent.clear();
     //fEvent = fQueue.front();
     //fQueue.pop();
+    //LOG4CPLUS_INFO (fLogger,  fEvent);
+    //return true;
+    //}
+    //else
+    //{
+    //if (fEventSet.wait_for (cLock, std::chrono::milliseconds (500), [] {return true;}) )
+    //{
+    //std::cout << "received signal from condition variable" << std::endl;
+    //fEvent.clear();
+    //fEvent = fQueue.front();
+    //fQueue.pop();
+    //LOG4CPLUS_INFO (fLogger,  fEvent);
+    //return true;
+    //}
+    //else
+    //{
+    //std::cout << "timed out after 500 ms!" << std::endl;
+    //return false;
+    //}
+    //}
+
+    //original implementation
+    std::unique_lock<std::mutex> cLock (fMutex);
+
+    while (fQueue.empty() )
+        fEventSet.wait (cLock);
+
+    pEventVector = fQueue.front();
+    fQueue.pop();
 }

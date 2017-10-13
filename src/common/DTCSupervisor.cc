@@ -333,18 +333,21 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
             //if (cEventCount != 0)
         {
             const std::vector<Event*>& events = fSystemController->GetEvents ( cBoard );
+            std::vector<SLinkEvent> cSLinkEventVec;
 
             for (auto cEvent : events)
             {
                 SLinkEvent cSLev =  cEvent->GetSLinkEvent (cBoard);
+                cSLinkEventVec.push_back (cSLev);
+
 
                 if (fDAQFile)
                     fSLinkFileHandler->set (cSLev.getData<uint32_t>() );
 
-                LOG4CPLUS_INFO (this->getApplicationLogger(), RED << cSLev << RESET);
+                //LOG4CPLUS_INFO (this->getApplicationLogger(), RED << cSLev << RESET);
 
                 if (fSendData)
-                    fDataSender->enqueueEvent (cSLev);
+                    fDataSender->enqueueEvent (cSLinkEventVec);
 
             }
         }
