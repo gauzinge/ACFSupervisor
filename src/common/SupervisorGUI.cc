@@ -266,6 +266,11 @@ void SupervisorGUI::PlaybackDSPage (xgi::Input* in, xgi::Output* out) throw (xgi
         *out << "<table style=\"padding-top:10px; border-spacing:10px; border-collapse:separate;\">" << std::endl;
 
         //TODO: here goes the DS configuration
+        if (*fSendData)
+            *out << tr().add (td (label ("Send Data") ) ).add (td (input().set ("type", "checkbox").set ("name", "send_data").set ("value", "on").set ("checked", "checked").set ("id", "Options_send") ) )  << std::endl;
+        else
+            *out << tr().add (td (label ("Send Data") ) ).add (td (input().set ("type", "checkbox").set ("name", "send_data").set ("value", "on").set ("id", "Options_send") ) )  << std::endl;
+
         *out << tr().add (td (label ("Source Host:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sourcehost").set ("size", "30").set ("value", fSourceHost->toString() ).set ("title", "Data Sender Source host") ) ).add (td (label ("  Source Port:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sourceport").set ("size", "6").set ("value", fSourcePort->toString() ).set ("title", "Data Sender Source port") ) ) << std::endl;
 
         *out << tr().add (td (label ("Destination Host:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sinkhost").set ("size", "30").set ("value", fSinkHost->toString() ).set ("title", "Data Sender Destination host") ) ).add (td (label ("  Destination Port:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sinkport").set ("size", "6").set ("value", fSinkPort->toString() ).set ("title", "Data Sender Destination port") ) ) << std::endl;
