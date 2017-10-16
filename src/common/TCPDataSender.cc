@@ -415,8 +415,10 @@ cgicc::table TCPDataSender::generateStatTable()
     cTable.add (cgicc::tr().add (cgicc::td ("Source Port") ).add (cgicc::td (std::to_string (fSourcePort) ) ) );
     cTable.add (cgicc::tr().add (cgicc::td ("Destination Host") ).add (cgicc::td (fSinkHost ) ) );
     cTable.add (cgicc::tr().add (cgicc::td ("Destination Port") ).add (cgicc::td (std::to_string (fSinkPort) ) ) );
+    fCounterMutex.lock();
     cTable.add (cgicc::tr().add (cgicc::td ("Processed Events") ).add (cgicc::td (std::to_string (fEventsProcessed) ) ) );
     cTable.add (cgicc::tr().add (cgicc::td ("Event processing Frequency") ).add (cgicc::td (std::to_string (fEventFrequency) ) ) );
+    fCounterMutex.unlock();
 
     return cTable;
 }

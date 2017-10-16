@@ -245,9 +245,8 @@ namespace Ph2TkDAQ {
         else
         {
             size_t pos = pFilename.find ("_");
-            std::string cNumString = pFilename.substr (pos - 5, 5);
-            pRunNumber = stoi (cNumString);
-            std::cout << BOLDRED << "DEBUG (Utils) cNumString " << cNumString << RESET << std::endl;
+            std::string cNumString = pFilename.substr (pos + 1, 5);
+            pRunNumber = atoi (cNumString.c_str() );
             return true;
         }
     }

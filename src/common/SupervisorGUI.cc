@@ -285,7 +285,7 @@ void SupervisorGUI::PlaybackDSPage (xgi::Input* in, xgi::Output* out) throw (xgi
         //TODO: here goes the Playback configuration
 
         if (*fPlaybackMode)
-            *out << tr().add (td (label ("PlaybackMode:  ") ) ).add (td (input ().set ("type", "checkbox").set ("name", "playbackmode").set ("title", "Playback Mode").set ("value", "on").set ("checked", "checked") ) ).add (td (label ("  Playback File:  ") ) ).add (td (input ().set ("type", "text").set ("name", "playbackfile").set ("size", "50").set ("value", fPlaybackFile->toString() ).set ("title", "Playback Data File") ) ) << std::endl;
+            *out << tr().add (td (label ("PlaybackMode:  ") ) ).add (td (input ().set ("type", "checkbox").set ("name", "playbackmode").set ("title", "Playback Mode").set ("value", "on").set ("checked", "checked") ) ).add (td (label ("  Playback File:  ") ) ).add (td (input ().set ("type", "text").set ("name", "playbackfile").set ("size", "70").set ("value", fPlaybackFile->toString() ).set ("title", "Playback Data File") ) ) << std::endl;
         else
             *out << tr().add (td (label ("PlaybackMode:  ") ) ).add (td (input ().set ("type", "checkbox").set ("name", "playbackmode").set ("title", "Playback Mode").set ("value", "on") ) ).add (td (label ("  Playback File:  ") ) ).add (td (input ().set ("type", "text").set ("name", "playbackfile").set ("size", "50").set ("value", fPlaybackFile->toString() ).set ("title", "Playback Data File") ) ) << std::endl;
 
@@ -1152,6 +1152,7 @@ void SupervisorGUI::processDSForm (xgi::Input* in, xgi::Output* out) throw (xgi:
 
         for (auto cIt : *cgi)
         {
+
             if (cIt.getValue() != "")
             {
 
@@ -1177,14 +1178,18 @@ void SupervisorGUI::processPlaybackForm (xgi::Input* in, xgi::Output* out) throw
 
         Cgicc cgi (in);
 
-        *fPlaybackMode = cgi.queryCheckbox ("send_data");
+        *fPlaybackMode = cgi.queryCheckbox ("playbackmode");
 
         for (auto cIt : *cgi)
         {
             if (cIt.getValue() != "")
             {
 
-                if (cIt.getName() == "playbackfile") *fPlaybackFile = cIt.getValue().c_str();
+                if (cIt.getName() == "playbackfile")
+                {
+                    *fPlaybackFile = cIt.getValue().c_str();
+                    LOG4CPLUS_INFO (fLogger, GREEN << "Changed playback file to: " << BLUE << fPlaybackFile->toString() << RESET);
+                }
             }
         }
     }

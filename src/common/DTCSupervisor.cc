@@ -415,9 +415,10 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
 
         if (cDataVec.size() != 0) // there is still some data in the file
         {
-            fSystemController->setData (cBoard, cDataVec, cNEvents);
+            size_t cCalcEventSize = cDataVec.size() / fPlaybackEventSize32;
+            fSystemController->setData (cBoard, cDataVec, cCalcEventSize);
 
-            fEventCounter += cNEvents;
+            fEventCounter += cCalcEventSize;
 
             if (fDAQFile || fSendData)
             {
@@ -455,8 +456,12 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
         //read the uint64_t vector from ifstream (fPlaybackIfstream)
         std::vector<SLinkEvent> cSLinkEventVec = this->readSLinkFromFile (cNEvents);
 
+        //for (auto cEvent : cSLinkEventVec)
+        //cEvent.print();
         if (cSLinkEventVec.size() != 0)
         {
+            fEventCounter += cSLinkEventVec.size();
+
             // still some data in the file
             if (fSendData)
                 fDataSender->enqueueEvent (cSLinkEventVec);
@@ -636,7 +641,7 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
             else if (fPlaybackFile.toString().find (".daq") != std::string::npos) // we are dealing with a .daq file
             {
                 //here we just need to open the ifstream
-                fPlaybackIfstream.open (fPlaybackFile.toString().c_str() );
+                fPlaybackIfstream.open (fPlaybackFile.toString().c_str(), std::fstream::in |  std::fstream::binary );
 
                 if (fPlaybackIfstream.fail() )
                 {
@@ -645,6 +650,8 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
                     fFSM.fireEvent ("Destroy", this);
                     return false;
                 }
+                else
+                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Successfully opened " << fPlaybackFile.toString() << RESET);
             }
             else
             {
@@ -706,8 +713,6 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
 ///Perform enable transition
 bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
 {
-    bool cEnableDS = false;
-
     try
     {
         if (!fPlaybackMode)
@@ -758,7 +763,29 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
             if (cDataTaking && cEnabledProcedures == 0)
             {
                 //if SendData is enabled, here we need to start the SendData workloop
-                if (fSendData) cEnableDS = true;
+                if (fSendData)
+                {
+                    if (!fDSWorkloop->isActive() )
+                    {
+                        fDSWorkloop->activate();
+                        LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Starting workloop for data sending!" << RESET);
+
+                        fDataSender->ResetTimer();
+                        fDataSender->StartTimer();
+
+                        try
+                        {
+                            fDSWorkloop->submit (fDSAction);
+                        }
+                        catch (xdaq::exception::Exception& e)
+                        {
+                            LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
+                        }
+
+                        fGUI->fDataSenderTable = fDataSender->generateStatTable();
+                    }
+
+                }
 
                 //first, make sure that the event counter is 0 since we are just starting the run
                 if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
@@ -787,7 +814,29 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
         {
             //here we need to do a couple of things
             //if SendData is enabled, we need to start the SendData workloop
-            if (fSendData) cEnableDS = true;
+            if (fSendData)
+            {
+                if (!fDSWorkloop->isActive() )
+                {
+                    fDSWorkloop->activate();
+                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Starting workloop for data sending!" << RESET);
+
+                    fDataSender->ResetTimer();
+                    fDataSender->StartTimer();
+
+                    try
+                    {
+                        fDSWorkloop->submit (fDSAction);
+                    }
+                    catch (xdaq::exception::Exception& e)
+                    {
+                        LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
+                    }
+
+                }
+
+                fGUI->fDataSenderTable = fDataSender->generateStatTable();
+            }
 
             //now, make sure that the event counter is 0 since we are just starting the playback run
             if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
@@ -809,29 +858,6 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
             }
         }
 
-        if (cEnableDS)
-        {
-            if (!fDSWorkloop->isActive() )
-            {
-                fDSWorkloop->activate();
-                LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Starting workloop for data sending!" << RESET);
-
-                fDataSender->ResetTimer();
-                fDataSender->StartTimer();
-
-                try
-                {
-                    fDSWorkloop->submit (fDSAction);
-                }
-                catch (xdaq::exception::Exception& e)
-                {
-                    LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
-                }
-
-            }
-
-            fGUI->fDataSenderTable = fDataSender->generateStatTable();
-        }
     }
     catch (std::exception& e)
     {
@@ -979,11 +1005,15 @@ bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
         if (fCalibrationWorkloop->isActive() )
             fCalibrationWorkloop->cancel();
 
-        if (fDSWorkloop->isActive() )
-            fDSWorkloop->cancel();
+        if (fSendData)
+        {
+            if (fDSWorkloop->isActive() )
+                fDSWorkloop->cancel();
+        }
 
-        if (fPlaybackWorkloop->isActive() )
-            fPlaybackWorkloop->cancel();
+        if (fPlaybackMode)
+            if ( fPlaybackWorkloop->isActive() )
+                fPlaybackWorkloop->cancel();
 
         fACFLock.take();
         fSystemController->Destroy();

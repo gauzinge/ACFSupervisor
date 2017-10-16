@@ -232,19 +232,19 @@ namespace Ph2TkDAQ {
                 else
                 {
                     std::vector<uint64_t> cData;
-                    uint64_t cWord;
 
                     while (!fPlaybackIfstream.eof() )
                     {
-                        fPlaybackIfstream >> cWord;
-                        cData.push_back (cWord);
+                        uint64_t cWord;
+                        fPlaybackIfstream.read ( (char*) &cWord, sizeof (uint64_t) );
+                        uint64_t cCorrectedWord = (cWord & 0xFFFFFFFF) << 32 | (cWord >> 32) & 0xFFFFFFFF;
+                        cData.push_back (cCorrectedWord);
 
-                        if ( (cWord >> 56) & 0xFF == 0xA0 && (cWord >> 4) & 0xF == 0x7) // SLink Trailer
+                        if ( (cCorrectedWord & 0xFF00000000000000) >> 56 == 0xA0 && (cCorrectedWord & 0x00000000000000F0) >> 4  == 0x7) // SLink Trailer
                             break;
                     }
 
                     cEvVec.push_back (SLinkEvent (cData) );
-
                 }
             }
 
