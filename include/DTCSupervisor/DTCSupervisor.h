@@ -80,6 +80,11 @@ namespace Ph2TkDAQ {
         toolbox::task::WorkLoop* fDSWorkloop;
         bool SendDataJob (toolbox::task::WorkLoop* wl);
 
+        // the workloop, action signature and job for playing back data
+        toolbox::task::ActionSignature* fPlaybackAction;
+        toolbox::task::WorkLoop* fPlaybackWorkloop;
+        bool PlaybackJob (toolbox::task::WorkLoop* wl);
+
       protected:
         xdata::String fHWDescriptionFile;
         xdata::String fDataDirectory;
@@ -114,6 +119,8 @@ namespace Ph2TkDAQ {
         FileHandler* fSLinkFileHandler;
         bool fGetRunnumberFromFile;
         Ph2TkDAQ::TCPDataSender* fDataSender;
+        uint32_t fPlaybackEventSize32;
+        std::ifstream fPlaybackIfstream;
 
 
       public:
@@ -215,6 +222,34 @@ namespace Ph2TkDAQ {
             fGUI->fPh2_ACFLog = cTmpString;
         }
 
+        std::vector<SLinkEvent> readSLinkFromFile (uint32_t pNEvents)
+        {
+            std::vector<SLinkEvent> cEvVec;
+
+            for (size_t i = 0; i < pNEvents; i++)
+            {
+                if (fPlaybackIfstream.eof() ) break;
+                else
+                {
+                    std::vector<uint64_t> cData;
+                    uint64_t cWord;
+
+                    while (!fPlaybackIfstream.eof() )
+                    {
+                        fPlaybackIfstream >> cWord;
+                        cData.push_back (cWord);
+
+                        if ( (cWord >> 56) & 0xFF == 0xA0 && (cWord >> 4) & 0xF == 0x7) // SLink Trailer
+                            break;
+                    }
+
+                    cEvVec.push_back (SLinkEvent (cData) );
+
+                }
+            }
+
+            return cEvVec;
+        }
     };
 
 }

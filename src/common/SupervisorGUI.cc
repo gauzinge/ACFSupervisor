@@ -1144,7 +1144,24 @@ void SupervisorGUI::handleImages (xgi::Input* in, xgi::Output* out) throw (xgi::
 
 void SupervisorGUI::processDSForm (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
 {
-    try {}
+    try
+    {
+        Cgicc cgi (in);
+
+        *fSendData = cgi.queryCheckbox ("send_data");
+
+        for (auto cIt : *cgi)
+        {
+            if (cIt.getValue() != "")
+            {
+
+                if (cIt.getName() == "sourcehost") *fSourceHost = cIt.getValue().c_str();
+                else if (cIt.getName() == "sourceport") *fSourcePort = stringtoint (cIt.getValue().c_str() );
+                else if (cIt.getName() == "sinkhost") *fSinkHost = cIt.getValue().c_str();
+                else if (cIt.getName() == "sinkport") *fSinkPort = stringtoint (cIt.getValue().c_str() );
+            }
+        }
+    }
     catch (const std::exception& e)
     {
         XCEPT_RAISE (xgi::exception::Exception, e.what() );
@@ -1155,7 +1172,22 @@ void SupervisorGUI::processDSForm (xgi::Input* in, xgi::Output* out) throw (xgi:
 
 void SupervisorGUI::processPlaybackForm (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception)
 {
-    try {}
+    try
+    {
+
+        Cgicc cgi (in);
+
+        *fPlaybackMode = cgi.queryCheckbox ("send_data");
+
+        for (auto cIt : *cgi)
+        {
+            if (cIt.getValue() != "")
+            {
+
+                if (cIt.getName() == "playbackfile") *fPlaybackFile = cIt.getValue().c_str();
+            }
+        }
+    }
     catch (const std::exception& e)
     {
         XCEPT_RAISE (xgi::exception::Exception, e.what() );

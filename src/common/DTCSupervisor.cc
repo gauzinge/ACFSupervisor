@@ -21,7 +21,8 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
 #endif
     fSystemController (nullptr),
     fSLinkFileHandler (nullptr),
-    fGetRunnumberFromFile (false)
+    fGetRunnumberFromFile (false),
+    fPlaybackEventSize32 (0)
 {
     //instance of my GUI object
     fGUI = new SupervisorGUI (this, &fFSM);
@@ -400,6 +401,79 @@ bool DTCSupervisor::SendDataJob (toolbox::task::WorkLoop* wl)
     return this->fDataSender->sendData ();
 }
 
+bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
+{
+    uint32_t cNEvents = 10;
+
+    //super simple, either call cSystemController::readFile() with the appropriate number of chunks or just read the binary data stream until an event trailer is reached
+    if (fPlaybackEventSize32 != 0 ) // we are dealing with .raw data
+    {
+        fACFLock.take();
+        BeBoard* cBoard = fSystemController->fBoardVector.at (0);
+        std::vector<uint32_t> cDataVec;
+        fSystemController->readFile (cDataVec, cNEvents * fPlaybackEventSize32);
+
+        if (cDataVec.size() != 0) // there is still some data in the file
+        {
+            fSystemController->setData (cBoard, cDataVec, cNEvents);
+
+            fEventCounter += cNEvents;
+
+            if (fDAQFile || fSendData)
+            {
+                const std::vector<Event*>& events = fSystemController->GetEvents ( cBoard );
+                std::vector<SLinkEvent> cSLinkEventVec;
+
+                for (auto cEvent : events)
+                {
+                    SLinkEvent cSLev =  cEvent->GetSLinkEvent (cBoard);
+                    cSLinkEventVec.push_back (cSLev);
+
+                    if (fDAQFile)
+                        fSLinkFileHandler->set (cSLev.getData<uint32_t>() );
+                }
+
+                if (fSendData)
+                    fDataSender->enqueueEvent (cSLinkEventVec);
+            }
+
+            return true;
+        }
+        else
+        {
+            // this is true only once we have reached the end of the file
+            if (fFSM.getCurrentState() == 'E')
+                fFSM.fireEvent ("Stop", this);
+
+            return false;
+        }
+
+        fACFLock.give();
+    }
+    else //  we are dealing with .daq data that we want to send
+    {
+        //read the uint64_t vector from ifstream (fPlaybackIfstream)
+        std::vector<SLinkEvent> cSLinkEventVec = this->readSLinkFromFile (cNEvents);
+
+        if (cSLinkEventVec.size() != 0)
+        {
+            // still some data in the file
+            if (fSendData)
+                fDataSender->enqueueEvent (cSLinkEventVec);
+
+            return true;
+        }
+        else
+        {
+            // this is true only once we have reached the end of the file
+            if (fFSM.getCurrentState() == 'E')
+                fFSM.fireEvent ("Stop", this);
+
+            return false;
+        }
+    }
+}
+
 bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
 {
     try
@@ -407,6 +481,9 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
         //first, make sure that the event counter is 0 since we are just initializing
         if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
 
+        // only if we are not playing back data the below is necessary - otherwise the HW Structure is loaded on configuring
+        //if (!fPlaybackMode)
+        //{
         fACFLock.take();
 
         //construct a system controller object
@@ -426,6 +503,7 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
 
         LOG (INFO) << cPh2LogStream.str() ;
         this->updateLogs();
+        //}
     }
 
     catch (std::exception& e)
@@ -437,56 +515,143 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
     fFSM.fireEvent ("InitialiseDone", this);
     return false;
 }
+
 ///Perform configure transition
 bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
 {
 
     try
     {
-        //first check what we are actually configuring
-        for (auto cProcedure : fGUI->fProcedureMap)
+        if (!fPlaybackMode)
         {
-            //if we are going to take data, increment the run number if we are getting it from file
-            if (cProcedure.second && cProcedure.first == "Data Taking")
+            //first check what we are actually configuring
+            for (auto cProcedure : fGUI->fProcedureMap)
             {
-                int cRunNumber = fRunNumber;
+                //if we are going to take data, increment the run number if we are getting it from file
+                if (cProcedure.second && cProcedure.first == "Data Taking")
+                {
+                    int cRunNumber = fRunNumber;
 
-                if (fRunNumber == -1) fGetRunnumberFromFile = true;
+                    if (fRunNumber == -1) fGetRunnumberFromFile = true;
 
-                //get the runnumber from the storage file in Ph2_ACF
-                if (fGetRunnumberFromFile) // this means we want the run number from the file
+                    //get the runnumber from the storage file in Ph2_ACF
+                    if (fGetRunnumberFromFile) // this means we want the run number from the file
+                    {
+                        getRunNumber (expandEnvironmentVariables ("${PH2ACF_ROOT}"), cRunNumber, true) ;
+                        fRunNumber = cRunNumber;
+                    }
+
+                    std::string cRawOutputFile = fDataDirectory.toString() + string_format ("run%05d.raw", cRunNumber);
+
+                    //first add a filehandler for the raw data to SystemController
+                    if (fRAWFile)
+                    {
+                        bool cExists = Ph2TkDAQ::mkdir (fDataDirectory.toString() );
+
+                        if (!cExists)
+                            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Data Directory : " << BOLDBLUE << fDataDirectory.toString() << BOLDGREEN << " does not exist - creating!" << RESET);
+
+                        fSystemController->addFileHandler ( cRawOutputFile, 'w' );
+                        fSystemController->initializeFileHandler();
+                        LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving raw data to: " << BOLDBLUE << cRawOutputFile << RESET);
+                    }
+
+                }
+            }
+        } //end of !fPlayback
+        else if (fPlaybackMode)
+        {
+            if (!Ph2TkDAQ::checkFile (fPlaybackFile.toString() ) )
+            {
+                LOG4CPLUS_ERROR (this->getApplicationLogger(), BOLDRED << "Error, " << fPlaybackFile.toString() << " does not exist!" << RESET);
+                throw std::runtime_error ("Playback Data file does not exist!");
+                fFSM.fireEvent ("Destroy", this);
+                return false;
+            }
+
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Configuring applicaton to run in playback mode with playback file: " << BOLDBLUE << fPlaybackFile.toString() << RESET);
+            //we are in playback mode, so things should be as simple as possible - we get the runnumber either from the filename or from Ph2_ACF storage file
+            //and we also repurpose the system controller file handler to read back the data
+            //also, we only want to create the Playback Workloop here since it is not required under normal conditions
+
+            //bind the action signature for the DS action and create the workloop
+            this->fPlaybackAction = toolbox::task::bind (this, &DTCSupervisor::PlaybackJob, "Playback");
+            this->fPlaybackWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "Playback", "waiting");
+
+            int cRunNumber = fRunNumber;
+
+            //if the run number = -1 (means we don't get it from RCMS) we should first check if there is a run number in the filename
+            if (fRunNumber == -1)
+            {
+                if (Ph2TkDAQ::find_run_number (fPlaybackFile.toString(), cRunNumber) )
+                    fRunNumber = cRunNumber;
+
+                else
                 {
                     getRunNumber (expandEnvironmentVariables ("${PH2ACF_ROOT}"), cRunNumber, true) ;
                     fRunNumber = cRunNumber;
                 }
+            }
 
-                std::string cRawOutputFile = fDataDirectory.toString() + string_format ("run%05d.raw", cRunNumber);
+            //here we need to check what kind of file we are playing back - in case of .daq (SLink data) we only read from binary file, so it's easy
+            //if we are reading .raw data, we need to get the info from the File Header and compare against the config file, issue a warning and if necessary update the HWDescription
+            if (fPlaybackFile.toString().find (".raw") != std::string::npos) // we are dealing with a .raw file
+            {
+                //add a read file handler to our SystemController, this does not require a call to initializeFileHandler
+                fSystemController->addFileHandler ( fPlaybackFile.toString().c_str(), 'r' );
 
-                //first add a filehandler for the raw data to SystemController
-                if (fRAWFile)
+                //now read the file header and check if it makes sense
+                if (fSystemController->fFileHandler->fHeaderPresent)
                 {
-                    bool cExists = Ph2TkDAQ::mkdir (fDataDirectory.toString() );
+                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Found valid File header in " << BOLDBLUE << fPlaybackFile.toString() << RESET);
+                    //we have found a reasonable fileHeader - the above statement beeing true also implies a valid header
+                    FileHeader cHeader = fSystemController->fFileHandler->getHeader();
+                    //now analyze it and check against the HWDescription
+                    //in this case we have all the info we need: the FW type, the event size 32 to read in chunks of 100 events and the number of CBCs, so wipe the HW Description tree and populate with what we know
+                    BeBoard* cBoard = fSystemController->fBoardVector.at (0);
+                    //first, set the board and event type, then modify the NCbc in the vector - for now assuming 1 FE //TODO
+                    //the below ensures we have the right Event Object that is used when calling Data.set()
+                    cBoard->setBoardType (cHeader.getBoardType() );
+                    cBoard->setEventType (cHeader.fEventType);
+                    fPlaybackEventSize32 = cHeader.fEventSize32;
+                    Counter cCounter;
+                    cBoard->accept (cCounter);
 
-                    if (!cExists)
-                        LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Data Directory : " << BOLDBLUE << fDataDirectory.toString() << BOLDGREEN << " does not exist - creating!" << RESET);
+                    if (cHeader.fNCbc != cCounter.getNCbc() )
+                    {
+                        //we have an issue here so output the number of CBCs from the file and the number in the HW Description and fire the Destroy event
+                        LOG4CPLUS_ERROR (this->getApplicationLogger(), BOLDRED << "Error, " << fPlaybackFile.toString() << " Contains data from " << BOLDYELLOW << cHeader.fNCbc << BOLDRED << " Cbcs whereas the HWDescription file has " << BOLDBLUE << cCounter.getNCbc() << " Cbcs on " << cCounter.getNFe() << BOLDRED << " Front Ends - I am firing the Destroy state transition and ask you to change the HWDescription file " << BOLDGREEN << fHWDescriptionFile.toString() << BOLDRED << " accordingly!" << RESET);
+                        fFSM.fireEvent ("Destroy", this);
+                        return false;
+                    }
 
-                    fSystemController->addFileHandler ( cRawOutputFile, 'w' );
-                    fSystemController->initializeFileHandler();
-                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving raw data to: " << BOLDBLUE << cRawOutputFile << RESET);
                 }
-
-                //then, if required also for the .daq data
-                if (fDAQFile)
+                else
                 {
-                    int cRunNumber = fRunNumber;
-                    std::string cDAQOutputFile = fDataDirectory.toString();
-                    std::string cFile = string_format ("run_%05d.daq", cRunNumber);
-                    cDAQOutputFile += cFile;
-                    //then add a file handler for the DAQ data
-                    fSLinkFileHandler = new FileHandler (cDAQOutputFile, 'w');
-                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving daq data to: " << BOLDBLUE << fSLinkFileHandler->getFilename() << RESET);
+                    //also need to compute event size 32
+                    fPlaybackEventSize32 = fSystemController->computeEventSize32 (fSystemController->fBoardVector.at (0) );
+                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDRED << "Did not find a valid File header in " << BOLDBLUE << fPlaybackFile.toString() << BOLDRED << " - thus trying with info from HWDescription file!" << RESET);
                 }
+            }
+            else if (fPlaybackFile.toString().find (".daq") != std::string::npos) // we are dealing with a .daq file
+            {
+                //here we just need to open the ifstream
+                fPlaybackIfstream.open (fPlaybackFile.toString().c_str() );
 
+                if (fPlaybackIfstream.fail() )
+                {
+                    LOG4CPLUS_ERROR (this->getApplicationLogger(), BOLDRED << "Error, " << fPlaybackFile.toString() << " could not be opened!" << RESET);
+                    throw std::runtime_error ("Could not open playback Data file!");
+                    fFSM.fireEvent ("Destroy", this);
+                    return false;
+                }
+            }
+            else
+            {
+                LOG4CPLUS_ERROR (this->getApplicationLogger(), BOLDRED << "Error, " << fPlaybackFile.toString() << " is not a recognized file type: types should either be .daq or .raw" << RESET);
+                throw std::runtime_error ("Playback file does not have .raw or .daq extension");
+                fFSM.fireEvent ("Destroy", this);
+                return false;
             }
         }
 
@@ -498,16 +663,33 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
             fGUI->fDataSenderTable = fDataSender->generateStatTable();
         }
 
+        //then, if required a file handler for the .daq data
+        if (fDAQFile)
+        {
+            int cRunNumber = fRunNumber;
+            std::string cDAQOutputFile = fDataDirectory.toString();
+            std::string cFile = string_format ("run_%05d.daq", cRunNumber);
+            cDAQOutputFile += cFile;
+            //then add a file handler for the DAQ data
+            fSLinkFileHandler = new FileHandler (cDAQOutputFile, 'w');
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving daq data to: " << BOLDBLUE << fSLinkFileHandler->getFilename() << RESET);
+        }
+
+
         fACFLock.take();
 
         //first, make sure that the event counter is 0 since we are just configuring and havent taken any data yet
         if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
 
-        //first, check if there were updates to the HWDescription or the settings
-        this->updateHwDescription();
-        this->updateSettings();
-        // once this is checked, configure
-        fSystemController->ConfigureHw();
+        if (!fPlaybackMode)
+        {
+            //first, check if there were updates to the HWDescription or the settings
+            this->updateHwDescription();
+            this->updateSettings();
+            // once this is checked, configure
+            fSystemController->ConfigureHw();
+        }
+
         fACFLock.give();
         this->updateLogs();
     }
@@ -520,102 +702,135 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
     fFSM.fireEvent ("ConfigureDone", this);
     return false;
 }
+
 ///Perform enable transition
 bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
 {
+    bool cEnableDS = false;
+
     try
     {
-        //first, check if there were updates to the HWDescription or the settings
-        fACFLock.take();
-        this->updateHwDescription();
-        this->updateSettings();
-        fACFLock.give();
-
-        //figure out if we are supposed to run any calibrations
-        int cEnabledProcedures = 0;
-        bool cDataTaking = false;
-
-        for (auto cProcedure : fGUI->fProcedureMap)
+        if (!fPlaybackMode)
         {
+            //first, check if there were updates to the HWDescription or the settings
+            fACFLock.take();
+            this->updateHwDescription();
+            this->updateSettings();
+            fACFLock.give();
 
-            if (cProcedure.second && cProcedure.first != "Data Taking") cEnabledProcedures++;
+            //figure out if we are supposed to run any calibrations
+            int cEnabledProcedures = 0;
+            bool cDataTaking = false;
 
-            if (cProcedure.second && cProcedure.first == "Data Taking") cDataTaking = true;
-
-            if (cProcedure.second)
-                LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "Running " << BOLDBLUE << cProcedure.first << RESET);
-        }
-
-        if (cEnabledProcedures != 0) // we are supposed to run calibrations
-        {
-            //activate the workloop so it's available
-            if (!fCalibrationWorkloop->isActive() )
+            for (auto cProcedure : fGUI->fProcedureMap)
             {
-                fCalibrationWorkloop->activate();
-                LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDBLUE << "Starting workloop for calibration tasks!" << RESET);
 
-                try
-                {
-                    fCalibrationWorkloop->submit (fCalibrationAction);
-                }
-                catch (xdaq::exception::Exception& e)
-                {
-                    LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
-                }
+                if (cProcedure.second && cProcedure.first != "Data Taking") cEnabledProcedures++;
+
+                if (cProcedure.second && cProcedure.first == "Data Taking") cDataTaking = true;
+
+                if (cProcedure.second)
+                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "Running " << BOLDBLUE << cProcedure.first << RESET);
             }
-        }
 
-        //we can only start the DAQ workloop here in case there are no calibrations enabled
-        //if there are, we need to run the calibration first, let the workloop finish and remove the calibrations from the list of tasks
-        //then we can re-enable and the below will be true
-        if (cDataTaking && cEnabledProcedures == 0)
-        {
-            //if SendData is enabled, here we need to start the SendData workloop
-            if (fSendData)
+            if (cEnabledProcedures != 0) // we are supposed to run calibrations
             {
-                if (!fDSWorkloop->isActive() )
+                //activate the workloop so it's available
+                if (!fCalibrationWorkloop->isActive() )
                 {
-                    fDSWorkloop->activate();
-                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Starting workloop for data sending!" << RESET);
-
-                    fDataSender->ResetTimer();
-                    fDataSender->StartTimer();
+                    fCalibrationWorkloop->activate();
+                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDBLUE << "Starting workloop for calibration tasks!" << RESET);
 
                     try
                     {
-                        fDSWorkloop->submit (fDSAction);
+                        fCalibrationWorkloop->submit (fCalibrationAction);
                     }
                     catch (xdaq::exception::Exception& e)
                     {
                         LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
                     }
-
                 }
-
-                fGUI->fDataSenderTable = fDataSender->generateStatTable();
             }
 
-            //first, make sure that the event counter is 0 since we are just starting the run
+            //we can only start the DAQ workloop here in case there are no calibrations enabled
+            //if there are, we need to run the calibration first, let the workloop finish and remove the calibrations from the list of tasks
+            //then we can re-enable and the below will be true
+            if (cDataTaking && cEnabledProcedures == 0)
+            {
+                //if SendData is enabled, here we need to start the SendData workloop
+                if (fSendData) cEnableDS = true;
+
+                //first, make sure that the event counter is 0 since we are just starting the run
+                if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
+
+                if (!fDAQWorkloop->isActive() )
+                {
+                    fDAQWorkloop->activate();
+                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDBLUE << "Starting workloop for data taking!" << RESET);
+
+                    try
+                    {
+                        //before we do that, we need to start the flow of Triggers
+                        fACFLock.take();
+                        fSystemController->Start();
+                        fACFLock.give();
+                        fDAQWorkloop->submit (fDAQAction);
+                    }
+                    catch (xdaq::exception::Exception& e)
+                    {
+                        LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
+                    }
+                }
+            }
+        }
+        else if (fPlaybackMode)
+        {
+            //here we need to do a couple of things
+            //if SendData is enabled, we need to start the SendData workloop
+            if (fSendData) cEnableDS = true;
+
+            //now, make sure that the event counter is 0 since we are just starting the playback run
             if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
 
-            if (!fDAQWorkloop->isActive() )
+            //lastly, start the playback workloop
+            if (!fPlaybackWorkloop->isActive() )
             {
-                fDAQWorkloop->activate();
-                LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDBLUE << "Starting workloop for data taking!" << RESET);
+                fPlaybackWorkloop->activate();
+                LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDBLUE << "Starting workloop for data playback!" << RESET);
+            }
+
+            try
+            {
+                fPlaybackWorkloop->submit (fPlaybackAction);
+            }
+            catch (xdaq::exception::Exception& e)
+            {
+                LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
+            }
+        }
+
+        if (cEnableDS)
+        {
+            if (!fDSWorkloop->isActive() )
+            {
+                fDSWorkloop->activate();
+                LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Starting workloop for data sending!" << RESET);
+
+                fDataSender->ResetTimer();
+                fDataSender->StartTimer();
 
                 try
                 {
-                    //before we do that, we need to start the flow of Triggers
-                    fACFLock.take();
-                    fSystemController->Start();
-                    fACFLock.give();
-                    fDAQWorkloop->submit (fDAQAction);
+                    fDSWorkloop->submit (fDSAction);
                 }
                 catch (xdaq::exception::Exception& e)
                 {
                     LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
                 }
+
             }
+
+            fGUI->fDataSenderTable = fDataSender->generateStatTable();
         }
     }
     catch (std::exception& e)
@@ -627,22 +842,31 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
     fFSM.fireEvent ("EnableDone", this);
     return false;
 }
+
 ///Perform halt transition
 bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
 {
     try
     {
-        if (fDAQWorkloop->isActive() )
+        if (!fPlaybackMode)
         {
-            fDAQWorkloop->cancel();
-            fACFLock.take();
-            fSystemController->Stop();
-            fACFLock.give();
+            if (fDAQWorkloop->isActive() )
+            {
+                fDAQWorkloop->cancel();
+                fACFLock.take();
+                fSystemController->Stop();
+                fACFLock.give();
+            }
+
+            if (fCalibrationWorkloop->isActive() )
+                fCalibrationWorkloop->cancel();
+
         }
-
-        if (fCalibrationWorkloop->isActive() )
-            fCalibrationWorkloop->cancel();
-
+        else if (fPlaybackMode)
+        {
+            if (fPlaybackWorkloop->isActive() )
+                fPlaybackWorkloop->cancel();
+        }
 
         //reset the internal runnumber so we pick up on it on the next initialise
         if (fGetRunnumberFromFile)
@@ -710,16 +934,24 @@ bool DTCSupervisor::stopping (toolbox::task::WorkLoop* wl)
 {
     try
     {
-        if (fDAQWorkloop->isActive() )
+        if (!fPlaybackMode)
         {
-            fDAQWorkloop->cancel();
-            fACFLock.take();
-            fSystemController->Stop();
-            fACFLock.give();
-        }
+            if (fDAQWorkloop->isActive() )
+            {
+                fDAQWorkloop->cancel();
+                fACFLock.take();
+                fSystemController->Stop();
+                fACFLock.give();
+            }
 
-        if (fCalibrationWorkloop->isActive() )
-            fCalibrationWorkloop->cancel();
+            if (fCalibrationWorkloop->isActive() )
+                fCalibrationWorkloop->cancel();
+        }
+        else if (fPlaybackMode)
+        {
+            if (fPlaybackWorkloop->isActive() )
+                fPlaybackWorkloop->cancel();
+        }
 
         if (fSendData)
         {
@@ -750,6 +982,9 @@ bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
         if (fDSWorkloop->isActive() )
             fDSWorkloop->cancel();
 
+        if (fPlaybackWorkloop->isActive() )
+            fPlaybackWorkloop->cancel();
+
         fACFLock.take();
         fSystemController->Destroy();
         delete fSystemController;
@@ -763,8 +998,6 @@ bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
         LOG4CPLUS_ERROR (this->getApplicationLogger(), e.what() );
         fFSM.fireFailed ("Error on destroying", this);
     }
-
-    std::cout << "I get here!" << std::endl;
 
     fFSM.fireEvent ("DestroyDone", this);
     return false;

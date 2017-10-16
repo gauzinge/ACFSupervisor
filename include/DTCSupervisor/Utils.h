@@ -237,5 +237,19 @@ namespace Ph2TkDAQ {
         }
     }
 
+    inline bool find_run_number (std::string pFilename, int& pRunNumber)
+    {
+        //extract a run number from a filename and return true if there is one and false if not
+        //the run number is 5 digits and found before the underscore
+        if (pFilename.find ("_") == std::string::npos) return false;
+        else
+        {
+            size_t pos = pFilename.find ("_");
+            std::string cNumString = pFilename.substr (pos - 5, 5);
+            pRunNumber = stoi (cNumString);
+            std::cout << BOLDRED << "DEBUG (Utils) cNumString " << cNumString << RESET << std::endl;
+            return true;
+        }
+    }
 }
 #endif
