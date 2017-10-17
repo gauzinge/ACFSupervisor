@@ -72,6 +72,18 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     this->getApplicationInfoSpace()->fireItemAvailable ("PlaybackMode", &fPlaybackMode);
     this->getApplicationInfoSpace()->fireItemAvailable ("PlaybackFile", &fPlaybackFile);
 
+    // Bind SOAP callbacks for control messages
+    xoap::bind (this, &DTCSupervisor::fireEvent, "Initialise", XDAQ_NS_URI);
+    xoap::bind (this, &DTCSupervisor::fireEvent, "Configure", XDAQ_NS_URI);
+    xoap::bind (this, &DTCSupervisor::fireEvent, "Enable", XDAQ_NS_URI);
+    xoap::bind (this, &DTCSupervisor::fireEvent, "Halt", XDAQ_NS_URI);
+    xoap::bind (this, &DTCSupervisor::fireEvent, "Stop", XDAQ_NS_URI);
+    xoap::bind (this, &DTCSupervisor::fireEvent, "Pause", XDAQ_NS_URI);
+    xoap::bind (this, &DTCSupervisor::fireEvent, "Resume", XDAQ_NS_URI);
+    xoap::bind (this, &DTCSupervisor::fireEvent, "Destroy", XDAQ_NS_URI);
+    xoap::bind (this, &DTCSupervisor::fireEvent, "SetValues", XDAQ_NS_URI);
+    xoap::bind (this, &DTCSupervisor::fireEvent, "GetValues", XDAQ_NS_URI);
+
     //bind the action signature for the calibration action and create the workloop
     this->fCalibrationAction = toolbox::task::bind (this, &DTCSupervisor::CalibrationJob, "Calibration");
     this->fCalibrationWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "Calibrating", "waiting");
@@ -1097,4 +1109,136 @@ void DTCSupervisor::updateSettings()
         throw std::runtime_error ("This can only be called in Confuring or Enabling");
         return;
     }
+}
+
+xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) throw (xoap::exception::Exception)
+{
+    xoap::SOAPPart part = msg->getSOAPPart();
+    xoap::SOAPEnvelope env = part.getEnvelope();
+    xoap::SOAPBody body = env.getBody();
+    DOMNode* node = body.getDOMNode();
+    DOMNodeList* bodyList = node->getChildNodes();
+
+    for (unsigned int i = 0; i < bodyList->getLength(); i++)
+    {
+        DOMNode* command = bodyList->item (i);
+
+        if (command->getNodeType() == DOMNode::ELEMENT_NODE)
+        {
+            std::string commandName = xoap::XMLCh2String (command->getLocalName() );
+
+            if (commandName == "Initialise" ||
+                    commandName == "Configure" ||
+                    commandName == "Enable" ||
+                    commandName == "Stop" ||
+                    commandName == "Pause" ||
+                    commandName == "Resume" ||
+                    commandName == "Halt" ||
+                    commandName == "Destroy")
+                try
+                {
+                    //toolbox::Event::Reference e (new toolbox::Event (commandName, this) );
+                    //fsm_.fireEvent (e);
+                    fFSM.fireEvent (commandName, this);
+                }
+                catch (toolbox::fsm::exception::Exception& e)
+                {
+                    XCEPT_RETHROW (xcept::Exception, "invalid command", e);
+                }
+
+            if (commandName == "SetValues")
+            {
+                std::cout << "DTCSupervisor:: " << "I got a command " << std::endl;
+                // All attributes
+                DOMNamedNodeMap*  attributes = command->getAttributes();
+                DOMNode*  e = attributes->getNamedItem (XMLString::transcode ("name") );
+
+                if (e == NULL)
+                {
+                    std::cout << "No name tag" << std::endl;
+                    continue;
+                }
+
+                std::cout << "DTCSupervisor:: " << "Name is " << xoap::XMLCh2String (e->getNodeValue() ) << std::endl;
+
+                xdata::Serializable* s = getApplicationInfoSpace()->find (xoap::XMLCh2String (e->getNodeValue() ) );
+
+                if (s != NULL)
+                {
+                    std::cout << "DTCSupervisor:: " << "Type is " << s->type();
+
+                    if (s->type() == "int")
+                    {
+                        xdata::Integer* si = (xdata::Integer*) s;
+                        int d;
+                        DOMNode*  ev = attributes->getNamedItem (XMLString::transcode ("value") );
+                        sscanf (xoap::XMLCh2String (ev->getNodeValue() ).c_str(), "%d", &d);
+                        si->value_ = d;
+                        std::cout << "DTCSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
+                    }
+
+                    if (s->type() == "unsigned long")
+                    {
+                        xdata::UnsignedLong* si = (xdata::UnsignedLong*) s;
+                        unsigned long d;
+                        DOMNode*  ev = attributes->getNamedItem (XMLString::transcode ("value") );
+                        sscanf (xoap::XMLCh2String (ev->getNodeValue() ).c_str(), "%ld", &d);
+                        si->value_ = d;
+                        std::cout << "DTCSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
+                    }
+
+                    if (s->type() == "unsigned short")
+                    {
+                        xdata::UnsignedShort* si = (xdata::UnsignedShort*) s;
+                        int d;
+                        DOMNode*  ev = attributes->getNamedItem (XMLString::transcode ("value") );
+                        sscanf (xoap::XMLCh2String (ev->getNodeValue() ).c_str(), "%d", &d);
+                        si->value_ = d;
+                        std::cout << "DTCSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
+                    }
+
+                    if (s->type() == "unsigned int")
+                    {
+                        xdata::UnsignedInteger32* si = (xdata::UnsignedInteger32*) s;
+                        int d;
+                        DOMNode*  ev = attributes->getNamedItem (XMLString::transcode ("value") );
+                        sscanf (xoap::XMLCh2String (ev->getNodeValue() ).c_str(), "%d", &d);
+                        si->value_ = d;
+                        std::cout << "DTCSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
+                    }
+
+                    if (s->type() == "string")
+                    {
+                        xdata::String* si = (xdata::String*) s;
+                        DOMNode*  ev = attributes->getNamedItem (XMLString::transcode ("value") );
+                        si->value_ = xoap::XMLCh2String (ev->getNodeValue() ).c_str();
+                        std::cout << "DTCSupervisor:: " << "Type & Value:  " << si->type() << " " << si->value_ << std::endl;
+                    }
+
+                    if (s->type() == "bool")
+                    {
+                        xdata::Boolean* si = (xdata::Boolean*) s;
+                        DOMNode*  ev = attributes->getNamedItem (XMLString::transcode ("value") );
+
+                        if (xoap::XMLCh2String (ev->getNodeValue() ) == "true")
+                            si->value_ = true;
+                        else
+                            si->value_ = false;
+
+                        std::cout << "DTCSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
+                    }
+
+                }
+
+            }
+
+            xoap::MessageReference reply = xoap::createMessage();
+            xoap::SOAPEnvelope envelope = reply->getSOAPPart().getEnvelope();
+            xoap::SOAPName responseName = envelope.createName ( commandName + "Response", "xdaq", XDAQ_NS_URI);
+            envelope.getBody().addBodyElement ( responseName );
+            return reply;
+        }
+    }
+
+    XCEPT_RAISE (xcept::Exception, "command not found");
 }

@@ -171,7 +171,7 @@ bool TCPDataSender::sendData ()
         {
             //consecutive storage of vector elements guaranteed by the standard, so this is possible
             //last argument is size of vector in bytes
-            const ssize_t written = write (fSockfd, (char*) &cSocketBufferVector.at (0), cSocketBufferVector.size() * sizof (uint64_t) );
+            const ssize_t written = write (fSockfd, (char*) &cSocketBufferVector.at (0), cSocketBufferVector.size() * sizeof (uint64_t) );
 
             if ( written < 0 )
             {
@@ -186,7 +186,7 @@ bool TCPDataSender::sendData ()
                 }
 
             }
-            else if (written % sizof (uint64_t) == 0)
+            else if (written % sizeof (uint64_t) == 0)
             {
                 len -= written;
                 ssize_t written64 = written / sizeof (uint64_t);

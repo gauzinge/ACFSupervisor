@@ -13,6 +13,9 @@
 #include "xgi/Utils.h"
 #include "xgi/Method.h"
 
+#include "xoap/SOAPMessage.h"
+#include "xoap/Method.h"
+
 #include "cgicc/CgiDefs.h"
 #include "cgicc/Cgicc.h"
 #include "cgicc/HTTPHTMLHeader.h"
@@ -22,6 +25,8 @@
 #include "xdata/String.h"
 #include "xdata/Integer.h"
 #include "xdata/UnsignedInteger32.h"
+#include "xdata/UnsignedLong.h"
+#include "xdata/UnsignedShort.h"
 #include "xdata/Boolean.h"
 
 #include "DTCSupervisor/SupervisorGUI.h"
@@ -61,6 +66,9 @@ namespace Ph2TkDAQ {
 
         //xdata:event listener
         void actionPerformed (xdata::Event& e);
+
+        //soap message handler
+        xoap::MessageReference fireEvent (xoap::MessageReference msg) throw (xoap::exception::Exception);
 
         //views
         void Default (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
