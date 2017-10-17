@@ -1,8 +1,8 @@
 ## DTC Supervisor README page
 
-This is the readme page of the new DTC Supervisor. Below you can find instructions on how to install the application and an overview of the basic functionality. This SW is built on top of CMS XDAQ versions 13 and 14 and requires a recent gcc version that supports c++11. Additional requirements are listed in the [Requirements] [requirements] section.
+This is the readme page of the new DTC Supervisor. Below you can find instructions on how to install the application and an overview of the basic functionality. This SW is built on top of CMS XDAQ versions 13 and 14 and requires a recent gcc version that supports c++11. Additional requirements are listed in the Requirements section.
 
-[requirements]: ### Requirements
+### Requirements
 
 To compile and run this software, you need an installation of CERN Scientific Linux 6 or CERN CentOS 7. On SLC6 you need to install Devtoolset-2.1 (via yum) to get gcc 4.8 which is required for the c++11 features. On CC7, the default compiler version is gcc 4.8. Additional requirements are XDAQ 13 on SLC6 or XDAQ14 on CC7 - both versions can be installed via yum once the corresponding .repo file is downloaded and placed in /etc/yum.repos.d/xdaq.repo.
 
@@ -15,7 +15,7 @@ Other packages that can be downloaded and installed via yum are:
 * boost-devel (only on CC7)
 * CERN ROOT > 5.34 (> 6.10 for online Plots)
 
-This software internally links against [Ph2_ACF] (https://gitlab.cern.ch/cms_tk_ph2/Ph2_ACF) which can be checked out via git. It requires [uHAL] (cactus.cern.ch) and a recent version of ROOT. Install instructions can be found on the github page.
+This software internally links against Ph2_ACF (https://gitlab.cern.ch/cms_tk_ph2/Ph2_ACF) which can be checked out via git. It requires uHAL (cactus.cern.ch) and a recent version of ROOT. Install instructions can be found on the github page.
 
 ### Installation
 
@@ -51,7 +51,7 @@ To compile the code, have a look at the provided setup.sh script and adapt the p
             </properties>
         </xc:Application>
 
-        <!-- Shared object library that contains the HelloWorld inplementation -->
+        <!-- Shared object library that contains the inplementation -->
         <xc:Module>${DTCSUPERVISOR_ROOT}/lib/linux/x86_64_centos7/libDTCSupervisor.so</xc:Module>
 
     </xc:Context>
@@ -60,3 +60,8 @@ To compile the code, have a look at the provided setup.sh script and adapt the p
 
 ### Interface
 ![User Interface](/fig/DTC_Main.jpg "Main Page")
+The sofware is intended as a XDAQ wrapper to the Ph2_ACF framework and thus some knowledge of the framework and configuration files is required. It uses the HwDescription.xml files of Ph2_ACF which can be edited via the webinterface.
+![User Interface](/fig/DTC_config.jpg "Config Page")
+The webgui implements the XDAQ finite state machine and provides additional options to configure data sharing with other XDAQ applications via TCP sockets.
+![User Interface](/fig/DTC_DS.jpg "Data sending and Playback Page")
+
