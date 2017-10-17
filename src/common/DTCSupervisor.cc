@@ -449,6 +449,9 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
             LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "Warning, read file chunk of  " << cDataVec.size() << " words - this is not a multiple of the event size: " << fPlaybackEventSize32 << " -stopping playback job!" << RESET);
 
             // this is true only once we have reached the end of the file
+            // so we need to close the file handler
+            fSystemController->closeFileHandler();
+
             if (fFSM.getCurrentState() == 'E')
                 fFSM.fireEvent ("Stop", this);
 
@@ -462,8 +465,6 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
         //read the uint64_t vector from ifstream (fPlaybackIfstream)
         std::vector<SLinkEvent> cSLinkEventVec = this->readSLinkFromFile (cNEvents);
 
-        //for (auto cEvent : cSLinkEventVec)
-        //cEvent.print();
         if (cSLinkEventVec.size() != 0)
         {
             fEventCounter += cSLinkEventVec.size();
@@ -477,6 +478,10 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
         else
         {
             // this is true only once we have reached the end of the file
+            // therefore we need to close the filestream
+            if (fPlaybackIfstream.is_open() )
+                fPlaybackIfstream.close();
+
             if (fFSM.getCurrentState() == 'E')
                 fFSM.fireEvent ("Stop", this);
 
@@ -595,6 +600,8 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
             //if the run number = -1 (means we don't get it from RCMS) we should first check if there is a run number in the filename
             if (fRunNumber == -1)
             {
+                fGetRunnumberFromFile = true;
+
                 if (Ph2TkDAQ::find_run_number (fPlaybackFile.toString(), cRunNumber) )
                     fRunNumber = cRunNumber;
 
@@ -621,7 +628,6 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
                     //now analyze it and check against the HWDescription
                     //in this case we have all the info we need: the FW type, the event size 32 to read in chunks of 100 events and the number of CBCs, so wipe the HW Description tree and populate with what we know
                     BeBoard* cBoard = fSystemController->fBoardVector.at (0);
-                    //first, set the board and event type, then modify the NCbc in the vector - for now assuming 1 FE //TODO
                     //the below ensures we have the right Event Object that is used when calling Data.set()
                     cBoard->setBoardType (cHeader.getBoardType() );
                     cBoard->setEventType (cHeader.fEventType);
@@ -672,8 +678,7 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
         //open the connection for the TCP Data  Sender
         if (fSendData)
         {
-            //TODO
-            //fDataSender->openConnection();
+            fDataSender->openConnection();
             fGUI->fDataSenderTable = fDataSender->generateStatTable();
         }
 
@@ -722,6 +727,29 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
 {
     try
     {
+        if (fSendData)
+        {
+            if (!fDSWorkloop->isActive() )
+            {
+                fDSWorkloop->activate();
+                LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Starting workloop for data sending!" << RESET);
+
+                fDataSender->ResetTimer();
+                fDataSender->StartTimer();
+
+                try
+                {
+                    fDSWorkloop->submit (fDSAction);
+                }
+                catch (xdaq::exception::Exception& e)
+                {
+                    LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
+                }
+
+                //fGUI->fDataSenderTable = fDataSender->generateStatTable();
+            }
+        }
+
         if (!fPlaybackMode)
         {
             //first, check if there were updates to the HWDescription or the settings
@@ -769,31 +797,6 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
             //then we can re-enable and the below will be true
             if (cDataTaking && cEnabledProcedures == 0)
             {
-                //if SendData is enabled, here we need to start the SendData workloop
-                if (fSendData)
-                {
-                    if (!fDSWorkloop->isActive() )
-                    {
-                        fDSWorkloop->activate();
-                        LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Starting workloop for data sending!" << RESET);
-
-                        fDataSender->ResetTimer();
-                        fDataSender->StartTimer();
-
-                        try
-                        {
-                            fDSWorkloop->submit (fDSAction);
-                        }
-                        catch (xdaq::exception::Exception& e)
-                        {
-                            LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
-                        }
-
-                        //fGUI->fDataSenderTable = fDataSender->generateStatTable();
-                    }
-
-                }
-
                 //first, make sure that the event counter is 0 since we are just starting the run
                 if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
 
@@ -819,31 +822,6 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
         }
         else if (fPlaybackMode)
         {
-            //here we need to do a couple of things
-            //if SendData is enabled, we need to start the SendData workloop
-            if (fSendData)
-            {
-                if (!fDSWorkloop->isActive() )
-                {
-                    fDSWorkloop->activate();
-                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Starting workloop for data sending!" << RESET);
-
-                    fDataSender->ResetTimer();
-                    fDataSender->StartTimer();
-
-                    try
-                    {
-                        fDSWorkloop->submit (fDSAction);
-                    }
-                    catch (xdaq::exception::Exception& e)
-                    {
-                        LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
-                    }
-
-                    //fGUI->fDataSenderTable = fDataSender->generateStatTable();
-                }
-            }
-
             //now, make sure that the event counter is 0 since we are just starting the playback run
             if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
 
@@ -863,7 +841,6 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
                 LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
             }
         }
-
     }
     catch (std::exception& e)
     {
@@ -911,9 +888,8 @@ bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
 
             LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Data Sender Workloop processed " << fDataSender->getNEventsProcessed() << "Events with a frequencey of " << fDataSender->getEventFrequency() << "Hz" << RESET);
 
-            //TODO
-            //fDataSender->closeConnection();
-            //fGUI->fDataSenderTable = fDataSender->generateStatTable();
+            fDataSender->closeConnection();
+            fGUI->fDataSenderTable = fDataSender->generateStatTable();
         }
 
         if (fRAWFile)
@@ -926,7 +902,7 @@ bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
 
         if (fDAQFile)
         {
-            //fSLinkFileHandler->closeFile();
+            fSLinkFileHandler->closeFile();
 
             if (fSLinkFileHandler) delete fSLinkFileHandler;
 

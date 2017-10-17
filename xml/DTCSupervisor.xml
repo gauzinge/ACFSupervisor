@@ -19,7 +19,7 @@
                 <WriteDAQ xsi:type="xsd:boolean">false</WriteDAQ>
                 <ShortPause xsi:type="xsd:integer">10</ShortPause>
                 <THttpServerPort xsi:type="xsd:integer">8080</THttpServerPort>
-                <SendData xsi:type="xsd:boolean">true</SendData>
+                <SendData xsi:type="xsd:boolean">false</SendData>
                 <DataSourceHost xsi:type="xsd:string">localhost</DataSourceHost>
                 <DataSourcePort xsi:type="xsd:integer">404001</DataSourcePort>
                 <DataSinkHost xsi:type="xsd:string">localhost</DataSinkHost>
