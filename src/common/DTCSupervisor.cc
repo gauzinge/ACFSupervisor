@@ -413,12 +413,16 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
         std::vector<uint32_t> cDataVec;
         fSystemController->readFile (cDataVec, cNEvents * fPlaybackEventSize32);
 
-        if (cDataVec.size() != 0) // there is still some data in the file
+        if (cDataVec.size() != 0 && cDataVec.size() % fPlaybackEventSize32 == 0) // there is still some data in the file
         {
             size_t cCalcEventSize = cDataVec.size() / fPlaybackEventSize32;
+
+
             fSystemController->setData (cBoard, cDataVec, cCalcEventSize);
 
             fEventCounter += cCalcEventSize;
+
+            std::this_thread::sleep_for (std::chrono::milliseconds (fShortPause) );
 
             if (fDAQFile || fSendData)
             {
@@ -442,6 +446,8 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
         }
         else
         {
+            LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "Warning, read file chunk of  " << cDataVec.size() << " words - this is not a multiple of the event size: " << fPlaybackEventSize32 << " -stopping playback job!" << RESET);
+
             // this is true only once we have reached the end of the file
             if (fFSM.getCurrentState() == 'E')
                 fFSM.fireEvent ("Stop", this);
@@ -546,7 +552,7 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
                         fRunNumber = cRunNumber;
                     }
 
-                    std::string cRawOutputFile = fDataDirectory.toString() + string_format ("run%05d.raw", cRunNumber);
+                    std::string cRawOutputFile = fDataDirectory.toString() + string_format ("run_%05d.raw", cRunNumber);
 
                     //first add a filehandler for the raw data to SystemController
                     if (fRAWFile)
@@ -558,6 +564,7 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
 
                         fSystemController->addFileHandler ( cRawOutputFile, 'w' );
                         fSystemController->initializeFileHandler();
+                        cRawOutputFile.insert (cRawOutputFile.find (".raw"), "_fedId");
                         LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving raw data to: " << BOLDBLUE << cRawOutputFile << RESET);
                     }
 
@@ -782,7 +789,7 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
                             LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
                         }
 
-                        fGUI->fDataSenderTable = fDataSender->generateStatTable();
+                        //fGUI->fDataSenderTable = fDataSender->generateStatTable();
                     }
 
                 }
@@ -833,9 +840,8 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
                         LOG4CPLUS_ERROR (this->getApplicationLogger(), xcept::stdformat_exception_history (e) );
                     }
 
+                    //fGUI->fDataSenderTable = fDataSender->generateStatTable();
                 }
-
-                fGUI->fDataSenderTable = fDataSender->generateStatTable();
             }
 
             //now, make sure that the event counter is 0 since we are just starting the playback run
@@ -907,7 +913,24 @@ bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
 
             //TODO
             //fDataSender->closeConnection();
-            fGUI->fDataSenderTable = fDataSender->generateStatTable();
+            //fGUI->fDataSenderTable = fDataSender->generateStatTable();
+        }
+
+        if (fRAWFile)
+        {
+            //still need to destroy the file handler for raw data taking since we'll initialize a new one when re-configuring
+            fACFLock.take();
+            fSystemController->closeFileHandler();
+            fACFLock.give();
+        }
+
+        if (fDAQFile)
+        {
+            //fSLinkFileHandler->closeFile();
+
+            if (fSLinkFileHandler) delete fSLinkFileHandler;
+
+            fSLinkFileHandler = nullptr;
         }
     }
     catch (std::exception& e)

@@ -148,7 +148,7 @@ bool TCPDataSender::sendData ()
         {
             std::vector<uint64_t> cBufVec = this->generateTCPPackets (cEvent);
 
-            //this->print_databuffer (cBufVec, std::cout);
+            this->print_databuffer (cBufVec, std::cout);
 
             //since there is a chance I need to write multiple events at once, why not concatenate the buffer vectors for all the events from the current iteration
             cSocketBufferVector.insert (cSocketBufferVector.end(), cBufVec.begin(), cBufVec.end() );
@@ -359,15 +359,6 @@ bool TCPDataSender::dequeueEvent (std::vector<SLinkEvent>& pEventVector)
     }
 
     return !cQueueEmpty;
-
-    //original implementation
-    //std::unique_lock<std::mutex> cLock (fMutex);
-
-    //while (fQueue.empty() )
-    //fEventSet.wait (cLock);
-
-    //pEventVector = fQueue.front();
-    //fQueue.pop();
 }
 
 void TCPDataSender::print_databuffer (std::vector<uint64_t>& pBufVec, std::ostream& os)
