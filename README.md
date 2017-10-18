@@ -110,5 +110,5 @@ The work-in-progress Calibration and DQM page will soon show live rootplots from
 ### Remarks
 The use of this software should be relatively self-explanatory if you are familiar with the concept of CMS DAQ finite state machines and other applications built on top of XDAQ. Most web GUI controls are obvious but some knowledge of Ph2_ACF (mainly config files) is required to run the system. This software is under active development and new features may be added at a later point.
 
-Should you discover any bugs or have questions about features, please contact georg.auzinger@SPAMNOT.cern.ch.
+Should you discover any bugs or have questions about features, please use the issue tracker.
 
