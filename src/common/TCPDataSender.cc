@@ -148,7 +148,7 @@ bool TCPDataSender::sendData ()
         {
             std::vector<uint64_t> cBufVec = this->generateTCPPackets (cEvent);
 
-            this->print_databuffer (cBufVec, std::cout);
+            //this->print_databuffer (cBufVec, std::cout);
 
             //since there is a chance I need to write multiple events at once, why not concatenate the buffer vectors for all the events from the current iteration
             cSocketBufferVector.insert (cSocketBufferVector.end(), cBufVec.begin(), cBufVec.end() );
