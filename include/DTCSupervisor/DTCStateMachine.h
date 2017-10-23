@@ -151,6 +151,7 @@ namespace Ph2TkDAQ {
 
             // bind SOAP callbacks
             xoap::bind (app, &T::fsmCallback, "Initialise",   XDAQ_NS_URI);
+            xoap::bind (app, &T::fsmCallback, "Initialize",   XDAQ_NS_URI);
             xoap::bind (app, &T::fsmCallback, "Configure",    XDAQ_NS_URI);
             xoap::bind (app, &T::fsmCallback, "Enable",       XDAQ_NS_URI);
             xoap::bind (app, &T::fsmCallback, "Halt",         XDAQ_NS_URI);

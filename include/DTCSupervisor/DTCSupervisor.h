@@ -1,9 +1,13 @@
 #ifndef __DTCSupervisor_H__
 #define __DTCSupervisor_H__
 
+#include "xdaq/ApplicationGroup.h"
+#include "xdaq/ApplicationContext.h"
+#include "xdaq/ApplicationStub.h"
+#include "xdaq/Application.h"
+
 #include "xdaq/exception/Exception.h"
 #include "xdaq/NamespaceURI.h"
-#include "xdaq/Application.h"
 
 #include "toolbox/task/WorkLoopFactory.h"
 #include "toolbox/task/Action.h"

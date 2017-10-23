@@ -3,10 +3,10 @@
     xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xc="http://xdaq.web.cern.ch/xdaq/xsd/2004/XMLConfiguration-30">
 
     <!-- Declare a context that contain applcation -->
-    <xc:Context url="http://cmsuptrackerdaq.cern.ch:40400">
+    <xc:Context url="http://cmsuptrackerdaq.cern.ch:41801">
 
         <!-- Declare a DTCSupervisor application -->
-        <xc:Application class="Ph2TkDAQ::DTCSupervisor" id="2" instance="0" network="local">
+        <xc:Application class="Ph2TkDAQ::DTCSupervisor" id="51" instance="0" network="local">
             <properties xmlns="urn:xdaq-application:DTCSupervisor" xsi:type="soapenc:Struct">
                 <!--<HWDescriptionFile xsi:type="xsd:string">${PH2ACF_ROOT}/settings/D19CDescription.xml </HWDescriptionFile>-->
                 <!--<HWDescriptionFile xsi:type="xsd:string">${PH2ACF_ROOT}/settings/CBC3DescriptionIC.xml</HWDescriptionFile>-->
@@ -30,7 +30,7 @@
         </xc:Application>
 
         <!-- Shared object library that contains the HelloWorld inplementation -->
-        <xc:Module>${DTCSUPERVISOR_ROOT}/lib/linux/x86_64_centos7/libDTCSupervisor.so</xc:Module>
+        <xc:Module>${DTCSUPERVISOR_ROOT}/lib/libDTCSupervisor.so</xc:Module>
 
     </xc:Context>
 </xc:Partition>

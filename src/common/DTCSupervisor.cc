@@ -15,7 +15,7 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     fRunNumber (-1),
     fNEvents (0),
     fACFLock (toolbox::BSem::FULL, true), // the second argument is the recursive flag
-    fServerPort (8080),
+    fServerPort (9090),
 #ifdef __HTTP__
     fHttpServer (nullptr),
 #endif
