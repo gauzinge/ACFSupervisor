@@ -33,7 +33,7 @@ SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMa
 
     //bind xgi and xoap commands to methods
     //methods for tab navigation
-    //xgi::bind (this, &SupervisorGUI::Default, "Default");
+    xgi::bind (this, &SupervisorGUI::MainPage, "Default");
     xgi::bind (this, &SupervisorGUI::MainPage, "MainPage");
     xgi::bind (this, &SupervisorGUI::ConfigPage, "ConfigPage");
     xgi::bind (this, &SupervisorGUI::CalibrationPage, "CalibrationPage");
