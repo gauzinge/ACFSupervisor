@@ -238,6 +238,7 @@ namespace Ph2TkDAQ {
         std::vector<SLinkEvent> readSLinkFromFile (uint32_t pNEvents)
         {
             std::vector<SLinkEvent> cEvVec;
+            bool cAnomalousEvent = false;
 
             for (size_t i = 0; i < pNEvents; i++)
             {
@@ -255,9 +256,18 @@ namespace Ph2TkDAQ {
 
                         if ( (cCorrectedWord & 0xFF00000000000000) >> 56 == 0xA0 && (cCorrectedWord & 0x00000000000000F0) >> 4  == 0x7) // SLink Trailer
                             break;
+                        else if(cPlaybackIfstream.eof())
+                        {
+                            cAnomalousEvent = true;
+                            LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, the playback file ended but I could not find a SLink Trailer, therefore discarding theis fragment of size " << cData.size()<< RESET);
+                            for(auto cWord : cData)
+                                LOG4CPLUS_ERROR(this->getApplicationLogger(), std::hex << cWord << std::dec);
+                            cData.clear;
+                            break;
+                        }
                     }
 
-                    cEvVec.push_back (SLinkEvent (cData) );
+                    if (!cAnomalousEvent) cEvVec.push_back (SLinkEvent (cData) );
                 }
             }
 

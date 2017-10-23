@@ -26,7 +26,7 @@
                 <DataSinkHost xsi:type="xsd:string">localhost</DataSinkHost>
                 <DataSinkPort xsi:type="xsd:integer">404002</DataSinkPort>
                 <PlaybackMode xsi:type="xsd:boolean">true</PlaybackMode>
-                <PlaybackFile xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Data/run_0249.daq</PlaybackFile>
+                <PlaybackFile xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Data/run_00422.daq</PlaybackFile>
             </properties>
         </xc:Application>
 
