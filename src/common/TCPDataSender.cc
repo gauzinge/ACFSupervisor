@@ -225,7 +225,7 @@ bool TCPDataSender::sendData ()
             {
                 len -= written;
                 ssize_t written64 = written / sizeof (uint64_t);
-                erase the written / sizeof() first words from the buffer vector, this should never happen though
+                //erase the written / sizeof() first words from the buffer vector, this should never happen though
                 cSocketBufferVector.erase (cSocketBufferVector.begin(), cSocketBufferVector.begin() + written64);
                 LOG4CPLUS_ERROR (fLogger, RED << "Error, did not write the whole buffer vector but only " << written64 << " words" << RESET);
             }
