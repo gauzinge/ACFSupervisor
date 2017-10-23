@@ -72,6 +72,8 @@ std::vector<uint64_t> TCPDataSender::generateTCPPackets (SLinkEvent& pEvent)
     uint32_t cL1AId = pEvent.getLV1Id();
     //instead of ceil
     uint32_t cNbBlock = (cEventSize64 + ferolPayloadSize64 - 1) / ferolPayloadSize64;
+    LOG4CPLUS_INFO(fLogger, "Size: " << cEventSize64 << " L1A ID: " << cL1AId << " Nb block: " << cNbBlock );
+
 
     //get the Event Data as vector of uint64_t
     std::vector<uint64_t> cEventData = pEvent.getData<uint64_t>();
@@ -141,7 +143,7 @@ bool TCPDataSender::sendData ()
     // if dequeue event returned true, we have a new SLinkEventVector that we need to process!
     if (cData)
     {
-        std::vector<uint64_t> cSocketBufferVector;
+        //std::vector<uint64_t> cSocketBufferVector;
 
         //loop the events
         for (auto& cEvent : cEventVec)
@@ -151,41 +153,47 @@ bool TCPDataSender::sendData ()
             this->print_databuffer (cBufVec, std::cout);
 
             //since there is a chance I need to write multiple events at once, why not concatenate the buffer vectors for all the events from the current iteration
-            cSocketBufferVector.insert (cSocketBufferVector.end(), cBufVec.begin(), cBufVec.end() );
+            //cSocketBufferVector.insert (cSocketBufferVector.end(), cBufVec.begin(), cBufVec.end() );
 
         //now write this Socket buffer vector at the socket
-        //ssize_t len = cBufVec.size() * sizeof (uint64_t);
+        ssize_t len = cBufVec.size() * sizeof (uint64_t);
 
-            //while ( len > 0 && fSocketOpen )
-            //{
-                ////consecutive storage of vector elements guaranteed by the standard, so this is possible
-                ////last argument is size of vector in bytes
-                //const ssize_t written = write (fSockfd, (char*) &cBufVec.at (0), cBufVec.size() * sizeof (uint64_t) );
+            while ( len > 0 && fSocketOpen )
+            {
+                //consecutive storage of vector elements guaranteed by the standard, so this is possible
+                //last argument is size of vector in bytes
+                const ssize_t written = write (fSockfd, (char*) &cBufVec.at (0), cBufVec.size() * sizeof (uint64_t) );
 
-                //if ( written < 0 )
-                //{
-                    //if ( errno == EWOULDBLOCK )
-                        //std::this_thread::sleep_for (std::chrono::microseconds (100) );
-                    //else
-                    //{
-                        //std::ostringstream msg;
-                        //msg << "Failed to send data to " << fSinkHost << ":" << fSinkPort;
-                        //msg << " : " << strerror (errno);
-                        //XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
-                    //}
+                if ( written < 0 )
+                {
+                    if ( errno == EWOULDBLOCK )
+                        std::this_thread::sleep_for (std::chrono::microseconds (100) );
+                    else
+                    {
+                        std::ostringstream msg;
+                        msg << "Failed to send data to " << fSinkHost << ":" << fSinkPort;
+                        msg << " : " << strerror (errno);
+                        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+                    }
 
-                //}
-                ////else if (written % sizeof (uint64_t) == 0)
-                ////{
-                    ////len -= written;
-                    ////ssize_t written64 = written / sizeof (uint64_t);
-                    //////erase the written / sizeof() first words from the buffer vector, this should never happen though
-                    ////cBufVec.erase (cBufVec.begin(), cBufVec.begin() + written64);
-                    ////LOG4CPLUS_ERROR (fLogger, RED << "Error, did not write the whole buffer vector but only " << written64 << " words" << RESET);
-                ////}
-                ////else
-                    ////LOG4CPLUS_ERROR (fLogger, RED << "Error, did only write " << written << " bytes" << RESET);
-            //}
+                }
+                else if (written/sizeof(uint64_t) ==cBufVec.size())
+                {
+                    LOG4CPLUS_INFO (fLogger, RED << "Wrote the whole buffer" << RESET);
+                    len = 0;
+                    cBufVec.clear();
+                }
+                else if (written/sizeof(uint64_t) != cBufVec.size() && written % sizeof (uint64_t) == 0)
+                {
+                    len -= written;
+                    ssize_t written64 = written / sizeof (uint64_t);
+                    //erase the written / sizeof() first words from the buffer vector, this should never happen though
+                    cBufVec.erase (cBufVec.begin(), cBufVec.begin() + written64);
+                    LOG4CPLUS_ERROR (fLogger, RED << "Error, did not write the whole buffer vector but only " << written64 << " words" << RESET);
+                }
+                else
+                    LOG4CPLUS_ERROR (fLogger, RED << "Error, did only write " << written << " bytes" << RESET);
+            }
 
 
                 //better safe than sorry
@@ -200,38 +208,38 @@ bool TCPDataSender::sendData ()
         fCounterMutex.unlock();
 
         //now write this Socket buffer vector at the socket
-        ssize_t len = cSocketBufferVector.size() * sizeof (uint64_t);
+        //ssize_t len = cSocketBufferVector.size() * sizeof (uint64_t);
 
-        while ( len > 0 && fSocketOpen )
-        {
-            //consecutive storage of vector elements guaranteed by the standard, so this is possible
-            //last argument is size of vector in bytes
-            const ssize_t written = write (fSockfd, (char*) &cSocketBufferVector.at (0), cSocketBufferVector.size() * sizeof (uint64_t) );
+        //while ( len > 0 && fSocketOpen )
+        //{
+            ////consecutive storage of vector elements guaranteed by the standard, so this is possible
+            ////last argument is size of vector in bytes
+            //const ssize_t written = write (fSockfd, (char*) &cSocketBufferVector.at (0), cSocketBufferVector.size() * sizeof (uint64_t) );
 
-            if ( written < 0 )
-            {
-                if ( errno == EWOULDBLOCK )
-                    std::this_thread::sleep_for (std::chrono::microseconds (100) );
-                else
-                {
-                    std::ostringstream msg;
-                    msg << "Failed to send data to " << fSinkHost << ":" << fSinkPort;
-                    msg << " : " << strerror (errno);
-                    XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
-                }
+            //if ( written < 0 )
+            //{
+                //if ( errno == EWOULDBLOCK )
+                    //std::this_thread::sleep_for (std::chrono::microseconds (100) );
+                //else
+                //{
+                    //std::ostringstream msg;
+                    //msg << "Failed to send data to " << fSinkHost << ":" << fSinkPort;
+                    //msg << " : " << strerror (errno);
+                    //XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+                //}
 
-            }
-            else if (written % sizeof (uint64_t) == 0 && written != len)
-            {
-                len -= written;
-                ssize_t written64 = written / sizeof (uint64_t);
-                //erase the written / sizeof() first words from the buffer vector, this should never happen though
-                cSocketBufferVector.erase (cSocketBufferVector.begin(), cSocketBufferVector.begin() + written64);
-                LOG4CPLUS_ERROR (fLogger, RED << "Error, did not write the whole buffer vector but only " << written64 << " words" << RESET);
-            }
-            else
-                LOG4CPLUS_ERROR (fLogger, RED << "Error, did only write " << written << " bytes" << RESET);
-        }
+            //}
+            //else if (written % sizeof (uint64_t) == 0 && written != len)
+            //{
+                //len -= written;
+                //ssize_t written64 = written / sizeof (uint64_t);
+                ////erase the written / sizeof() first words from the buffer vector, this should never happen though
+                //cSocketBufferVector.erase (cSocketBufferVector.begin(), cSocketBufferVector.begin() + written64);
+                //LOG4CPLUS_ERROR (fLogger, RED << "Error, did not write the whole buffer vector but only " << written64 << " words" << RESET);
+            //}
+            //else
+                //LOG4CPLUS_ERROR (fLogger, RED << "Error, did only write " << written << " bytes" << RESET);
+        //}
 
     }
 

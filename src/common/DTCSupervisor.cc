@@ -468,8 +468,8 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
             // so we need to close the file handler
             fSystemController->closeFileHandler();
 
-            if (fFSM.getCurrentState() == 'E')
-                fFSM.fireEvent ("Stop", this);
+            //if (fFSM.getCurrentState() == 'E')
+                //fFSM.fireEvent ("Stop", this);
 
             return false;
         }
@@ -498,8 +498,8 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
             if (fPlaybackIfstream.is_open() )
                 fPlaybackIfstream.close();
 
-            if (fFSM.getCurrentState() == 'E')
-                fFSM.fireEvent ("Stop", this);
+            //if (fFSM.getCurrentState() == 'E')
+                //fFSM.fireEvent ("Stop", this);
 
             return false;
         }
