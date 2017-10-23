@@ -98,6 +98,7 @@ namespace Ph2TkDAQ {
         bool PlaybackJob (toolbox::task::WorkLoop* wl);
 
       protected:
+        xdata::UnsignedShort fFedID;
         xdata::String fHWDescriptionFile;
         xdata::String fDataDirectory;
         xdata::String fResultDirectory;

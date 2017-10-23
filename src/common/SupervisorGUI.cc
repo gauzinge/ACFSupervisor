@@ -385,7 +385,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
 
     if (!JSfile.empty() ) *out << script (parseExternalResource (JSfile, cLogStream) ).set ("type", "text/javascript") << std::endl;
 
-    *out << cgicc::div (h1 (a ("DTC Supervisor").set ("href", fURN + "MainPage") ) ).set ("class", "title") << std::endl;
+    *out << cgicc::div (h1 (a ("DTC Supervisor FedID " + fFedID->toString() ).set ("href", fURN + "MainPage") ) ).set ("class", "title") << std::endl;
     *out << cgicc::div (cTabBarString.str() ).set ("class", "tab") << std::endl;
     *out << "<cgicc::div class=\"main\">" << std::endl;
     this->showStateMachineStatus (out);

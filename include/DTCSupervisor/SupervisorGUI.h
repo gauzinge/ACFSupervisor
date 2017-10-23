@@ -20,6 +20,7 @@
 #include "xdata/ActionListener.h"
 #include "xdata/String.h"
 #include "xdata/Integer.h"
+#include "xdata/UnsignedShort.h"
 
 #include "log4cplus/logger.h"
 #include "log4cplus/loggingmacros.h"
@@ -239,6 +240,7 @@ namespace Ph2TkDAQ {
 
 
       public:
+        xdata::UnsignedShort* fFedID;
         xdata::String* fHWDescriptionFile;
         xdata::String* fDataDirectory;
         xdata::String* fResultDirectory;

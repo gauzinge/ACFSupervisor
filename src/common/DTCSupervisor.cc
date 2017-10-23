@@ -9,6 +9,7 @@ INITIALIZE_EASYLOGGINGPP
 DTCSupervisor::DTCSupervisor (xdaq::ApplicationStub* s)
 throw (xdaq::exception::Exception) : xdaq::Application (s),
     fFSM (this),
+    fFedID (51),
     fHWDescriptionFile (""),
     fDataDirectory (""),
     fResultDirectory (""),
@@ -51,6 +52,7 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     //xgi::bind (this, &DTCSupervisor::Default, "Default");
 
     //make configurable variapbles available in the Application Info Space
+    this->getApplicationInfoSpace()->fireItemAvailable ("FedID", &fFedID);
     this->getApplicationInfoSpace()->fireItemAvailable ("HWDescriptionFile", &fHWDescriptionFile);
     this->getApplicationInfoSpace()->fireItemAvailable ("DataDirectory", &fDataDirectory);
     this->getApplicationInfoSpace()->fireItemAvailable ("ResultDirectory", &fResultDirectory);
@@ -183,6 +185,7 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         fEventCounter = 0;
 
         //need to nofify the GUI of these variables
+        fGUI->fFedID = &fFedID;
         fGUI->fHWDescriptionFile = &fHWDescriptionFile;
         fGUI->fDataDirectory = &fDataDirectory;
         fGUI->fResultDirectory = &fResultDirectory;
@@ -208,6 +211,7 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         std::stringstream ss;
 
         ss << std::endl << BOLDYELLOW << "***********************************************************" << std::endl;
+        ss << GREEN << "FedID: " << RED << fFedID.toString() << GREEN << " set!" << std::endl;
         ss <<  GREEN << "HW Description file: " << RED << fHWDescriptionFile.toString() << GREEN << " set!" << std::endl;
         ss << "Write RAW data: " << RED << fRAWFile.toString() << GREEN << " set!" << std::endl;
         ss << "Write DAQ data: " << RED << fDAQFile.toString() << GREEN << " set!" << std::endl;
