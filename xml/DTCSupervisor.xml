@@ -14,7 +14,7 @@
                 <HWDescriptionFile xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/xml/CBC3DescriptionIC.xml</HWDescriptionFile>
                 <DataDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Data/</DataDirectory>
                 <ResultDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Results/</ResultDirectory>
-                <RunNumber xsi:type="xsd:integer">-1</RunNumber>
+                <runNumber xsi:type="xsd:integer">-1</runNumber>
                 <NEvents xsi:type="xsd:unsignedInt">1000</NEvents>
                 <WriteRAW xsi:type="xsd:boolean">false</WriteRAW>
                 <WriteDAQ xsi:type="xsd:boolean">false</WriteDAQ>

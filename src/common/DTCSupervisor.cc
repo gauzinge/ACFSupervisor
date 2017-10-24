@@ -56,7 +56,7 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     this->getApplicationInfoSpace()->fireItemAvailable ("HWDescriptionFile", &fHWDescriptionFile);
     this->getApplicationInfoSpace()->fireItemAvailable ("DataDirectory", &fDataDirectory);
     this->getApplicationInfoSpace()->fireItemAvailable ("ResultDirectory", &fResultDirectory);
-    this->getApplicationInfoSpace()->fireItemAvailable ("RunNumber", &fRunNumber);
+    this->getApplicationInfoSpace()->fireItemAvailable ("runNumber", &fRunNumber);
     this->getApplicationInfoSpace()->fireItemAvailable ("NEvents", &fNEvents);
     this->getApplicationInfoSpace()->fireItemAvailable ("WriteRAW", &fRAWFile);
     this->getApplicationInfoSpace()->fireItemAvailable ("WriteDAQ", &fDAQFile);
