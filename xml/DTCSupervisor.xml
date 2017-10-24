@@ -11,11 +11,11 @@
                 <FedID xsi:type="xsd:unsignedShort">51</FedID>
                 <!--<HWDescriptionFile xsi:type="xsd:string">${PH2ACF_ROOT}/settings/D19CDescription.xml </HWDescriptionFile>-->
                 <!--<HWDescriptionFile xsi:type="xsd:string">${PH2ACF_ROOT}/settings/CBC3DescriptionIC.xml</HWDescriptionFile>-->
-                <HWDescriptionFile xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/xml/test.xml</HWDescriptionFile>
+                <HWDescriptionFile xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/xml/CBC3DescriptionIC.xml</HWDescriptionFile>
                 <DataDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Data/</DataDirectory>
                 <ResultDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Results/</ResultDirectory>
                 <RunNumber xsi:type="xsd:integer">-1</RunNumber>
-                <NEvents xsi:type="xsd:unsignedInt">100</NEvents>
+                <NEvents xsi:type="xsd:unsignedInt">1000</NEvents>
                 <WriteRAW xsi:type="xsd:boolean">false</WriteRAW>
                 <WriteDAQ xsi:type="xsd:boolean">false</WriteDAQ>
                 <ShortPause xsi:type="xsd:integer">10</ShortPause>
@@ -26,7 +26,7 @@
                 <DataSinkHost xsi:type="xsd:string">localhost</DataSinkHost>
                 <DataSinkPort xsi:type="xsd:integer">404002</DataSinkPort>
                 <PlaybackMode xsi:type="xsd:boolean">true</PlaybackMode>
-                <PlaybackFile xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Data/run_00422.daq</PlaybackFile>
+                <PlaybackFile xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Data/run_99999.daq</PlaybackFile>
             </properties>
         </xc:Application>
 

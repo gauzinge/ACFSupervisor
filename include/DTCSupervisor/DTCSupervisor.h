@@ -244,35 +244,36 @@ namespace Ph2TkDAQ {
             {
                 bool cFoundTrailer = false;
 
-                //if (fPlaybackIfstream.eof() ) break;
-                //else
-                //{
-                    std::vector<uint64_t> cData;
+                std::vector<uint64_t> cData;
 
-                    while (!cFoundTrailer)
+                while (!cFoundTrailer && !fPlaybackIfstream.eof())
+                {
+                    uint64_t cWord;
+                    fPlaybackIfstream.read ( (char*) &cWord, sizeof (uint64_t) );
+                    uint64_t cCorrectedWord = (cWord & 0xFFFFFFFF) << 32 | (cWord >> 32) & 0xFFFFFFFF;
+                    cData.push_back (cCorrectedWord);
+
+                    if ( (cCorrectedWord & 0xFF00000000000000) >> 56 == 0xA0 && (cCorrectedWord & 0x00000000000000F0) >> 4  == 0x7) // SLink Trailer
                     {
-                        uint64_t cWord;
-                        fPlaybackIfstream.read ( (char*) &cWord, sizeof (uint64_t) );
-                        uint64_t cCorrectedWord = (cWord & 0xFFFFFFFF) << 32 | (cWord >> 32) & 0xFFFFFFFF;
-                        cData.push_back (cCorrectedWord);
-
-                        if ( (cCorrectedWord & 0xFF00000000000000) >> 56 == 0xA0 && (cCorrectedWord & 0x00000000000000F0) >> 4  == 0x7) // SLink Trailer
-                            //break;
-                            cFoundTrailer = true;
-
-                        if(fPlaybackIfstream.eof() && !cFoundTrailer)
-                        {
-                            cAnomalousEvent = true;
-                            //LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, the playback file ended but I could not find a SLink Trailer, therefore discarding theis fragment of size " << cData.size()<< RESET);
-                            //for(auto cWord : cData)
-                                //LOG4CPLUS_ERROR(this->getApplicationLogger(), std::hex << cWord << std::dec);
-                            cData.clear();
-                            break;
-                        }
+                        cFoundTrailer = true;
+                        //break;
                     }
 
-                    if (!cAnomalousEvent) cEvVec.push_back (SLinkEvent (cData) );
-                //}
+                    //if(fPlaybackIfstream.eof() && !cFoundTrailer)
+                    //{
+                        //cAnomalousEvent = true;
+                        ////LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, the playback file ended but I could not find a SLink Trailer, therefore discarding theis fragment of size " << cData.size()<< RESET);
+                        ////for(auto cWord : cData)
+                            ////LOG4CPLUS_ERROR(this->getApplicationLogger(), std::hex << cWord << std::dec);
+                        //cData.clear();
+                        //break;
+                    //}
+                }
+
+                //if (!cAnomalousEvent) cEvVec.push_back (SLinkEvent (cData) );
+                //3 is the minimum size for an empty SLinkEvent (2 words header and 1 word trailer)
+                if(cFoundTrailer && cData.size() >3)cEvVec.push_back (SLinkEvent (cData) );
+                if (fPlaybackIfstream.eof() ) break;
             }
 
             return cEvVec;

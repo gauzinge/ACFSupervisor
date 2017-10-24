@@ -403,8 +403,10 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
     {
         // this is true only once we have reached the requested number of events from the GUI
         if (fFSM.getCurrentState() == 'E')
+        {
+            //fSystemController->Stop(cBoard);
             fFSM.fireEvent ("Stop", this);
-
+        }
         return false;
     }
 
@@ -432,7 +434,6 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
         if (cDataVec.size() != 0 && cDataVec.size() % fPlaybackEventSize32 == 0) // there is still some data in the file
         {
             size_t cCalcEventSize = cDataVec.size() / fPlaybackEventSize32;
-
 
             fSystemController->setData (cBoard, cDataVec, cCalcEventSize);
 
@@ -484,6 +485,9 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
         if (cSLinkEventVec.size() != 0)
         {
             fEventCounter += cSLinkEventVec.size();
+
+            //for(auto cEv: cSLinkEventVec)
+                //cEv.print(std::cout);
 
             // still some data in the file
             if (fSendData)

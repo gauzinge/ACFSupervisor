@@ -34,6 +34,7 @@
 #include <atomic>
 #include <thread>
 #include <condition_variable>
+#include <endian.h>
 
 //from Ph2_ACF
 #include "Utils/SLinkEvent.h"

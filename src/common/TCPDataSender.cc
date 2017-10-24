@@ -51,8 +51,10 @@ std::vector<uint64_t> TCPDataSender::generateFEROLHeader (uint16_t pBlockNumber,
     if (pLast) cFirstWord |= (uint64_t) 1 << 30;
 
     cSecondWord |= ( (uint64_t) pFEDId & 0xFFF) << 32 | ( (uint64_t) pL1AId & 0xFFFFF);
-    cVec.push_back (cFirstWord);
-    cVec.push_back (cSecondWord);
+
+    // I need to byte-order reverse the FEROL header for the EVM to recognize it
+    cVec.push_back (__builtin_bswap64(cFirstWord));
+    cVec.push_back (__builtin_bswap64(cSecondWord));
 
     return cVec;
 }
@@ -130,6 +132,7 @@ std::vector<uint64_t> TCPDataSender::generateTCPPackets (SLinkEvent& pEvent)
 
         cBlockIdx++;
     }
+
 
     return cBufVec;
 }
