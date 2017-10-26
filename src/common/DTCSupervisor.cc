@@ -362,6 +362,7 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
         // in here we only call fSystemController->readData() in a non-blocking fashion
         // thats why the last argument to ReadData is false
         // the start command is called in enable()
+        fACFLock.take();
         BeBoard* cBoard = fSystemController->fBoardVector.at (0);
         uint32_t cEventCount = fSystemController->ReadData (cBoard, false );
         fEventCounter += cEventCount;
@@ -383,6 +384,7 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
             if (fSendData)
                 fDataSender->enqueueEvent (cSLinkEventVec);
         }
+        fACFLock.give();
     }
     catch (std::exception& e)
     {
@@ -526,6 +528,20 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
         if (fSystemController) delete fSystemController;
 
         fSystemController = new SystemController();
+
+        //the below is normally called from the GUI but with RCMS this is a problem, so rather call it here!
+        //the easiest distinction is to check if the fHwXMLString is empty (this means that Initialize has not been triggered from the GUI
+        
+        std::ostringstream cLogStream;
+        //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
+        std::string cTmpFormString = cleanup_before_XSLT (fGUI->fHWFormString);
+        fGUI->fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
+        //now do the same for the Settings
+        cTmpFormString = cleanup_before_XSLT_Settings (fGUI->fSettingsFormString);
+        fGUI->fSettingsXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (SETTINGSSTYLESHEETINVERSE), cLogStream, false);
+        if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
+
+        if(fGUI->fHwXMLString.empty()) LOG4CPLUS_ERROR(this->getApplicationLogger(), RED << "Error, HWXML STring empty for whatever reason!" << RESET);
 
         //expand all file paths from HW Description xml string
         complete_file_paths (fGUI->fHwXMLString);

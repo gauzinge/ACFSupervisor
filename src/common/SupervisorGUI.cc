@@ -466,18 +466,19 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
         std::string cTransition = cgi["transition"]->getValue();
 
         //here handle whatever action is necessary on the gui before handing over to the main application
-        if (cTransition == "Initialise" )
-        {
-            if ( fHWFormString.empty() )
-                this->loadHWFile();
+        //this should be done in DTCSupervisor::initialising() since otherwise it will not work with RCMS
+        //if (cTransition == "Initialise" )
+        //{
+            //if ( fHWFormString.empty() )
+                //this->loadHWFile();
 
-            //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
-            std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
-            fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
-            //now do the same for the Settings
-            cTmpFormString = cleanup_before_XSLT_Settings (fSettingsFormString);
-            fSettingsXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (SETTINGSSTYLESHEETINVERSE), cLogStream, false);
-        }
+            ////now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
+            //std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
+            //fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
+            ////now do the same for the Settings
+            //cTmpFormString = cleanup_before_XSLT_Settings (fSettingsFormString);
+            //fSettingsXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (SETTINGSSTYLESHEETINVERSE), cLogStream, false);
+        //}
 
         if (cTransition == "Refresh")
         {
