@@ -3,7 +3,9 @@
     xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xc="http://xdaq.web.cern.ch/xdaq/xsd/2004/XMLConfiguration-30">
 
     <!-- Declare a context that contain applcation -->
-    <xc:Context url="http://cmsuptrackerdaq.cern.ch:41801">
+    <!--for rcms-->
+    <!--<xc:Context url="http://cmsuptrackerdaq.cern.ch:41801">-->
+    <xc:Context url="http://cmsuptrackerdaq.cern.ch:50000">
 
         <!-- Declare a DTCSupervisor application -->
         <xc:Application class="Ph2TkDAQ::DTCSupervisor" id="51" instance="0" network="local">

@@ -271,20 +271,6 @@ void SupervisorGUI::PlaybackDSPage (xgi::Input* in, xgi::Output* out) throw (xgi
         else
             *out << tr().add (td (label ("Send Data") ) ).add (td (input().set ("type", "checkbox").set ("name", "send_data").set ("value", "on").set ("id", "Options_send") ) )  << std::endl;
 
-        //
-        //
-        *out << td (label ("Image List:  ") ) << td() << cgicc::select ().set ("name", "FW images") << std::endl;
-
-        if (fImageVector.size() )
-        {
-            for (auto cImage : fImageVector)
-                *out << option (cImage) << std::endl;
-        }
-
-        *out << cgicc::select() << td() << std::endl;
-        *out << tr() << std::endl;
-        //
-        //
         *out << tr().add (td (label ("Data Destination:  ") ) ).add (td (cgicc::select().set ("name", "datadestination").set ("title", "Data Destination (values are DQM and EVM)").add (cgicc::option (fDataDestination->toString() ) ).add (cgicc::option ("EVM") ).add (cgicc::option ("DQM") ) ) ).add (td (label ("  DQM Post Scale Factor:  ") ) ).add (td (input ().set ("type", "text").set ("name", "dqmpostscale").set ("size", "6").set ("value", fDQMPostScale->toString() ).set ("title", "DQM Post Scale Factor") ) ) << std::endl;
         *out << tr().add (td (label ("Source Host:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sourcehost").set ("size", "30").set ("value", fSourceHost->toString() ).set ("title", "Data Sender Source host") ) ).add (td (label ("  Source Port:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sourceport").set ("size", "6").set ("value", fSourcePort->toString() ).set ("title", "Data Sender Source port") ) ) << std::endl;
 
@@ -354,19 +340,25 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
     switch (pTab)
     {
         case Tab::MAIN:
-            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button active") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button") ;
+            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button active") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") ;
             JSfile += "/html/formfields.js";
             cAutoRefreshString << "MainPage";
             break;
 
         case Tab::CONFIG:
-            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button active") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button");
+            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button active") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") ;
             JSfile += "/html/HWForm.js";
             cAutoRefreshString << "ConfigPage";
             break;
 
+        case Tab::PLAYBACKDS:
+            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button active") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") ;
+            JSfile += "/html/empty.js";
+            cAutoRefreshString << "PlaybackDSPage";
+            break;
+
         case Tab::CALIBRATION:
-            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button active") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button");
+            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button active") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") ;
             JSfile += "/html/empty.js";
             cAutoRefreshString << "CalibrationPage";
             //*out << script ().set ("type", "text/javascript").set ("src", "https://root.cern/js/latest/scripts/JSRootCore.js?more2d&gui&io") << std::endl;
@@ -374,15 +366,9 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
             break;
 
         case Tab::FIRMWARE:
-            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button active") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button");
+            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button active") ;
             JSfile += "/html/empty.js";
             cAutoRefreshString << "FirmwarePage";
-            break;
-
-        case Tab::PLAYBACKDS:
-            cTabBarString << a ("Main Page").set ("href", fURN + "MainPage").set ("class", "button") << a ("Config Page").set ("href", fURN + "ConfigPage").set ("class", "button") << a ("Calibration Page").set ("href", fURN + "CalibrationPage").set ("class", "button") << a ("Firmware Page").set ("href", fURN + "FirmwarePage").set ("class", "button") << a ("Playback & DS Page").set ("href", fURN + "PlaybackDSPage").set ("class", "button active");
-            JSfile += "/html/empty.js";
-            cAutoRefreshString << "PlaybackDSPage";
             break;
     }
 
@@ -784,16 +770,28 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     else
         *out << fieldset().set ("id", "commission_fieldset").set ("style", "margin:10px") << legend ("Commissioning Settings").set ("id", "commission_legend") << std::endl;
 
-    //Commissioning Settings
-    *out << table().set ("style", "display:none").set ("id", "commission_table") << std::endl;
+    //Calibration Table
+    *out << table().set ("style", "display:none").set ("id", "calibration_table") << std::endl;
     *out << tr() << std::endl;
 
     if (fAllChannels)
-        *out << td().add (label ("Calibration / PedestalNoise") ).add (input().set ("type", "checkbox").set ("name", "allchannels").set ("value", "on").set ("checked", "checked") )  << std::endl;
+        *out << td().add (label ("All Channels") ).add (input().set ("type", "checkbox").set ("name", "allchannels").set ("value", "on").set ("checked", "checked") )  << std::endl;
     else
-        *out << td().add (label ("Calibration / PedestalNoise") ).add (input().set ("type", "checkbox").set ("name", "allchannels").set ("value", "on") )  << std::endl;
+        *out << td().add (label ("All Channels") ).add (input().set ("type", "checkbox").set ("name", "allchannels").set ("value", "on") )  << std::endl;
 
     *out << tr() << std::endl;
+    *out << table() << std::endl;
+
+    //Commissioning Settings
+    *out << table().set ("style", "display:none").set ("id", "commission_table") << std::endl;
+    //*out << tr() << std::endl;
+
+    //if (fAllChannels)
+    //*out << td().add (label ("All Channels") ).add (input().set ("type", "checkbox").set ("name", "allchannels").set ("value", "on").set ("checked", "checked") )  << std::endl;
+    //else
+    //*out << td().add (label ("All Channels") ).add (input().set ("type", "checkbox").set ("name", "allchannels").set ("value", "on") )  << std::endl;
+
+    //*out << tr() << std::endl;
     *out << tr() << std::endl;
 
     if (fLatency)
@@ -1184,7 +1182,9 @@ void SupervisorGUI::processDSForm (xgi::Input* in, xgi::Output* out) throw (xgi:
                 if (cIt.getName() == "sourcehost") *fSourceHost = cIt.getValue().c_str();
                 else if (cIt.getName() == "datadestination")
                 {
-                    if (cIt.getValue().c_str() == "DQM" || cIt.getValue().c_str() == "EVM" )
+                    LOG (INFO) << BOLDRED << cIt.getValue().c_str() << RESET;
+
+                    if (cIt.getValue() == "DQM" || cIt.getValue() == "EVM" )
                         *fDataDestination = cIt.getValue().c_str();
                     else
                     {

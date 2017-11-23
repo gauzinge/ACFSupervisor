@@ -10,10 +10,21 @@ function displayACFfields() {
             document.getElementById("commission_legend").style.display="inline";
             document.getElementById("commission_table").style.display="inline";
         }
+        else if(calibration.checked) {
+            //document.getElementById("commission_fieldset").style.display="inline";
+            document.getElementById("commission_legend").style.display="inline";
+            document.getElementById("calibration_table").style.display="inline";
+        }
+        else if(pedenoise.checked) {
+            //document.getElementById("commission_fieldset").style.display="inline";
+            document.getElementById("commission_legend").style.display="inline";
+            document.getElementById("calibration_table").style.display="inline";
+        }
         else {
             //document.getElementById("commission_fieldset").style.display="none";
             document.getElementById("commission_legend").style.display="none";
             document.getElementById("commission_table").style.display="none";
+            document.getElementById("calibration_table").style.display="none";
         }
             document.getElementById("result_directory").style.display="inline";
             document.getElementById("result_directory_label").style.display="inline";
@@ -28,6 +39,7 @@ function displayACFfields() {
             document.getElementById("settings_fieldset_legend").style.display="none";
             document.getElementById("settings_table").style.display="none";
             document.getElementById("commission_table").style.display="none";
+            document.getElementById("calibration_table").style.display="none";
     }
 }
 
@@ -65,6 +77,7 @@ function greyOutElements() {
     var datadir = document.getElementById("datadir");
     var resultdir = document.getElementById("resultdir");
     var commission_table = document.getElementById("commission_table");
+    var calibration_table = document.getElementById("calibration_table");
     var main_submit = document.getElementById("main_submit");
 
     var state = queryState();
@@ -84,6 +97,7 @@ function greyOutElements() {
         nevents.setAttribute('disabled','disabled');
         resultdir.setAttribute('disabled','disabled');
         commission_table.setAttribute('disabled','disabled');
+        calibration_table.setAttribute('disabled','disabled');
     }
 }
 

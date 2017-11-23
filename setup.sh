@@ -22,4 +22,6 @@ export DTCSUPERVISOR_ROOT=$(pwd)
 export PH2ACF_ROOT=~/Ph2_ACF
 export LD_LIBRARY_PATH=/opt/xdaq/lib:$CACTUSLIB:$BOOST_LIB:$PH2ACF_ROOT/lib:$ROOTLIB:$LD_LIBRARY_PATH
 
-alias test="/opt/xdaq/bin/xdaq.exe -p 41801 -c ~/DTCSupervisor/xml/DTCSupervisor.xml"
+#for rcms
+#alias test="/opt/xdaq/bin/xdaq.exe -p 41801 -c ~/DTCSupervisor/xml/DTCSupervisor.xml"
+alias test="/opt/xdaq/bin/xdaq.exe -p 50000 -c ~/DTCSupervisor/xml/DTCSupervisor.xml"
