@@ -371,16 +371,16 @@ void DataSender::openConnection()
         hints.ai_socktype = SOCK_DGRAM;
 
         char str[8];
-        sprintf (str, "%d", fSinkPort);
+        sprintf (str, "%d", fSourcePort);
         const int result = getaddrinfo (
-                               fSinkHost.c_str(),
+                               fSourceHost.c_str(),
                                (char*) &str,
                                &hints, &servinfo);
 
         if ( result != 0 )
         {
             std::ostringstream msg;
-            msg << "Failed to get server info for " << fSinkHost << ":" << fSinkPort;
+            msg << "Failed to get server info for " << fSourceHost << ":" << fSourcePort;
             msg << " : " << gai_strerror (result);
             XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
         }
@@ -423,8 +423,8 @@ void DataSender::openConnection()
 
         //sockaddr_in fsa_local;
         fsa_local.sin_family = AF_INET;
-        fsa_local.sin_port = htons (fSourcePort);
-        fsa_local.sin_addr.s_addr = inet_addr (fSourceHost.c_str() );
+        fsa_local.sin_port = htons (fSinkPort);
+        fsa_local.sin_addr.s_addr = inet_addr (fSinkHost.c_str() );
         memset (& (fsa_local.sin_zero), 0, sizeof (fsa_local) );
     }
 }
