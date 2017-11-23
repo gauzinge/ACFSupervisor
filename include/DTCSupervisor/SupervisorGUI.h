@@ -247,11 +247,14 @@ namespace Ph2TkDAQ {
         xdata::Integer* fRunNumber;
         xdata::UnsignedInteger32* fNEvents;
         uint32_t* fEventCounter;
+        xdata::Boolean* fAllChannels;
         xdata::Boolean* fRAWFile;
         xdata::Boolean* fDAQFile;
         std::string fHostString;
         //for the data sending
         xdata::Boolean* fSendData;
+        xdata::String* fDataDestination;
+        xdata::Integer fDQMPostScale;
         xdata::String* fSourceHost;
         xdata::Integer* fSourcePort;
         xdata::String* fSinkHost;
@@ -268,6 +271,7 @@ namespace Ph2TkDAQ {
         std::string fSettingsXMLString;
 
         std::map<std::string, bool> fProcedureMap;
+        bool fAllChannels;
         bool fLatency;
         bool fStubLatency;
         int fLatencyStartValue;

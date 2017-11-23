@@ -271,6 +271,7 @@ void SupervisorGUI::PlaybackDSPage (xgi::Input* in, xgi::Output* out) throw (xgi
         else
             *out << tr().add (td (label ("Send Data") ) ).add (td (input().set ("type", "checkbox").set ("name", "send_data").set ("value", "on").set ("id", "Options_send") ) )  << std::endl;
 
+        *out << tr().add (td (label ("Data Destination:  ") ) ).add (td (input ().set ("type", "text").set ("name", "datadestination").set ("size", "30").set ("value", fDataDestination->toString() ).set ("title", "Data Destination (values are DQM and EVM)") ) ).add (td (label ("  DQM Post Scale Factor:  ") ) ).add (td (input ().set ("type", "text").set ("name", "dqmpostscale").set ("size", "6").set ("value", fDQMPostScale->toString() ).set ("title", "DQM Post Scale Factor") ) ) << << std::endl;
         *out << tr().add (td (label ("Source Host:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sourcehost").set ("size", "30").set ("value", fSourceHost->toString() ).set ("title", "Data Sender Source host") ) ).add (td (label ("  Source Port:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sourceport").set ("size", "6").set ("value", fSourcePort->toString() ).set ("title", "Data Sender Source port") ) ) << std::endl;
 
         *out << tr().add (td (label ("Destination Host:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sinkhost").set ("size", "30").set ("value", fSinkHost->toString() ).set ("title", "Data Sender Destination host") ) ).add (td (label ("  Destination Port:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sinkport").set ("size", "6").set ("value", fSinkPort->toString() ).set ("title", "Data Sender Destination port") ) ) << std::endl;
@@ -469,15 +470,15 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
         //this should be done in DTCSupervisor::initialising() since otherwise it will not work with RCMS
         //if (cTransition == "Initialise" )
         //{
-            //if ( fHWFormString.empty() )
-                //this->loadHWFile();
+        //if ( fHWFormString.empty() )
+        //this->loadHWFile();
 
-            ////now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
-            //std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
-            //fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
-            ////now do the same for the Settings
-            //cTmpFormString = cleanup_before_XSLT_Settings (fSettingsFormString);
-            //fSettingsXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (SETTINGSSTYLESHEETINVERSE), cLogStream, false);
+        ////now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
+        //std::string cTmpFormString = cleanup_before_XSLT (fHWFormString);
+        //fHwXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (XMLSTYLESHEET), cLogStream, false);
+        ////now do the same for the Settings
+        //cTmpFormString = cleanup_before_XSLT_Settings (fSettingsFormString);
+        //fSettingsXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (SETTINGSSTYLESHEETINVERSE), cLogStream, false);
         //}
 
         if (cTransition == "Refresh")
@@ -1158,6 +1159,17 @@ void SupervisorGUI::processDSForm (xgi::Input* in, xgi::Output* out) throw (xgi:
             {
 
                 if (cIt.getName() == "sourcehost") *fSourceHost = cIt.getValue().c_str();
+                else if (cIt.getName() == "datadestination")
+                {
+                    if (cIt.getValue().c_str == "DQM" || cIt.getValue().c_str == "EVM" )
+                        *fDataDestination = cIt.getValue().c_str();
+                    else
+                    {
+                        *fDataDestination = "EVM";
+                        LOG (INFO) << BOLDRED << "Warning: " << cIt.getValue().c_str() << " is not a recognized option for the Data Destination. allowed Values are DQM or EVM - I am assuming EVM!" << RESET;
+                    }
+                }
+                else if (cIt.getName() == "dqmpostscale") *fDQMPostScale = stringtoint (cIt.getValue().c_str() );
                 else if (cIt.getName() == "sourceport") *fSourcePort = stringtoint (cIt.getValue().c_str() );
                 else if (cIt.getName() == "sinkhost") *fSinkHost = cIt.getValue().c_str();
                 else if (cIt.getName() == "sinkport") *fSinkPort = stringtoint (cIt.getValue().c_str() );

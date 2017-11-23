@@ -35,7 +35,7 @@
 
 #include "DTCSupervisor/SupervisorGUI.h"
 #include "DTCSupervisor/DTCStateMachine.h"
-#include "DTCSupervisor/TCPDataSender.h"
+#include "DTCSupervisor/DataSender.h"
 
 //Ph2 ACF Includes
 #include "System/SystemController.h"
@@ -114,6 +114,8 @@ namespace Ph2TkDAQ {
 #endif
         //for sending data to EVM
         xdata::Boolean fSendData;
+        xdata::String fDataDestination;
+        xdata::Integer fDQMPostScale;
         xdata::String fSourceHost;
         xdata::Integer fSourcePort;
         xdata::String fSinkHost;
@@ -246,7 +248,7 @@ namespace Ph2TkDAQ {
 
                 std::vector<uint64_t> cData;
 
-                while (!cFoundTrailer && !fPlaybackIfstream.eof())
+                while (!cFoundTrailer && !fPlaybackIfstream.eof() )
                 {
                     uint64_t cWord;
                     fPlaybackIfstream.read ( (char*) &cWord, sizeof (uint64_t) );
@@ -261,18 +263,19 @@ namespace Ph2TkDAQ {
 
                     //if(fPlaybackIfstream.eof() && !cFoundTrailer)
                     //{
-                        //cAnomalousEvent = true;
-                        ////LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, the playback file ended but I could not find a SLink Trailer, therefore discarding theis fragment of size " << cData.size()<< RESET);
-                        ////for(auto cWord : cData)
-                            ////LOG4CPLUS_ERROR(this->getApplicationLogger(), std::hex << cWord << std::dec);
-                        //cData.clear();
-                        //break;
+                    //cAnomalousEvent = true;
+                    ////LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, the playback file ended but I could not find a SLink Trailer, therefore discarding theis fragment of size " << cData.size()<< RESET);
+                    ////for(auto cWord : cData)
+                    ////LOG4CPLUS_ERROR(this->getApplicationLogger(), std::hex << cWord << std::dec);
+                    //cData.clear();
+                    //break;
                     //}
                 }
 
                 //if (!cAnomalousEvent) cEvVec.push_back (SLinkEvent (cData) );
                 //3 is the minimum size for an empty SLinkEvent (2 words header and 1 word trailer)
-                if(cFoundTrailer && cData.size() >3)cEvVec.push_back (SLinkEvent (cData) );
+                if (cFoundTrailer && cData.size() > 3) cEvVec.push_back (SLinkEvent (cData) );
+
                 if (fPlaybackIfstream.eof() ) break;
             }
 

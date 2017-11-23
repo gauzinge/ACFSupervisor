@@ -29,7 +29,7 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     fGUI = new SupervisorGUI (this, &fFSM);
 
     //instance of TCP Data Sender
-    fDataSender = new TCPDataSender (this->getApplicationLogger() );
+    fDataSender = new DataSender (this->getApplicationLogger() );
 
     //programatically bind all GUI methods to the Default method of this piece of code
     std::vector<toolbox::lang::Method*> v = fGUI->getMethods();
@@ -65,6 +65,8 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
 
     //Data to EVM
     this->getApplicationInfoSpace()->fireItemAvailable ("SendData", &fSendData);
+    this->getApplicationInfoSpace()->fireItemAvailable ("DataDestination", &fDataDestination);
+    this->getApplicationInfoSpace()->fireItemAvailable ("DQMPostScale", &fDQMPostScale);
     this->getApplicationInfoSpace()->fireItemAvailable ("DataSourceHost", &fSourceHost);
     this->getApplicationInfoSpace()->fireItemAvailable ("DataSourcePort", &fSourcePort);
     this->getApplicationInfoSpace()->fireItemAvailable ("DataSinkHost", &fSinkHost);
@@ -197,6 +199,8 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
         fGUI->fDAQFile = &fDAQFile;
 
         fGUI->fSendData = &fSendData;
+        fGUI->fDQMPostScale = &fDQMPostScale;
+        fGUI->fDataDestination = &fDataDestination;
         fGUI->fSourceHost = &fSourceHost;
         fGUI->fSourcePort = &fSourcePort;
         fGUI->fSinkHost = &fSinkHost;
@@ -219,6 +223,19 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
 
         if (fSendData)
         {
+            if (fDataDestination.toString() == "DQM" || fDataDestination.toString() == "EVM" )
+            {
+                ss << "Data Destination: " << RED << fDataDestination.toString() << GREEN << " set!" << std::endl;
+
+                if (fDataDestination.toString() == "DQM")
+                    ss << "DQM Post Scale Factor: " << RED << fDQMPostScale.toString() << GREEN << " set!" << std::endl;
+            }
+            else
+            {
+                ss << BOLDRED << "Warning: Data Destination: " << << fDataDestination.toString() <<  " not recognized - assuming EVM!" << GREEN << std::endl;
+                fDataDestination = "EVM";
+            }
+
             ss << "Data Source: " << RED << fSourceHost.toString() << ":" << fSourcePort.toString() << GREEN << " set!" << std::endl;
             ss << "Data Sink: " << RED << fSinkHost.toString() << ":" << fSinkPort.toString() << GREEN << " set!" << std::endl;
         }
@@ -243,6 +260,8 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
 #endif
 
         //set the source and sink for the TCP data sender
+        fDataSender->setDestination (fDataDestination.toString() );
+        fDataSender->setPostScale (fDQMPostScale);
         fDataSender->setSource (fSourceHost.toString(), fSourcePort);
         fDataSender->setSink (fSinkHost.toString(), fSinkPort);
         fGUI->fDataSenderTable = fDataSender->generateStatTable();
@@ -384,6 +403,7 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
             if (fSendData)
                 fDataSender->enqueueEvent (cSLinkEventVec);
         }
+
         fACFLock.give();
     }
     catch (std::exception& e)
@@ -409,6 +429,7 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
             //fSystemController->Stop(cBoard);
             fFSM.fireEvent ("Stop", this);
         }
+
         return false;
     }
 
@@ -472,7 +493,7 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
             fSystemController->closeFileHandler();
 
             //if (fFSM.getCurrentState() == 'E')
-                //fFSM.fireEvent ("Stop", this);
+            //fFSM.fireEvent ("Stop", this);
 
             return false;
         }
@@ -489,7 +510,7 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
             fEventCounter += cSLinkEventVec.size();
 
             //for(auto cEv: cSLinkEventVec)
-                //cEv.print(std::cout);
+            //cEv.print(std::cout);
 
             // still some data in the file
             if (fSendData)
@@ -505,7 +526,7 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
                 fPlaybackIfstream.close();
 
             //if (fFSM.getCurrentState() == 'E')
-                //fFSM.fireEvent ("Stop", this);
+            //fFSM.fireEvent ("Stop", this);
 
             return false;
         }
@@ -531,7 +552,7 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
 
         //the below is normally called from the GUI but with RCMS this is a problem, so rather call it here!
         //the easiest distinction is to check if the fHwXMLString is empty (this means that Initialize has not been triggered from the GUI
-        
+
         std::ostringstream cLogStream;
         //now convert the HW Description HTMLString to an xml string for Initialize of Ph2ACF
         std::string cTmpFormString = cleanup_before_XSLT (fGUI->fHWFormString);
@@ -539,9 +560,10 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
         //now do the same for the Settings
         cTmpFormString = cleanup_before_XSLT_Settings (fGUI->fSettingsFormString);
         fGUI->fSettingsXMLString = XMLUtils::transformXmlDocument (cTmpFormString, expandEnvironmentVariables (SETTINGSSTYLESHEETINVERSE), cLogStream, false);
+
         if (cLogStream.tellp() > 0) LOG4CPLUS_INFO (this->getApplicationLogger(), cLogStream.str() );
 
-        if(fGUI->fHwXMLString.empty()) LOG4CPLUS_ERROR(this->getApplicationLogger(), RED << "Error, HWXML STring empty for whatever reason!" << RESET);
+        if (fGUI->fHwXMLString.empty() ) LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, HWXML STring empty for whatever reason!" << RESET);
 
         //expand all file paths from HW Description xml string
         complete_file_paths (fGUI->fHwXMLString);
@@ -555,7 +577,17 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
 
         LOG (INFO) << cPh2LogStream.str() ;
         this->updateLogs();
-        //}
+
+        //this needs to happen in initializing so I can be sure that any GUI changes have effect
+        if (fSendData)
+        {
+            //set the source and sink for the TCP data sender
+            fDataSender->setDestination (fDataDestination.toString() );
+            fDataSender->setPostScale (fDQMPostScale);
+            fDataSender->setSource (fSourceHost.toString(), fSourcePort);
+            fDataSender->setSink (fSinkHost.toString(), fSinkPort);
+            fGUI->fDataSenderTable = fDataSender->generateStatTable();
+        }
     }
 
     catch (std::exception& e)
