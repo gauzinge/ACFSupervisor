@@ -121,6 +121,7 @@ namespace Ph2TkDAQ {
 
       private:
         std::vector<uint64_t> generateTCPPackets (SLinkEvent& pEvent);
+        std::vector<uint64_t> generateUDPPackets (SLinkEvent& pEvent);
         std::vector<uint64_t> generateFEROLHeader (uint16_t pBlockNumber, bool pFirst, bool pLast, uint16_t pNWords64, uint16_t pFEDId, uint32_t pL1AId);
         void print_databuffer (std::vector<uint64_t>& pBufVec, std::ostream& os);
 

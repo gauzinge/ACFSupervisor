@@ -152,7 +152,7 @@ namespace Ph2TkDAQ {
         //File Handler for SLINK Data - the one for raw data is part of SystemController
         FileHandler* fSLinkFileHandler;
         bool fGetRunnumberFromFile;
-        Ph2TkDAQ::TCPDataSender* fDataSender;
+        Ph2TkDAQ::DataSender* fDataSender;
         uint32_t fPlaybackEventSize32;
         std::ifstream fPlaybackIfstream;
 

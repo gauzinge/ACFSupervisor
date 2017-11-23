@@ -272,7 +272,7 @@ namespace Ph2TkDAQ {
         //for the data sending
         xdata::Boolean* fSendData;
         xdata::String* fDataDestination;
-        xdata::Integer fDQMPostScale;
+        xdata::Integer* fDQMPostScale;
         xdata::String* fSourceHost;
         xdata::Integer* fSourcePort;
         xdata::String* fSinkHost;

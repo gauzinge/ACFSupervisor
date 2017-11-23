@@ -232,7 +232,7 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
             }
             else
             {
-                ss << BOLDRED << "Warning: Data Destination: " << << fDataDestination.toString() <<  " not recognized - assuming EVM!" << GREEN << std::endl;
+                ss << BOLDRED << "Warning: Data Destination: " << fDataDestination.toString() <<  " not recognized - assuming EVM!" << GREEN << std::endl;
                 fDataDestination = "EVM";
             }
 

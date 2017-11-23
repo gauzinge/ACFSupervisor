@@ -187,7 +187,7 @@ bool DataSender::sendData ()
             {
                 //consecutive storage of vector elements guaranteed by the standard, so this is possible
                 //last argument is size of vector in bytes
-                const ssize_t written;
+                ssize_t written = 0;
 
                 if (fDataDestination == "EVM") written = write (fSockfd, (char*) &cBufVec.at (0), cBufVec.size() * sizeof (uint64_t) );
 
@@ -511,7 +511,7 @@ cgicc::table DataSender::generateStatTable()
     cTable.set ("style", "margin-top: 20px; margin-left: 30px; font-size: 15pt;");
 
     cTable.add (cgicc::tr().add (cgicc::td ("Data Destination") ).add (cgicc::td (fDataDestination ) ) );
-    cTable.add (cgicc::tr().add (cgicc::td ("Post Scale Factor") ).add (cgicc::td (fPostScaleFactor ) ) );
+    cTable.add (cgicc::tr().add (cgicc::td ("Post Scale Factor") ).add (cgicc::td (std::to_string (fPostScaleFactor ) ) ) );
     cTable.add (cgicc::tr().add (cgicc::td ("Source Host") ).add (cgicc::td (fSourceHost ) ) );
     cTable.add (cgicc::tr().add (cgicc::td ("Source Port") ).add (cgicc::td (std::to_string (fSourcePort) ) ) );
     cTable.add (cgicc::tr().add (cgicc::td ("Destination Host") ).add (cgicc::td (fSinkHost ) ) );

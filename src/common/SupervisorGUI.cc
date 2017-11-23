@@ -285,7 +285,7 @@ void SupervisorGUI::PlaybackDSPage (xgi::Input* in, xgi::Output* out) throw (xgi
         *out << tr() << std::endl;
         //
         //
-        *out << tr().add (td (label ("Data Destination:  ") ) ).add (td (cgicc::select().set ("name", "datadestination").set ("title", "Data Destination (values are DQM and EVM)").add (cgicc::option (fDataDestination->toString() ) ).add (cgicc::option ("EVM") ).add (cgicc::option ("DQM") ) ) ).add (td (label ("  DQM Post Scale Factor:  ") ) ).add (td (input ().set ("type", "text").set ("name", "dqmpostscale").set ("size", "6").set ("value", fDQMPostScale->toString() ).set ("title", "DQM Post Scale Factor") ) ) << << std::endl;
+        *out << tr().add (td (label ("Data Destination:  ") ) ).add (td (cgicc::select().set ("name", "datadestination").set ("title", "Data Destination (values are DQM and EVM)").add (cgicc::option (fDataDestination->toString() ) ).add (cgicc::option ("EVM") ).add (cgicc::option ("DQM") ) ) ).add (td (label ("  DQM Post Scale Factor:  ") ) ).add (td (input ().set ("type", "text").set ("name", "dqmpostscale").set ("size", "6").set ("value", fDQMPostScale->toString() ).set ("title", "DQM Post Scale Factor") ) ) << std::endl;
         *out << tr().add (td (label ("Source Host:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sourcehost").set ("size", "30").set ("value", fSourceHost->toString() ).set ("title", "Data Sender Source host") ) ).add (td (label ("  Source Port:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sourceport").set ("size", "6").set ("value", fSourcePort->toString() ).set ("title", "Data Sender Source port") ) ) << std::endl;
 
         *out << tr().add (td (label ("Destination Host:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sinkhost").set ("size", "30").set ("value", fSinkHost->toString() ).set ("title", "Data Sender Destination host") ) ).add (td (label ("  Destination Port:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sinkport").set ("size", "6").set ("value", fSinkPort->toString() ).set ("title", "Data Sender Destination port") ) ) << std::endl;
@@ -1184,7 +1184,7 @@ void SupervisorGUI::processDSForm (xgi::Input* in, xgi::Output* out) throw (xgi:
                 if (cIt.getName() == "sourcehost") *fSourceHost = cIt.getValue().c_str();
                 else if (cIt.getName() == "datadestination")
                 {
-                    if (cIt.getValue().c_str == "DQM" || cIt.getValue().c_str == "EVM" )
+                    if (cIt.getValue().c_str() == "DQM" || cIt.getValue().c_str() == "EVM" )
                         *fDataDestination = cIt.getValue().c_str();
                     else
                     {
