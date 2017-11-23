@@ -27,9 +27,9 @@ SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMa
     fURN =  pApp->getApplicationDescriptor()->getContextDescriptor()->getURL() + "/" + pApp->getApplicationDescriptor()->getURN() + "/";
 
     //when I am at home
-    size_t cPos = fURN.find (".cern.ch");
-    fURN.erase (cPos, 8);
-    std::cout << fURN << std::endl;
+    //size_t cPos = fURN.find (".cern.ch");
+    //fURN.erase (cPos, 8);
+    //std::cout << fURN << std::endl;
 
     //bind xgi and xoap commands to methods
     //methods for tab navigation
@@ -271,7 +271,21 @@ void SupervisorGUI::PlaybackDSPage (xgi::Input* in, xgi::Output* out) throw (xgi
         else
             *out << tr().add (td (label ("Send Data") ) ).add (td (input().set ("type", "checkbox").set ("name", "send_data").set ("value", "on").set ("id", "Options_send") ) )  << std::endl;
 
-        *out << tr().add (td (label ("Data Destination:  ") ) ).add (td (input ().set ("type", "text").set ("name", "datadestination").set ("size", "30").set ("value", fDataDestination->toString() ).set ("title", "Data Destination (values are DQM and EVM)") ) ).add (td (label ("  DQM Post Scale Factor:  ") ) ).add (td (input ().set ("type", "text").set ("name", "dqmpostscale").set ("size", "6").set ("value", fDQMPostScale->toString() ).set ("title", "DQM Post Scale Factor") ) ) << << std::endl;
+        //
+        //
+        *out << td (label ("Image List:  ") ) << td() << cgicc::select ().set ("name", "FW images") << std::endl;
+
+        if (fImageVector.size() )
+        {
+            for (auto cImage : fImageVector)
+                *out << option (cImage) << std::endl;
+        }
+
+        *out << cgicc::select() << td() << std::endl;
+        *out << tr() << std::endl;
+        //
+        //
+        *out << tr().add (td (label ("Data Destination:  ") ) ).add (td (cgicc::select().set ("name", "datadestination").set ("title", "Data Destination (values are DQM and EVM)").add (cgicc::option (fDataDestination->toString() ) ).add (cgicc::option ("EVM") ).add (cgicc::option ("DQM") ) ) ).add (td (label ("  DQM Post Scale Factor:  ") ) ).add (td (input ().set ("type", "text").set ("name", "dqmpostscale").set ("size", "6").set ("value", fDQMPostScale->toString() ).set ("title", "DQM Post Scale Factor") ) ) << << std::endl;
         *out << tr().add (td (label ("Source Host:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sourcehost").set ("size", "30").set ("value", fSourceHost->toString() ).set ("title", "Data Sender Source host") ) ).add (td (label ("  Source Port:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sourceport").set ("size", "6").set ("value", fSourcePort->toString() ).set ("title", "Data Sender Source port") ) ) << std::endl;
 
         *out << tr().add (td (label ("Destination Host:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sinkhost").set ("size", "30").set ("value", fSinkHost->toString() ).set ("title", "Data Sender Destination host") ) ).add (td (label ("  Destination Port:  ") ) ).add (td (input ().set ("type", "text").set ("name", "sinkport").set ("size", "6").set ("value", fSinkPort->toString() ).set ("title", "Data Sender Destination port") ) ) << std::endl;
