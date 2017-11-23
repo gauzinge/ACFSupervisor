@@ -1182,8 +1182,6 @@ void SupervisorGUI::processDSForm (xgi::Input* in, xgi::Output* out) throw (xgi:
                 if (cIt.getName() == "sourcehost") *fSourceHost = cIt.getValue().c_str();
                 else if (cIt.getName() == "datadestination")
                 {
-                    LOG (INFO) << BOLDRED << cIt.getValue().c_str() << RESET;
-
                     if (cIt.getValue() == "DQM" || cIt.getValue() == "EVM" )
                         *fDataDestination = cIt.getValue().c_str();
                     else
