@@ -247,7 +247,6 @@ namespace Ph2TkDAQ {
         xdata::Integer* fRunNumber;
         xdata::UnsignedInteger32* fNEvents;
         uint32_t* fEventCounter;
-        xdata::Boolean* fAllChannels;
         xdata::Boolean* fRAWFile;
         xdata::Boolean* fDAQFile;
         std::string fHostString;

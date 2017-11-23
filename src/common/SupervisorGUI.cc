@@ -774,6 +774,14 @@ void SupervisorGUI::displayPh2_ACFForm (xgi::Input* in, xgi::Output* out)
     *out << table().set ("style", "display:none").set ("id", "commission_table") << std::endl;
     *out << tr() << std::endl;
 
+    if (fAllChannels)
+        *out << td().add (label ("Calibration / PedestalNoise") ).add (input().set ("type", "checkbox").set ("name", "allchannels").set ("value", "on").set ("checked", "checked") )  << std::endl;
+    else
+        *out << td().add (label ("Calibration / PedestalNoise") ).add (input().set ("type", "checkbox").set ("name", "allchannels").set ("value", "on") )  << std::endl;
+
+    *out << tr() << std::endl;
+    *out << tr() << std::endl;
+
     if (fLatency)
         *out << td().add (label ("Latency Scan") ).add (input().set ("type", "checkbox").set ("name", "latency").set ("value", "on").set ("checked", "checked") )  << std::endl;
     else
@@ -834,6 +842,7 @@ void SupervisorGUI::processPh2_ACFForm (xgi::Input* in, xgi::Output* out) throw 
 
         fLatency = cgi.queryCheckbox ("latency");
         fStubLatency = cgi.queryCheckbox ("stublatency");
+        fAllChannels = cgi.queryCheckbox ("allchannels");
 
         for (auto cIt : *cgi)
         {

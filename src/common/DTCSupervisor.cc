@@ -303,7 +303,7 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
             Calibration cCalibration;
             fACFLock.take();
             cCalibration.Inherit (cTool);
-            cCalibration.Initialise (false);
+            cCalibration.Initialise (fGUI->fAllChannels, true);
             this->updateLogs();
             cCalibration.FindVplus();
             this->updateLogs();
@@ -324,7 +324,7 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
             PedeNoise cPedeNoise;
             fACFLock.take();
             cPedeNoise.Inherit (cTool);
-            cPedeNoise.Initialise();
+            cPedeNoise.Initialise (fGUI->fAllChannels, true);
             this->updateLogs();
             cPedeNoise.measureNoise();
             fACFLock.give();
