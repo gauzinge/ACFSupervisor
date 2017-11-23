@@ -19,12 +19,17 @@
 #include "cgicc/Cgicc.h"
 #include "cgicc/HTTPHTMLHeader.h"
 #include "cgicc/HTMLClasses.h"
+
 //for the sockets
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/mman.h>
 #include <netdb.h>
 #include <pthread.h>
 #include <netinet/in.h>
+#include <netinet/ip.h> /* superset of previous */
+#include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
 
@@ -121,6 +126,7 @@ namespace Ph2TkDAQ {
         uint64_t fEventsProcessed;
         Timer fTimer;
         double fEventFrequency;
+        sockaddr_in fsa_local; //used for the UDP socket
     };
 }
 #endif

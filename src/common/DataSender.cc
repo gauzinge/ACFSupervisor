@@ -140,6 +140,10 @@ std::vector<uint64_t> DataSender::generateTCPPackets (SLinkEvent& pEvent)
 
     return cBufVec;
 }
+std::vector<uint64_t> DataSender::generateUDPPackets (SLinkEvent& pEvent)
+{
+    return pEvent.getData<uint64_t>();
+}
 
 bool DataSender::sendData ()
 {
@@ -151,11 +155,30 @@ bool DataSender::sendData ()
     if (cData)
     {
         //loop the events
+        uint32_t cEventIndex = 0;
+
         for (auto& cEvent : cEventVec)
         {
-            std::vector<uint64_t> cBufVec = this->generateTCPPackets (cEvent);
+            //if the data destination is the EVM, we just send every event over the TCP socket with the FEROL header and the whole shebang
+
+            std::vector<uint64_t> cBufVec;
+
+            //if the destination is th EVM, then do this for every event
+            if (fDataDestination == "EVM")
+                cBufVec = this->generateTCPPackets (cEvent);
+            //if the destination is the DQM, make sure only every i-th event gets processed
+            else if (fDataDestination == "DQM" && cEventIndex % fPostScaleFactor == 0)
+                cBufVec = this->generateUDPPackets (cEvent);
+            //if not every i-th event, continue but don't forget to increment the event index
+            else
+            {
+                cEventIndex++;
+                continue;
+            }
 
             //this->print_databuffer (cBufVec, std::cout);
+
+            //the we only get here in case we have decided to send
 
             //now write this Socket buffer vector at the socket
             ssize_t len = cBufVec.size() * sizeof (uint64_t);
@@ -164,7 +187,11 @@ bool DataSender::sendData ()
             {
                 //consecutive storage of vector elements guaranteed by the standard, so this is possible
                 //last argument is size of vector in bytes
-                const ssize_t written = write (fSockfd, (char*) &cBufVec.at (0), cBufVec.size() * sizeof (uint64_t) );
+                const ssize_t written;
+
+                if (fDataDestination == "EVM") written = write (fSockfd, (char*) &cBufVec.at (0), cBufVec.size() * sizeof (uint64_t) );
+
+                else if (fDataDestination == "DQM") written = sendto (fSockfd, (char*) &cBufVec.at (0), cBufVec.size() * sizeof (uint64_t), 0, (struct sockaddr*) &fsa_local, sizeof (fsa_local) );
 
                 if ( written < 0 )
                 {
@@ -201,9 +228,11 @@ bool DataSender::sendData ()
             fCounterMutex.lock();
             fEventsProcessed++;
             fCounterMutex.unlock();
+            cEventIndex++;
         }
 
         //better safe than sorry
+        //this is to compute the frequency
         fCounterMutex.lock();
         fEventFrequency = fEventsProcessed / fTimer.getCurrentTime();
         fCounterMutex.unlock();
@@ -226,107 +255,177 @@ void DataSender::openConnection()
     if (std::string (myname) != fSourceHost)
         fSourceHost = std::string (myname);
 
-    fSockfd = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    fSocketOpen = true;
-
-    if ( fSockfd < 0 )
+    // if the destination is the EVM we use a TCP socket according to the config specified by CDAQ
+    if (fDataDestination == "EVM")
     {
-        XCEPT_RAISE (xdaq::exception::Exception, "Failed to open socket");
-        fSocketOpen = false;
+        fSockfd = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        fSocketOpen = true;
+
+        if ( fSockfd < 0 )
+        {
+            XCEPT_RAISE (xdaq::exception::Exception, "Failed to open socket");
+            fSocketOpen = false;
+        }
+
+        // Allow socket to reuse the address
+        int yes = 1;
+
+        if ( setsockopt (fSockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof (yes) ) < 0 )
+        {
+            closeConnection();
+            fSocketOpen = false;
+            std::ostringstream msg;
+            msg << "Failed to set SO_REUSEADDR on socket: " << strerror (errno);
+            XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+        }
+
+        // Allow socket to reuse the port
+        if ( setsockopt (fSockfd, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof (yes) ) < 0 )
+        {
+            closeConnection();
+            fSocketOpen = false;
+            std::ostringstream msg;
+            msg << "Failed to set SO_REUSEPORT on socket: " << strerror (errno);
+            XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+        }
+
+        // Set connection Abort on close
+        struct linger so_linger;
+        so_linger.l_onoff = 1;
+        so_linger.l_linger = 0;
+
+        if ( setsockopt (fSockfd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof (so_linger) ) < 0 )
+        {
+            closeConnection();
+            fSocketOpen = false;
+            std::ostringstream msg;
+            msg << "Failed to set SO_LINGER on socket: " << strerror (errno);
+            XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+        }
+
+        sockaddr_in sa_local;
+        memset (&sa_local, 0, sizeof (sa_local) );
+        sa_local.sin_family = AF_INET;
+        sa_local.sin_port = htons (fSourcePort);
+        sa_local.sin_addr.s_addr = inet_addr (fSourceHost.c_str() );
+
+        if ( bind (fSockfd, (struct sockaddr*) &sa_local, sizeof (struct sockaddr) ) < 0 )
+        {
+            closeConnection();
+            fSocketOpen = false;
+            std::ostringstream msg;
+            msg << "Failed to bind socket to local port " << fSourceHost << ":" << fSourcePort;
+            msg << " : " << strerror (errno);
+            XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+        }
+
+        addrinfo hints, *servinfo;
+        memset (&hints, 0, sizeof (hints) );
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_STREAM;
+
+        char str[8];
+        sprintf (str, "%d", fSinkPort);
+        const int result = getaddrinfo (
+                               fSinkHost.c_str(),
+                               (char*) &str,
+                               &hints, &servinfo);
+
+        if ( result != 0 )
+        {
+            std::ostringstream msg;
+            msg << "Failed to get server info for " << fSinkHost << ":" << fSinkPort;
+            msg << " : " << gai_strerror (result);
+            XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+        }
+
+        if ( connect (fSockfd, servinfo->ai_addr, servinfo->ai_addrlen) < 0 )
+        {
+            closeConnection();
+            fSocketOpen = false;
+            std::ostringstream msg;
+            msg << "Failed to connect to " << fSinkHost << ":" << fSinkPort;
+            msg << " : " << strerror (errno);
+            XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+        }
+
+        // Set socket to non-blocking
+        const int flags = fcntl (fSockfd, F_GETFL, 0);
+
+        if ( fcntl (fSockfd, F_SETFL, flags | O_NONBLOCK) < 0 )
+        {
+            closeConnection();
+            fSocketOpen = false;
+            std::ostringstream msg;
+            msg << "Failed to set O_NONBLOCK on socket: " << strerror (errno);
+            XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+        }
     }
 
-    // Allow socket to reuse the address
-    int yes = 1;
-
-    if ( setsockopt (fSockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof (yes) ) < 0 )
+    // if the destination is the DQM we use a plain UDP socket
+    else if (fDataDestination == "DQM")
     {
-        closeConnection();
-        fSocketOpen = false;
-        std::ostringstream msg;
-        msg << "Failed to set SO_REUSEADDR on socket: " << strerror (errno);
-        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
-    }
+        addrinfo hints, *servinfo, *p;
+        memset (&hints, 0, sizeof (hints) );
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_DGRAM;
 
-    // Allow socket to reuse the port
-    if ( setsockopt (fSockfd, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof (yes) ) < 0 )
-    {
-        closeConnection();
-        fSocketOpen = false;
-        std::ostringstream msg;
-        msg << "Failed to set SO_REUSEPORT on socket: " << strerror (errno);
-        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
-    }
+        char str[8];
+        sprintf (str, "%d", fSinkPort);
+        const int result = getaddrinfo (
+                               fSinkHost.c_str(),
+                               (char*) &str,
+                               &hints, &servinfo);
 
-    // Set connection Abort on close
-    struct linger so_linger;
-    so_linger.l_onoff = 1;
-    so_linger.l_linger = 0;
+        if ( result != 0 )
+        {
+            std::ostringstream msg;
+            msg << "Failed to get server info for " << fSinkHost << ":" << fSinkPort;
+            msg << " : " << gai_strerror (result);
+            XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+        }
 
-    if ( setsockopt (fSockfd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof (so_linger) ) < 0 )
-    {
-        closeConnection();
-        fSocketOpen = false;
-        std::ostringstream msg;
-        msg << "Failed to set SO_LINGER on socket: " << strerror (errno);
-        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
-    }
+        //loop through the results and bind to the first best
+        for (p = servinfo; p != nullptr; p = p->ai_next)
+        {
+            fSockfd = socket (p->ai_family, p->ai_socktype, p->ai_protocol);
+            fSocketOpen = true;
 
-    sockaddr_in sa_local;
-    memset (&sa_local, 0, sizeof (sa_local) );
-    sa_local.sin_family = AF_INET;
-    sa_local.sin_port = htons (fSourcePort);
-    sa_local.sin_addr.s_addr = inet_addr (fSourceHost.c_str() );
+            if ( fSockfd < 0 )
+            {
+                XCEPT_RAISE (xdaq::exception::Exception, "Failed to open socket");
+                fSocketOpen = false;
+                continue;
+            }
 
-    if ( bind (fSockfd, (struct sockaddr*) &sa_local, sizeof (struct sockaddr) ) < 0 )
-    {
-        closeConnection();
-        fSocketOpen = false;
-        std::ostringstream msg;
-        msg << "Failed to bind socket to local port " << fSourceHost << ":" << fSourcePort;
-        msg << " : " << strerror (errno);
-        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
-    }
+            if ( bind (fSockfd, p->ai_addr, p->ai_addrlen) < 0 )
+            {
+                closeConnection();
+                fSocketOpen = false;
+                std::ostringstream msg;
+                msg << "Failed to bind socket to port " << p->ai_addr;
+                msg << " : " << strerror (errno);
+                XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+                continue;
+            }
 
-    addrinfo hints, *servinfo;
-    memset (&hints, 0, sizeof (hints) );
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
+            break;
+        }
 
-    char str[8];
-    sprintf (str, "%d", fSinkPort);
-    const int result = getaddrinfo (
-                           fSinkHost.c_str(),
-                           (char*) &str,
-                           &hints, &servinfo);
+        if (p == nullptr)
+        {
+            fSocketOpen = false;
+            std::ostringstream msg;
+            msg << "Failed to bind socket";
+            msg << " : " << strerror (errno);
+            XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+        }
 
-    if ( result != 0 )
-    {
-        std::ostringstream msg;
-        msg << "Failed to get server info for " << fSinkHost << ":" << fSinkPort;
-        msg << " : " << gai_strerror (result);
-        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
-    }
-
-    if ( connect (fSockfd, servinfo->ai_addr, servinfo->ai_addrlen) < 0 )
-    {
-        closeConnection();
-        fSocketOpen = false;
-        std::ostringstream msg;
-        msg << "Failed to connect to " << fSinkHost << ":" << fSinkPort;
-        msg << " : " << strerror (errno);
-        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
-    }
-
-    // Set socket to non-blocking
-    const int flags = fcntl (fSockfd, F_GETFL, 0);
-
-    if ( fcntl (fSockfd, F_SETFL, flags | O_NONBLOCK) < 0 )
-    {
-        closeConnection();
-        fSocketOpen = false;
-        std::ostringstream msg;
-        msg << "Failed to set O_NONBLOCK on socket: " << strerror (errno);
-        XCEPT_RAISE (xdaq::exception::Exception, msg.str() );
+        //sockaddr_in fsa_local;
+        fsa_local.sin_family = AF_INET;
+        fsa_local.sin_port = htons (fSourcePort);
+        fsa_local.sin_addr.s_addr = inet_addr (fSourceHost.c_str() );
+        memset (& (fsa_local.sin_zero), 0, sizeof (fsa_local) );
     }
 }
 
@@ -412,6 +511,7 @@ cgicc::table DataSender::generateStatTable()
     cTable.set ("style", "margin-top: 20px; margin-left: 30px; font-size: 15pt;");
 
     cTable.add (cgicc::tr().add (cgicc::td ("Data Destination") ).add (cgicc::td (fDataDestination ) ) );
+    cTable.add (cgicc::tr().add (cgicc::td ("Post Scale Factor") ).add (cgicc::td (fPostScaleFactor ) ) );
     cTable.add (cgicc::tr().add (cgicc::td ("Source Host") ).add (cgicc::td (fSourceHost ) ) );
     cTable.add (cgicc::tr().add (cgicc::td ("Source Port") ).add (cgicc::td (std::to_string (fSourcePort) ) ) );
     cTable.add (cgicc::tr().add (cgicc::td ("Destination Host") ).add (cgicc::td (fSinkHost ) ) );
