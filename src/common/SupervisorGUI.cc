@@ -9,6 +9,7 @@ SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMa
     fManager (pApp),
     fFSM (pStateMachine),
     fLogFilePath (""),
+    fAllChannels (true),
     fLatency (true),
     fStubLatency (false),
     fLatencyStartValue (0),
