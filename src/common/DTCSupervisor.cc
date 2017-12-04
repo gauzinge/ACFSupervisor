@@ -527,7 +527,7 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
 
             //if (fFSM.getCurrentState() == 'E')
             //fFSM.fireEvent ("Stop", this);
-
+            std::cout << "Get here!" << std::endl;
             return false;
         }
     }
