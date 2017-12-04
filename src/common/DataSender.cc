@@ -234,7 +234,14 @@ bool DataSender::sendData ()
         //better safe than sorry
         //this is to compute the frequency
         fCounterMutex.lock();
-        fEventFrequency = fEventsProcessed / fTimer.getCurrentTime();
+        double cElapsedTime = fTimer.getCurrentTime();
+        if(cElapsedTime!=0)
+          fEventFrequency = fEventsProcessed / fTimer.getCurrentTime();
+        else 
+        {
+          LOG4CPLUS_INFO(fLogger, RED << "Error, timer returned 0" <<RESET);
+          fEventFrequency = -999; 
+        }
         fCounterMutex.unlock();
     }
 
@@ -516,10 +523,10 @@ cgicc::table DataSender::generateStatTable()
     cTable.add (cgicc::tr().add (cgicc::td ("Source Port") ).add (cgicc::td (std::to_string (fSourcePort) ) ) );
     cTable.add (cgicc::tr().add (cgicc::td ("Destination Host") ).add (cgicc::td (fSinkHost ) ) );
     cTable.add (cgicc::tr().add (cgicc::td ("Destination Port") ).add (cgicc::td (std::to_string (fSinkPort) ) ) );
-    fCounterMutex.lock();
-    cTable.add (cgicc::tr().add (cgicc::td ("Processed Events") ).add (cgicc::td (std::to_string (fEventsProcessed) ) ) );
-    cTable.add (cgicc::tr().add (cgicc::td ("Event processing Frequency") ).add (cgicc::td (std::to_string (fEventFrequency) ) ) );
-    fCounterMutex.unlock();
+    //fCounterMutex.lock();
+    cTable.add (cgicc::tr().add (cgicc::td ("Processed Events") ).add (cgicc::td (std::to_string (this->getNEventsProcessed()) ) ) );
+    cTable.add (cgicc::tr().add (cgicc::td ("Event processing Frequency") ).add (cgicc::td (std::to_string (this->getEventFrequency()) ) ) );
+    //fCounterMutex.unlock();
 
     return cTable;
 }

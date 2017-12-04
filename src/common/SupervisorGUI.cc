@@ -252,7 +252,8 @@ void SupervisorGUI::PlaybackDSPage (xgi::Input* in, xgi::Output* out) throw (xgi
         {
             *out << cgicc::div().set ("class", "acf_right") << std::endl;
             *out << cgicc::h4 ("Data Sender Stats").set ("style", "padding-top:20px;") << std::endl;
-            *out << fDataSenderTable << std::endl;
+            //TODO
+            //*out << fDataSenderTable << std::endl;
             *out << cgicc::div() << std::endl;
         }
     }

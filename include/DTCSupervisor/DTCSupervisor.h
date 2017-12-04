@@ -274,7 +274,7 @@ namespace Ph2TkDAQ {
                     uint64_t cCorrectedWord = (cWord & 0xFFFFFFFF) << 32 | (cWord >> 32) & 0xFFFFFFFF;
                     cData.push_back (cCorrectedWord);
 
-                    if ( (cCorrectedWord & 0xFF00000000000000) >> 56 == 0xA0 && (cCorrectedWord & 0x00000000000000F0) >> 4  == 0x7) // SLink Trailer
+                    if ( (cCorrectedWord & 0xFF00000000000000) >> 56 == 0xA0 && (cCorrectedWord & 0x00FFFFFF00000000) >> 32 == cData.size() && (cCorrectedWord & 0x00000000000000F0) >> 4  == 0x7) // SLink Trailer
                     {
                         cFoundTrailer = true;
                         //break;
