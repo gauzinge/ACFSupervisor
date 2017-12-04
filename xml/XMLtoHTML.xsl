@@ -201,7 +201,7 @@
             <input type="text" name="{name(..)}_{../@Id}_misc_amux" size ="8" value="{@analogmux}">
             </input>
             pipelogic=
-            <input type="text" name="{name(..)}_{../@Id}_misc_piplogic" size ="1" value="{@pipelogic}">
+            <input type="text" name="{name(..)}_{../@Id}_misc_pipelogic" size ="1" value="{@pipelogic}">
            </input>
             stublogic=
             <input type="text" name="{name(..)}_{../@Id}_misc_stublogic" size ="1" value="{@stublogic}">
