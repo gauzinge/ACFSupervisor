@@ -322,7 +322,8 @@
     <xsl:template match="Register[not(Register)]">
         <li> <xsl:value-of select="@name"/>:
             <!--<xsl:value-of select="@name"/>-->
-            <input type="text" name="Register_{../../../../@name}.{../../../@name}.{../../@name}.{../@name}.{../@Id}{@name}" size ="5" value="{.}">
+            <!--<input type="text" name="Register_{../../../../@name}.{../../../@name}.{../../@name}.{../@name}.{../@Id}{@name}" size ="5" value="{.}">-->
+            <input type="text" name="Register_{../../../../@name}.{../../../@name}.{../../@name}.{../@name}.{@name}" size ="5" value="{.}">
                 <!--<xsl:attribute name="Register">-->
                     <!--<xsl:value-of select="Register"/>-->
                 <!--</xsl:attribute>-->

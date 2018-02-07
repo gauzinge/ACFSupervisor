@@ -235,13 +235,15 @@ bool DataSender::sendData ()
         //this is to compute the frequency
         fCounterMutex.lock();
         double cElapsedTime = fTimer.getCurrentTime();
-        if(cElapsedTime!=0)
-          fEventFrequency = fEventsProcessed / fTimer.getCurrentTime();
-        else 
+
+        if (cElapsedTime != 0)
+            fEventFrequency = fEventsProcessed / fTimer.getCurrentTime();
+        else
         {
-          LOG4CPLUS_INFO(fLogger, RED << "Error, timer returned 0" <<RESET);
-          fEventFrequency = -999; 
+            LOG4CPLUS_INFO (fLogger, RED << "Error, timer returned 0" << RESET);
+            fEventFrequency = -999;
         }
+
         fCounterMutex.unlock();
     }
 
@@ -431,7 +433,14 @@ void DataSender::openConnection()
         //sockaddr_in fsa_local;
         fsa_local.sin_family = AF_INET;
         fsa_local.sin_port = htons (fSinkPort);
-        fsa_local.sin_addr.s_addr = inet_addr (fSinkHost.c_str() );
+
+        if (inet_aton ("127.0.0.1", &fsa_local.sin_addr) == 0)
+        {
+            std::cout << "FATAL: Invalid IP address " << std::endl;
+            exit (0);
+        }
+
+        //fsa_local.sin_addr.s_addr = inet_addr (fSinkHost.c_str() );
         memset (& (fsa_local.sin_zero), 0, sizeof (fsa_local) );
     }
 }
@@ -524,8 +533,8 @@ cgicc::table DataSender::generateStatTable()
     cTable.add (cgicc::tr().add (cgicc::td ("Destination Host") ).add (cgicc::td (fSinkHost ) ) );
     cTable.add (cgicc::tr().add (cgicc::td ("Destination Port") ).add (cgicc::td (std::to_string (fSinkPort) ) ) );
     //fCounterMutex.lock();
-    cTable.add (cgicc::tr().add (cgicc::td ("Processed Events") ).add (cgicc::td (std::to_string (this->getNEventsProcessed()) ) ) );
-    cTable.add (cgicc::tr().add (cgicc::td ("Event processing Frequency") ).add (cgicc::td (std::to_string (this->getEventFrequency()) ) ) );
+    cTable.add (cgicc::tr().add (cgicc::td ("Processed Events") ).add (cgicc::td (std::to_string (this->getNEventsProcessed() ) ) ) );
+    cTable.add (cgicc::tr().add (cgicc::td ("Event processing Frequency") ).add (cgicc::td (std::to_string (this->getEventFrequency() ) ) ) );
     //fCounterMutex.unlock();
 
     return cTable;

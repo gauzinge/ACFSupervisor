@@ -150,15 +150,15 @@ namespace Ph2TkDAQ {
 
 
             // bind SOAP callbacks
-            xoap::bind (app, &T::fsmCallback, "Initialise",   XDAQ_NS_URI);
-            xoap::bind (app, &T::fsmCallback, "Initialize",   XDAQ_NS_URI);
-            xoap::bind (app, &T::fsmCallback, "Configure",    XDAQ_NS_URI);
-            xoap::bind (app, &T::fsmCallback, "Enable",       XDAQ_NS_URI);
-            xoap::bind (app, &T::fsmCallback, "Halt",         XDAQ_NS_URI);
-            xoap::bind (app, &T::fsmCallback, "Stop",         XDAQ_NS_URI);
-            xoap::bind (app, &T::fsmCallback, "Destroy",      XDAQ_NS_URI);
-            xoap::bind (app, &T::fsmCallback, "Pause",        XDAQ_NS_URI);
-            xoap::bind (app, &T::fsmCallback, "Resume",       XDAQ_NS_URI);
+            //xoap::bind (app, &T::fsmCallback, "Initialise",   XDAQ_NS_URI);
+            //xoap::bind (app, &T::fsmCallback, "Initialize",   XDAQ_NS_URI);
+            //xoap::bind (app, &T::fsmCallback, "Configure",    XDAQ_NS_URI);
+            //xoap::bind (app, &T::fsmCallback, "Enable",       XDAQ_NS_URI);
+            //xoap::bind (app, &T::fsmCallback, "Halt",         XDAQ_NS_URI);
+            //xoap::bind (app, &T::fsmCallback, "Stop",         XDAQ_NS_URI);
+            //xoap::bind (app, &T::fsmCallback, "Destroy",      XDAQ_NS_URI);
+            //xoap::bind (app, &T::fsmCallback, "Pause",        XDAQ_NS_URI);
+            //xoap::bind (app, &T::fsmCallback, "Resume",       XDAQ_NS_URI);
 
 
             // define finite state machine

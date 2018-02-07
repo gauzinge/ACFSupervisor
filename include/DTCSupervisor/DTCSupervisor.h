@@ -64,10 +64,12 @@
 #include "tools/LatencyScan.h"
 #include "Utils/Utilities.h"
 #include "Utils/easylogging++.h"
+#include "Utils/CommonVisitors.h"
 
 #ifdef __HTTP__
 #include "THttpServer.h"
 #endif
+#include "TString.h"
 
 #include <regex>
 
@@ -190,6 +192,7 @@ namespace Ph2TkDAQ {
       private:
         void updateHwDescription ();
         void updateSettings ();
+        void dumpCbcFiles (std::string pDirectoryName, std::string pTransition);
 
         void handleBeBoardRegister (BeBoard* pBoard, std::map<std::string, std::string>::iterator pRegister)
         {
@@ -259,7 +262,7 @@ namespace Ph2TkDAQ {
         std::vector<SLinkEvent> readSLinkFromFile (uint32_t pNEvents)
         {
             std::vector<SLinkEvent> cEvVec;
-            bool cAnomalousEvent = false;
+            //bool cAnomalousEvent = false;
 
             for (size_t i = 0; i < pNEvents; i++)
             {
@@ -279,16 +282,6 @@ namespace Ph2TkDAQ {
                         cFoundTrailer = true;
                         //break;
                     }
-
-                    //if(fPlaybackIfstream.eof() && !cFoundTrailer)
-                    //{
-                    //cAnomalousEvent = true;
-                    ////LOG4CPLUS_ERROR (this->getApplicationLogger(), RED << "Error, the playback file ended but I could not find a SLink Trailer, therefore discarding theis fragment of size " << cData.size()<< RESET);
-                    ////for(auto cWord : cData)
-                    ////LOG4CPLUS_ERROR(this->getApplicationLogger(), std::hex << cWord << std::dec);
-                    //cData.clear();
-                    //break;
-                    //}
                 }
 
                 //if (!cAnomalousEvent) cEvVec.push_back (SLinkEvent (cData) );

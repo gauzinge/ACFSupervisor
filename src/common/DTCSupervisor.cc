@@ -88,6 +88,13 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     xoap::bind (this, &DTCSupervisor::fireEvent, "SetValues", XDAQ_NS_URI);
     xoap::bind (this, &DTCSupervisor::fireEvent, "GetValues", XDAQ_NS_URI);
 
+#ifdef __OTSDAQ__
+    //need to bind these in addition if we are dealing with OTSDAQ environment
+    xoap::bind (this, &DTCSupervisor::fireEvent, "Initialize", XDAQ_NS_URI);
+    xoap::bind (this, &DTCSupervisor::fireEvent, "Start", XDAQ_NS_URI);
+    xoap::bind (this, &DTCSupervisor::fireEvent, "Shutdown", XDAQ_NS_URI);
+#endif
+
     //bind the action signature for the calibration action and create the workloop
     this->fCalibrationAction = toolbox::task::bind (this, &DTCSupervisor::CalibrationJob, "Calibration");
     this->fCalibrationWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "Calibrating", "waiting");
@@ -389,22 +396,31 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
         if (cEventCount != 0 && (fDAQFile || fSendData) )
         {
             const std::vector<Event*>& events = fSystemController->GetEvents ( cBoard );
+            fACFLock.give();
             std::vector<SLinkEvent> cSLinkEventVec;
 
             for (auto cEvent : events)
             {
                 SLinkEvent cSLev =  cEvent->GetSLinkEvent (cBoard);
-                cSLinkEventVec.push_back (cSLev);
 
                 if (fDAQFile)
                     fSLinkFileHandler->set (cSLev.getData<uint32_t>() );
+
+                cSLinkEventVec.push_back (cSLev);
             }
 
             if (fSendData)
                 fDataSender->enqueueEvent (cSLinkEventVec);
+
+            //#ifdef __OTSDAQ__
+            //uint32_t cExactTriggers = fSystemController->fBeBoardInterface->ReadBoardReg (cBoard, "fc7_daq_stat.fast_command_block.trigger_in_counter");
+            //LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDRED << "Exact number of Triggers read from FW counter: " << BOLDBLUE << cExactTriggers << RESET);
+            //#endif
+
         }
 
-        fACFLock.give();
+        else
+            fACFLock.give();
     }
     catch (std::exception& e)
     {
@@ -527,7 +543,6 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
 
             //if (fFSM.getCurrentState() == 'E')
             //fFSM.fireEvent ("Stop", this);
-            std::cout << "Get here!" << std::endl;
             return false;
         }
     }
@@ -614,6 +629,9 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
                 //if we are going to take data, increment the run number if we are getting it from file
                 if (cProcedure.second && cProcedure.first == "Data Taking")
                 {
+
+#ifndef __OTSDAQ__
+                    //if we are NOT in the OTSDAQ environment, we get the run number at configure!
                     int cRunNumber = fRunNumber;
 
                     if (fRunNumber == -1) fGetRunnumberFromFile = true;
@@ -640,6 +658,8 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
                         cRawOutputFile.insert (cRawOutputFile.find (".raw"), "_fedId");
                         LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving raw data to: " << BOLDBLUE << cRawOutputFile << RESET);
                     }
+
+#endif
 
                 }
             }
@@ -750,6 +770,9 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
             fGUI->fDataSenderTable = fDataSender->generateStatTable();
         }
 
+#ifndef __OTSDAQ__
+
+        //if we are NOT in the OTSDAQ environment, we do this now, otherwise on start
         //then, if required a file handler for the .daq data
         if (fDAQFile)
         {
@@ -762,6 +785,7 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
             LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving daq data to: " << BOLDBLUE << fSLinkFileHandler->getFilename() << RESET);
         }
 
+#endif
 
         fACFLock.take();
 
@@ -865,7 +889,64 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
             //then we can re-enable and the below will be true
             if (cDataTaking && cEnabledProcedures == 0)
             {
-                //first, make sure that the event counter is 0 since we are just starting the run
+
+#ifdef __OTSDAQ__
+                //OTSDAQ sends the run number on Start (not enable) so we can only create the file handler here
+                int cRunNumber = fRunNumber;
+
+                if (fRunNumber == -1) fGetRunnumberFromFile = true;
+
+                //get the runnumber from the storage file in Ph2_ACF
+                if (fGetRunnumberFromFile) // this means we want the run number from the file
+                {
+                    getRunNumber (expandEnvironmentVariables ("${PH2ACF_ROOT}"), cRunNumber, true) ;
+                    fRunNumber = cRunNumber;
+                }
+
+                std::string cRawOutputFile = fDataDirectory.toString() + string_format ("run_%05d.raw", cRunNumber);
+
+                //first add a filehandler for the raw data to SystemController
+                if (fRAWFile)
+                {
+                    bool cExists = Ph2TkDAQ::mkdir (fDataDirectory.toString() );
+
+                    if (!cExists)
+                        LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Data Directory : " << BOLDBLUE << fDataDirectory.toString() << BOLDGREEN << " does not exist - creating!" << RESET);
+
+
+                    fACFLock.take();
+                    fSystemController->addFileHandler ( cRawOutputFile, 'w' );
+                    fSystemController->initializeFileHandler();
+                    fACFLock.give();
+
+                    cRawOutputFile.insert (cRawOutputFile.find (".raw"), "_fedId");
+                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving raw data to: " << BOLDBLUE << cRawOutputFile << RESET);
+                }
+
+                if (fDAQFile)
+                {
+                    int cRunNumber = fRunNumber;
+                    std::string cDAQOutputFile = fDataDirectory.toString();
+                    std::string cFile = string_format ("run_%05d.daq", cRunNumber);
+                    cDAQOutputFile += cFile;
+                    //then add a file handler for the DAQ data
+                    fSLinkFileHandler = new FileHandler (cDAQOutputFile, 'w');
+                    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Saving daq data to: " << BOLDBLUE << fSLinkFileHandler->getFilename() << RESET);
+                }
+
+#endif
+                //here, read the CBC files for Sarah
+                fACFLock.take();
+
+                for (auto cBoard : fSystemController->fBoardVector)
+                    for (auto cFe : cBoard->fModuleVector)
+                        for (auto cCbc : cFe->fCbcVector)
+                            fSystemController->fCbcInterface->ReadCbc (cCbc);
+
+                fACFLock.give();
+                this->dumpCbcFiles (fResultDirectory, "enabling");
+
+                //then, make sure that the event counter is 0 since we are just starting the run
                 if (fEventCounter != static_cast<xdata::UnsignedInteger32> (0) ) fEventCounter = 0;
 
                 if (!fDAQWorkloop->isActive() )
@@ -1027,6 +1108,21 @@ bool DTCSupervisor::stopping (toolbox::task::WorkLoop* wl)
 {
     try
     {
+        //figure out if we were supposed to run any calibrations
+        int cEnabledProcedures = 0;
+        bool cDataTaking = false;
+
+        for (auto cProcedure : fGUI->fProcedureMap)
+        {
+
+            if (cProcedure.second && cProcedure.first != "Data Taking") cEnabledProcedures++;
+
+            if (cProcedure.second && cProcedure.first == "Data Taking") cDataTaking = true;
+
+            if (cProcedure.second)
+                LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDYELLOW << "Stopping " << BOLDBLUE << cProcedure.first << RESET);
+        }
+
         if (!fPlaybackMode)
         {
             if (fDAQWorkloop->isActive() )
@@ -1050,6 +1146,20 @@ bool DTCSupervisor::stopping (toolbox::task::WorkLoop* wl)
         {
             fDataSender->StopTimer();
             LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Data Sender Workloop processed " << fDataSender->getNEventsProcessed() << "Events with a frequencey of " << fDataSender->getEventFrequency() << "Hz" << RESET );
+        }
+
+        if (cDataTaking && cEnabledProcedures == 0)
+        {
+            //here, read the CBC files for Sarah
+            fACFLock.take();
+
+            for (auto cBoard : fSystemController->fBoardVector)
+                for (auto cFe : cBoard->fModuleVector)
+                    for (auto cCbc : cFe->fCbcVector)
+                        fSystemController->fCbcInterface->ReadCbc (cCbc);
+
+            fACFLock.give();
+            this->dumpCbcFiles (fResultDirectory, "stopping");
         }
     }
     catch (std::exception& e)
@@ -1190,11 +1300,46 @@ xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) thr
                     commandName == "Pause" ||
                     commandName == "Resume" ||
                     commandName == "Halt" ||
+#ifdef __OTSDAQ__
+                    commandName == "Initialize" ||
+                    commandName == "Shutdown" ||
+                    commandName.find ("Start") != std::string::npos ||
+#endif
                     commandName == "Destroy")
                 try
                 {
                     //toolbox::Event::Reference e (new toolbox::Event (commandName, this) );
                     //fsm_.fireEvent (e);
+
+#ifdef __OTSDAQ__
+                    //some OTSDAQ specific code! need to translate the OTSDDAQ commands to the standard FED FSM callbacks here!
+
+                    if (commandName == "Initialize")
+                        commandName = "Initialise";
+
+                    if (commandName == "Shutdown")
+                        commandName = "Destroy";
+
+                    if (commandName.find ("Start") != std::string::npos)
+                    {
+                        commandName = "Enable";
+                        //here also need to parse the run number from the message content
+                        DOMNamedNodeMap*  attributes = command->getAttributes();
+
+                        for (unsigned int i = 0; i < attributes->getLength(); i++)
+                        {
+                            if (xoap::XMLCh2String (attributes->item (i)->getNodeName() ) == "RunNumber")
+                            {
+                                int cRunNumber;
+                                sscanf (xoap::XMLCh2String (attributes->item (i)->getNodeValue() ).c_str(), "%d", &cRunNumber);
+                                fRunNumber = cRunNumber;
+                                LOG4CPLUS_INFO (this->getApplicationLogger(), RED << "Received Run Number on Start Command from OTSDAQ " << fRunNumber.toString() << RESET);
+                            }
+                        }
+                    }
+
+#endif
+
                     fFSM.fireEvent (commandName, this);
                 }
                 catch (toolbox::fsm::exception::Exception& e)
@@ -1290,6 +1435,17 @@ xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) thr
 
             xoap::MessageReference reply = xoap::createMessage();
             xoap::SOAPEnvelope envelope = reply->getSOAPPart().getEnvelope();
+
+#ifdef __OTSDAQ__
+
+            if (commandName == "Initialise") commandName = "Initialize";
+
+            if (commandName == "Destroy") commandName = "Shutdown";
+
+            if (commandName == "Enable") commandName = "Start";
+
+#endif
+
             xoap::SOAPName responseName = envelope.createName ( commandName + "Response", "xdaq", XDAQ_NS_URI);
             envelope.getBody().addBodyElement ( responseName );
             return reply;
@@ -1297,4 +1453,36 @@ xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) thr
     }
 
     XCEPT_RAISE (xcept::Exception, "command not found");
+}
+
+void DTCSupervisor::dumpCbcFiles (std::string pDirectoryName, std::string pTransition)
+{
+    // visitor to call dumpRegFile on each Cbc
+    struct RegMapDumper : public HwDescriptionVisitor
+    {
+        std::string fDirectoryName;
+        std::string fTransition;
+        int fRunNumber;
+        std::string fFileName;
+        RegMapDumper ( std::string pDirectoryName, std::string pTransition, xdata::Integer pRunNumber ) : fDirectoryName ( pDirectoryName ), fTransition (pTransition), fRunNumber (pRunNumber) {};
+        void visit ( Cbc& pCbc )
+        {
+            if ( !fDirectoryName.empty() )
+            {
+                TString cFilename = fDirectoryName + Form ( "/FE%dCBC%dRun%05d_%s.txt", pCbc.getFeId(), pCbc.getCbcId(), fRunNumber, fTransition.c_str() );
+                fFileName = cFilename.Data();
+                pCbc.saveRegMap (fFileName);
+            }
+
+            //else LOG4CPLUS_INFO(this->getApplicationLogger(), RED << "Error: no results Directory initialized! "<< RESET);
+        }
+    };
+
+    RegMapDumper cDumper ( pDirectoryName, pTransition, fRunNumber);
+    fACFLock.take();
+    fSystemController->accept ( cDumper );
+    fACFLock.give();
+    std::string cFilename = cDumper.fFileName;
+
+    LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDBLUE << "Configfiles for all Cbcs written to " << pDirectoryName << " on Transition " << pTransition << " - Filename: " << cFilename << RESET);
 }
