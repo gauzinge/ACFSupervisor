@@ -1024,6 +1024,15 @@ bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
         {
             if (fPlaybackWorkloop->isActive() )
                 fPlaybackWorkloop->cancel();
+
+            if (fPlaybackFile.toString().find (".daq") != std::string::npos) // we are dealing with a .daq file)
+                fPlaybackIfstream.close();
+            else if (fPlaybackFile.toString().find (".raw") != std::string::npos) // we are dealing with a .raw file
+            {
+                fACFLock.take();
+                fSystemController->fFileHandler->closeFile();
+                fACFLock.give();
+            }
         }
 
         //reset the internal runnumber so we pick up on it on the next initialise
@@ -1135,6 +1144,20 @@ bool DTCSupervisor::stopping (toolbox::task::WorkLoop* wl)
 
             if (fCalibrationWorkloop->isActive() )
                 fCalibrationWorkloop->cancel();
+
+            if (cDataTaking && cEnabledProcedures == 0)
+            {
+                //here, read the CBC files for Sarah
+                fACFLock.take();
+
+                for (auto cBoard : fSystemController->fBoardVector)
+                    for (auto cFe : cBoard->fModuleVector)
+                        for (auto cCbc : cFe->fCbcVector)
+                            fSystemController->fCbcInterface->ReadCbc (cCbc);
+
+                fACFLock.give();
+                this->dumpCbcFiles (fResultDirectory, "stopping");
+            }
         }
         else if (fPlaybackMode)
         {
@@ -1148,19 +1171,6 @@ bool DTCSupervisor::stopping (toolbox::task::WorkLoop* wl)
             LOG4CPLUS_INFO (this->getApplicationLogger(), BOLDGREEN << "Data Sender Workloop processed " << fDataSender->getNEventsProcessed() << "Events with a frequencey of " << fDataSender->getEventFrequency() << "Hz" << RESET );
         }
 
-        if (cDataTaking && cEnabledProcedures == 0)
-        {
-            //here, read the CBC files for Sarah
-            fACFLock.take();
-
-            for (auto cBoard : fSystemController->fBoardVector)
-                for (auto cFe : cBoard->fModuleVector)
-                    for (auto cCbc : cFe->fCbcVector)
-                        fSystemController->fCbcInterface->ReadCbc (cCbc);
-
-            fACFLock.give();
-            this->dumpCbcFiles (fResultDirectory, "stopping");
-        }
     }
     catch (std::exception& e)
     {

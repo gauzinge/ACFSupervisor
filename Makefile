@@ -18,7 +18,7 @@ endif
 ##################################################
 ## check Root version
 ##################################################
-ifneq (,$(findstring 6.1,$(ROOTVERSION)))
+ifneq (,$(findstring 6.,$(ROOTVERSION)))
 	RootExtraFlags+=-D__ROOT6__
 endif
 
@@ -39,7 +39,7 @@ LibraryDirs = \
      $(XDAQ_ROOT)/lib \
 	 ${PH2ACF_ROOT}/lib \
 	 ${CACTUSLIB} \
-	 ${ROOTLIB} \
+	 #${ROOTLIB} \
 	 /usr/lib64
 
 ExeternalObjects =

@@ -4,8 +4,8 @@
 
     <!-- Declare a context that contain applcation -->
     <!--for rcms-->
-    <!--<xc:Context url="http://cmsuptrackerdaq.cern.ch:41801">-->
-    <xc:Context url="http://cmsuptrackerdaq.cern.ch:50000">
+    <xc:Context url="http://cmsuptrackerdaq.cern.ch:41801">
+    <!--<xc:Context url="http://cmsuptrackerdaq.cern.ch:50000">-->
 
         <!-- Declare a DTCSupervisor application -->
         <xc:Application class="Ph2TkDAQ::DTCSupervisor" id="51" instance="0" network="local">
