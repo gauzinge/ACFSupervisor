@@ -1,6 +1,6 @@
-## DTC Supervisor README page
+## ACF Supervisor README page
 
-This is the readme page of the new DTC Supervisor. Below you can find instructions on how to install the application and an overview of the basic functionality. This SW is built on top of CMS XDAQ versions 13 and 14 and requires a recent gcc version that supports c++11. Additional requirements are listed in the Requirements section.
+This is the readme page of the new ACF Supervisor. Below you can find instructions on how to install the application and an overview of the basic functionality. This SW is built on top of CMS XDAQ versions 13 and 14 and requires a recent gcc version that supports c++11. Additional requirements are listed in the Requirements section.
 
 ### Requirements
 
@@ -50,13 +50,13 @@ source setup.sh
 
 To compile the code, have a look at the provided setup.sh script and adapt the paths to the various dependences accordingly (Ph2_ACF, CACTUS, BOOST). Once this is done and all the dependences are installed, the software should compile with the included makefile. In order to run it, the setup.sh file creates an alias "test" that will call the appropriate xdaq command:
 ```sh
-/opt/xdaq/bin/xdaq.exe -p 40400 -c path/DTCSupervisor/xml/DTCSupervisor.xml
+/opt/xdaq/bin/xdaq.exe -p 40400 -c path/ACFSupervisor/xml/ACFSupervisor.xml
 ```
 You can then reach the web GUI on your browser with the following address
 
 http://yourhost.yourdomain:40400/urn:xdaq-application:lid=2/MainPage
 
-Also have a look at the provided DTCSupervisor.xml configuration file in the xml/ directory. This allows to set the default alues for many of the parameters, ports, URLs and might need some editing on your system. 
+Also have a look at the provided ACFSupervisor.xml configuration file in the xml/ directory. This allows to set the default alues for many of the parameters, ports, URLs and might need some editing on your system. 
 
 ```xml
 <?xml version='1.0'?>
@@ -66,12 +66,12 @@ Also have a look at the provided DTCSupervisor.xml configuration file in the xml
     <!-- Declare a context that contain applcation -->
     <xc:Context url="http://yourhostname:40400">
 
-        <!-- Declare a DTCSupervisor application -->
-        <xc:Application class="Ph2TkDAQ::DTCSupervisor" id="2" instance="0" network="local">
-            <properties xmlns="urn:xdaq-application:DTCSupervisor" xsi:type="soapenc:Struct">
-                <HWDescriptionFile xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/xml/HWDescription.xml</HWDescriptionFile>
-                <DataDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Data/</DataDirectory>
-                <ResultDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Results/</ResultDirectory>
+        <!-- Declare a ACFSupervisor application -->
+        <xc:Application class="Ph2TkDAQ::ACFSupervisor" id="2" instance="0" network="local">
+            <properties xmlns="urn:xdaq-application:ACFSupervisor" xsi:type="soapenc:Struct">
+                <HWDescriptionFile xsi:type="xsd:string">${ACFSUPERVISOR_ROOT}/xml/HWDescription.xml</HWDescriptionFile>
+                <DataDirectory xsi:type="xsd:string">${ACFSUPERVISOR_ROOT}/Data/</DataDirectory>
+                <ResultDirectory xsi:type="xsd:string">${ACFSUPERVISOR_ROOT}/Results/</ResultDirectory>
                 <RunNumber xsi:type="xsd:integer">-1</RunNumber>
                 <NEvents xsi:type="xsd:unsignedInt">100</NEvents>
                 <WriteRAW xsi:type="xsd:boolean">false</WriteRAW>
@@ -84,25 +84,25 @@ Also have a look at the provided DTCSupervisor.xml configuration file in the xml
                 <DataSinkHost xsi:type="xsd:string">localhost</DataSinkHost>
                 <DataSinkPort xsi:type="xsd:integer">404002</DataSinkPort>
                 <PlaybackMode xsi:type="xsd:boolean">true</PlaybackMode>
-                <PlaybackFile xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Data/</PlaybackFile>
+                <PlaybackFile xsi:type="xsd:string">${ACFSUPERVISOR_ROOT}/Data/</PlaybackFile>
             </properties>
         </xc:Application>
 
         <!-- Shared object library that contains the inplementation -->
-        <xc:Module>${DTCSUPERVISOR_ROOT}/lib/linux/x86_64_centos7/libDTCSupervisor.so</xc:Module>
+        <xc:Module>${ACFSUPERVISOR_ROOT}/lib/linux/x86_64_centos7/libACFSupervisor.so</xc:Module>
 
     </xc:Context>
 </xc:Partition>
 ```
 
 ### Interface
-![User Interface](/fig/DTC_Main.jpg "Main Page")
+![User Interface](/fig/ACF_Main.jpg "Main Page")
 The sofware is intended as a XDAQ wrapper to the Ph2_ACF framework and thus some knowledge of the framework and configuration files is required. It uses the HwDescription.xml files of Ph2_ACF which can be edited via the web GUI. The main page pictured above has controls for the finite state machine, the current HWDescription.xml file and a navigation bar. In addition it shows the current state and an event counter. In the main tab, you can configure the main run settings, select which procedures you want to run and adapt the settings for them - the page shows and hides settings automatically that are specific to certain types of runs. Other options allow to set the run number (if -1, the current run number will be picked up from the .runnumber.txt file in the Ph2_ACF root directory) and enabling writing of raw (.raw) or SLink (.daq) data files. In the bottom there is a log window that will show the Ph2_ACF command line output. 
-![User Interface](/fig/DTC_config.jpg "Config Page")
+![User Interface](/fig/ACF_config.jpg "Config Page")
 The config page allows you to edit the currently loaded HWDescription.xml file via the web GUI or to load a different file. Note that edits are only possible in the Initial and Configured state of the finite state machine. 
-![User Interface](/fig/DTC_DS.jpg "Data sending and Playback Page")
+![User Interface](/fig/ACF_DS.jpg "Data sending and Playback Page")
 The Playback and DS page allows you to either play back data from a previously recorded file (.raw or .daq data for raw and SLink type data) and forward it to a CMS EVM-BU readout chain via TCP sockets. Changes are only possible in the Initial or Halted state. On this page you can also configure and enable the data sending mechanism.
-![User Interface](/fig/DTC_FW.jpg "Firmware Page")
+![User Interface](/fig/ACF_FW.jpg "Firmware Page")
 The FW page allows to change the FW running on the FC7 or upload and download images to and from the SD card. It uses the corresponding functions of Ph2_ACF and some operations can result in a segfault of the application - this is to be expected as the network settings of the FC7 may change during FW changes. Operations on this page can only be performed in the Initial state. Before you can perform any changes, uploads or downloads, you need to list the images on the SD card via the coresponding button. 
 
 The work-in-progress Calibration and DQM page will soon show live rootplots from the running processes via THttp Server.

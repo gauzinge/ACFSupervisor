@@ -1,12 +1,12 @@
-#include "DTCSupervisor/DTCSupervisor.h"
+#include "ACFSupervisor/ACFSupervisor.h"
 
 using namespace Ph2TkDAQ;
 
 //constructor
-XDAQ_INSTANTIATOR_IMPL (Ph2TkDAQ::DTCSupervisor)
+XDAQ_INSTANTIATOR_IMPL (Ph2TkDAQ::ACFSupervisor)
 INITIALIZE_EASYLOGGINGPP
 
-DTCSupervisor::DTCSupervisor (xdaq::ApplicationStub* s)
+ACFSupervisor::ACFSupervisor (xdaq::ApplicationStub* s)
 throw (xdaq::exception::Exception) : xdaq::Application (s),
     fFSM (this),
     fFedID (51),
@@ -40,7 +40,7 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
         if ( (*cMethod)->type() == "cgi")
         {
             std::string cMethodName = static_cast<xgi::MethodSignature*> (*cMethod)->name();
-            xgi::bind (this, &DTCSupervisor::Default, cMethodName);
+            xgi::bind (this, &ACFSupervisor::Default, cMethodName);
         }
     }
 
@@ -49,7 +49,7 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
         << this->getApplicationDescriptor()->getInstance();
     fAppNameAndInstanceString = oss.str();
     //bind xgi and xoap commands to methods
-    //xgi::bind (this, &DTCSupervisor::Default, "Default");
+    //xgi::bind (this, &ACFSupervisor::Default, "Default");
 
     //make configurable variapbles available in the Application Info Space
     this->getApplicationInfoSpace()->fireItemAvailable ("FedID", &fFedID);
@@ -77,34 +77,34 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     this->getApplicationInfoSpace()->fireItemAvailable ("PlaybackFile", &fPlaybackFile);
 
     // Bind SOAP callbacks for control messages
-    xoap::bind (this, &DTCSupervisor::fireEvent, "Initialise", XDAQ_NS_URI);
-    xoap::bind (this, &DTCSupervisor::fireEvent, "Configure", XDAQ_NS_URI);
-    xoap::bind (this, &DTCSupervisor::fireEvent, "Enable", XDAQ_NS_URI);
-    xoap::bind (this, &DTCSupervisor::fireEvent, "Halt", XDAQ_NS_URI);
-    xoap::bind (this, &DTCSupervisor::fireEvent, "Stop", XDAQ_NS_URI);
-    xoap::bind (this, &DTCSupervisor::fireEvent, "Pause", XDAQ_NS_URI);
-    xoap::bind (this, &DTCSupervisor::fireEvent, "Resume", XDAQ_NS_URI);
-    xoap::bind (this, &DTCSupervisor::fireEvent, "Destroy", XDAQ_NS_URI);
-    xoap::bind (this, &DTCSupervisor::fireEvent, "SetValues", XDAQ_NS_URI);
-    xoap::bind (this, &DTCSupervisor::fireEvent, "GetValues", XDAQ_NS_URI);
+    xoap::bind (this, &ACFSupervisor::fireEvent, "Initialise", XDAQ_NS_URI);
+    xoap::bind (this, &ACFSupervisor::fireEvent, "Configure", XDAQ_NS_URI);
+    xoap::bind (this, &ACFSupervisor::fireEvent, "Enable", XDAQ_NS_URI);
+    xoap::bind (this, &ACFSupervisor::fireEvent, "Halt", XDAQ_NS_URI);
+    xoap::bind (this, &ACFSupervisor::fireEvent, "Stop", XDAQ_NS_URI);
+    xoap::bind (this, &ACFSupervisor::fireEvent, "Pause", XDAQ_NS_URI);
+    xoap::bind (this, &ACFSupervisor::fireEvent, "Resume", XDAQ_NS_URI);
+    xoap::bind (this, &ACFSupervisor::fireEvent, "Destroy", XDAQ_NS_URI);
+    xoap::bind (this, &ACFSupervisor::fireEvent, "SetValues", XDAQ_NS_URI);
+    xoap::bind (this, &ACFSupervisor::fireEvent, "GetValues", XDAQ_NS_URI);
 
 #ifdef __OTSDAQ__
     //need to bind these in addition if we are dealing with OTSDAQ environment
-    xoap::bind (this, &DTCSupervisor::fireEvent, "Initialize", XDAQ_NS_URI);
-    xoap::bind (this, &DTCSupervisor::fireEvent, "Start", XDAQ_NS_URI);
-    xoap::bind (this, &DTCSupervisor::fireEvent, "Shutdown", XDAQ_NS_URI);
+    xoap::bind (this, &ACFSupervisor::fireEvent, "Initialize", XDAQ_NS_URI);
+    xoap::bind (this, &ACFSupervisor::fireEvent, "Start", XDAQ_NS_URI);
+    xoap::bind (this, &ACFSupervisor::fireEvent, "Shutdown", XDAQ_NS_URI);
 #endif
 
     //bind the action signature for the calibration action and create the workloop
-    this->fCalibrationAction = toolbox::task::bind (this, &DTCSupervisor::CalibrationJob, "Calibration");
+    this->fCalibrationAction = toolbox::task::bind (this, &ACFSupervisor::CalibrationJob, "Calibration");
     this->fCalibrationWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "Calibrating", "waiting");
 
     //bind the action signature for the DAQ action and create the workloop
-    this->fDAQAction = toolbox::task::bind (this, &DTCSupervisor::DAQJob, "DAQ");
+    this->fDAQAction = toolbox::task::bind (this, &ACFSupervisor::DAQJob, "DAQ");
     this->fDAQWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "DAQ", "waiting");
 
     //bind the action signature for the DS action and create the workloop
-    this->fDSAction = toolbox::task::bind (this, &DTCSupervisor::SendDataJob, "DS");
+    this->fDSAction = toolbox::task::bind (this, &ACFSupervisor::SendDataJob, "DS");
     this->fDSWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "DS", "waiting");
 
     //detect when default values have been set
@@ -115,10 +115,10 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
     fGUI->setSettingsFormData (&fSettingsFormData);
 
     //initialize the FSM
-    fFSM.initialize<Ph2TkDAQ::DTCSupervisor> (this);
+    fFSM.initialize<Ph2TkDAQ::ACFSupervisor> (this);
 
     //configure the logger for the Ph2 ACF libraries
-    el::Configurations conf (expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/xml/logger.conf") );
+    el::Configurations conf (expandEnvironmentVariables ("${ACFSUPERVISOR_ROOT}/xml/logger.conf") );
     el::Loggers::reconfigureAllLoggers (conf);
 
     //if defined, create a THttpServer
@@ -163,7 +163,7 @@ throw (xdaq::exception::Exception) : xdaq::Application (s),
 }
 
 //Destructor
-DTCSupervisor::~DTCSupervisor()
+ACFSupervisor::~ACFSupervisor()
 {
     if (fSystemController) delete fSystemController;
 
@@ -173,7 +173,7 @@ DTCSupervisor::~DTCSupervisor()
 }
 
 //configure action listener
-void DTCSupervisor::actionPerformed (xdata::Event& e)
+void ACFSupervisor::actionPerformed (xdata::Event& e)
 {
     if (e.type() == "urn:xdaq-event:setDefaultValues")
     {
@@ -262,7 +262,7 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
 
         //TODO: Debug
 #ifdef __HTTP__
-        fHttpServer->AddLocation ("Calibrations/", "/afs/cern.ch/user/g/gauzinge/DTCSupervisor/Results/CommissioningCycle_06-09-17_19:00/" );
+        fHttpServer->AddLocation ("Calibrations/", "/afs/cern.ch/user/g/gauzinge/ACFSupervisor/Results/CommissioningCycle_06-09-17_19:00/" );
         fGUI->appendResultFiles ("http://cmsuptrackerdaq.cern.ch:8080/Calibrations/CommissioningCycle.root");
 #endif
 
@@ -275,14 +275,14 @@ void DTCSupervisor::actionPerformed (xdata::Event& e)
     }
 }
 
-void DTCSupervisor::Default (xgi::Input* in, xgi::Output* out)
+void ACFSupervisor::Default (xgi::Input* in, xgi::Output* out)
 throw (xgi::exception::Exception)
 {
     std::string name = in->getenv ("PATH_INFO");
     static_cast<xgi::MethodSignature*> (fGUI->getMethod (name) )->invoke (in, out);
 }
 
-bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
+bool ACFSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
 {
     try
     {
@@ -381,7 +381,7 @@ bool DTCSupervisor::CalibrationJob (toolbox::task::WorkLoop* wl)
 }
 
 // will need  a semaphore in order to be able to stop this!
-bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
+bool ACFSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
 {
     try
     {
@@ -452,13 +452,13 @@ bool DTCSupervisor::DAQJob (toolbox::task::WorkLoop* wl)
     std::this_thread::sleep_for (std::chrono::milliseconds (fShortPause) );
 }
 
-bool DTCSupervisor::SendDataJob (toolbox::task::WorkLoop* wl)
+bool ACFSupervisor::SendDataJob (toolbox::task::WorkLoop* wl)
 {
     fGUI->fDataSenderTable = fDataSender->generateStatTable();
     return this->fDataSender->sendData ();
 }
 
-bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
+bool ACFSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
 {
     uint32_t cNEvents = 10;
 
@@ -548,7 +548,7 @@ bool DTCSupervisor::PlaybackJob (toolbox::task::WorkLoop* wl)
     }
 }
 
-bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
+bool ACFSupervisor::initialising (toolbox::task::WorkLoop* wl)
 {
     try
     {
@@ -616,7 +616,7 @@ bool DTCSupervisor::initialising (toolbox::task::WorkLoop* wl)
 }
 
 ///Perform configure transition
-bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
+bool ACFSupervisor::configuring (toolbox::task::WorkLoop* wl)
 {
 
     try
@@ -680,7 +680,7 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
             //also, we only want to create the Playback Workloop here since it is not required under normal conditions
 
             //bind the action signature for the DS action and create the workloop
-            this->fPlaybackAction = toolbox::task::bind (this, &DTCSupervisor::PlaybackJob, "Playback");
+            this->fPlaybackAction = toolbox::task::bind (this, &ACFSupervisor::PlaybackJob, "Playback");
             this->fPlaybackWorkloop = toolbox::task::getWorkLoopFactory()->getWorkLoop (fAppNameAndInstanceString + "Playback", "waiting");
 
             int cRunNumber = fRunNumber;
@@ -815,7 +815,7 @@ bool DTCSupervisor::configuring (toolbox::task::WorkLoop* wl)
 }
 
 ///Perform enable transition
-bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
+bool ACFSupervisor::enabling (toolbox::task::WorkLoop* wl)
 {
     try
     {
@@ -1002,7 +1002,7 @@ bool DTCSupervisor::enabling (toolbox::task::WorkLoop* wl)
 }
 
 ///Perform halt transition
-bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
+bool ACFSupervisor::halting (toolbox::task::WorkLoop* wl)
 {
     try
     {
@@ -1077,13 +1077,17 @@ bool DTCSupervisor::halting (toolbox::task::WorkLoop* wl)
     return false;
 }
 ///perform pause transition
-bool DTCSupervisor::pausing (toolbox::task::WorkLoop* wl)
+bool ACFSupervisor::pausing (toolbox::task::WorkLoop* wl)
 {
     try
     {
-        fACFLock.take();
-        fSystemController->Pause();
-        fACFLock.give();
+        if (!fPlaybackMode)
+        {
+            fACFLock.take();
+            fSystemController->Pause();
+            fACFLock.give();
+
+        }
     }
     catch (std::exception& e)
     {
@@ -1095,13 +1099,16 @@ bool DTCSupervisor::pausing (toolbox::task::WorkLoop* wl)
     return false;
 }
 ///Perform resume transition
-bool DTCSupervisor::resuming (toolbox::task::WorkLoop* wl)
+bool ACFSupervisor::resuming (toolbox::task::WorkLoop* wl)
 {
     try
     {
-        fACFLock.take();
-        fSystemController->Resume();
-        fACFLock.give();
+        if (!fPlaybackMode)
+        {
+            fACFLock.take();
+            fSystemController->Resume();
+            fACFLock.give();
+        }
     }
     catch (std::exception& e)
     {
@@ -1113,7 +1120,7 @@ bool DTCSupervisor::resuming (toolbox::task::WorkLoop* wl)
     return false;
 }
 ///Perform stop transition
-bool DTCSupervisor::stopping (toolbox::task::WorkLoop* wl)
+bool ACFSupervisor::stopping (toolbox::task::WorkLoop* wl)
 {
     try
     {
@@ -1182,7 +1189,7 @@ bool DTCSupervisor::stopping (toolbox::task::WorkLoop* wl)
     return false;
 }
 ///Perform destroy transition
-bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
+bool ACFSupervisor::destroying (toolbox::task::WorkLoop* wl)
 {
     try
     {
@@ -1220,7 +1227,7 @@ bool DTCSupervisor::destroying (toolbox::task::WorkLoop* wl)
     return false;
 }
 
-void DTCSupervisor::updateHwDescription()
+void ACFSupervisor::updateHwDescription()
 {
     char cState = fFSM.getCurrentState();
 
@@ -1259,7 +1266,7 @@ void DTCSupervisor::updateHwDescription()
     }
 }
 
-void DTCSupervisor::updateSettings()
+void ACFSupervisor::updateSettings()
 {
     char cState = fFSM.getCurrentState();
 
@@ -1287,7 +1294,7 @@ void DTCSupervisor::updateSettings()
     }
 }
 
-xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) throw (xoap::exception::Exception)
+xoap::MessageReference ACFSupervisor::fireEvent (xoap::MessageReference msg) throw (xoap::exception::Exception)
 {
     xoap::SOAPPart part = msg->getSOAPPart();
     xoap::SOAPEnvelope env = part.getEnvelope();
@@ -1359,7 +1366,7 @@ xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) thr
 
             if (commandName == "SetValues")
             {
-                std::cout << "DTCSupervisor:: " << "I got a command " << std::endl;
+                std::cout << "ACFSupervisor:: " << "I got a command " << std::endl;
                 // All attributes
                 DOMNamedNodeMap*  attributes = command->getAttributes();
                 DOMNode*  e = attributes->getNamedItem (XMLString::transcode ("name") );
@@ -1370,13 +1377,13 @@ xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) thr
                     continue;
                 }
 
-                std::cout << "DTCSupervisor:: " << "Name is " << xoap::XMLCh2String (e->getNodeValue() ) << std::endl;
+                std::cout << "ACFSupervisor:: " << "Name is " << xoap::XMLCh2String (e->getNodeValue() ) << std::endl;
 
                 xdata::Serializable* s = getApplicationInfoSpace()->find (xoap::XMLCh2String (e->getNodeValue() ) );
 
                 if (s != NULL)
                 {
-                    std::cout << "DTCSupervisor:: " << "Type is " << s->type();
+                    std::cout << "ACFSupervisor:: " << "Type is " << s->type();
 
                     if (s->type() == "int")
                     {
@@ -1385,7 +1392,7 @@ xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) thr
                         DOMNode*  ev = attributes->getNamedItem (XMLString::transcode ("value") );
                         sscanf (xoap::XMLCh2String (ev->getNodeValue() ).c_str(), "%d", &d);
                         si->value_ = d;
-                        std::cout << "DTCSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
+                        std::cout << "ACFSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
                     }
 
                     if (s->type() == "unsigned long")
@@ -1395,7 +1402,7 @@ xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) thr
                         DOMNode*  ev = attributes->getNamedItem (XMLString::transcode ("value") );
                         sscanf (xoap::XMLCh2String (ev->getNodeValue() ).c_str(), "%ld", &d);
                         si->value_ = d;
-                        std::cout << "DTCSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
+                        std::cout << "ACFSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
                     }
 
                     if (s->type() == "unsigned short")
@@ -1405,7 +1412,7 @@ xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) thr
                         DOMNode*  ev = attributes->getNamedItem (XMLString::transcode ("value") );
                         sscanf (xoap::XMLCh2String (ev->getNodeValue() ).c_str(), "%d", &d);
                         si->value_ = d;
-                        std::cout << "DTCSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
+                        std::cout << "ACFSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
                     }
 
                     if (s->type() == "unsigned int")
@@ -1415,7 +1422,7 @@ xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) thr
                         DOMNode*  ev = attributes->getNamedItem (XMLString::transcode ("value") );
                         sscanf (xoap::XMLCh2String (ev->getNodeValue() ).c_str(), "%d", &d);
                         si->value_ = d;
-                        std::cout << "DTCSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
+                        std::cout << "ACFSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
                     }
 
                     if (s->type() == "string")
@@ -1423,7 +1430,7 @@ xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) thr
                         xdata::String* si = (xdata::String*) s;
                         DOMNode*  ev = attributes->getNamedItem (XMLString::transcode ("value") );
                         si->value_ = xoap::XMLCh2String (ev->getNodeValue() ).c_str();
-                        std::cout << "DTCSupervisor:: " << "Type & Value:  " << si->type() << " " << si->value_ << std::endl;
+                        std::cout << "ACFSupervisor:: " << "Type & Value:  " << si->type() << " " << si->value_ << std::endl;
                     }
 
                     if (s->type() == "bool")
@@ -1436,7 +1443,7 @@ xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) thr
                         else
                             si->value_ = false;
 
-                        std::cout << "DTCSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
+                        std::cout << "ACFSupervisor:: " << "Type & Value:  " << si->type() << " " << *si << std::endl;
                     }
 
                 }
@@ -1465,7 +1472,7 @@ xoap::MessageReference DTCSupervisor::fireEvent (xoap::MessageReference msg) thr
     XCEPT_RAISE (xcept::Exception, "command not found");
 }
 
-void DTCSupervisor::dumpCbcFiles (std::string pDirectoryName, std::string pTransition)
+void ACFSupervisor::dumpCbcFiles (std::string pDirectoryName, std::string pTransition)
 {
     // visitor to call dumpRegFile on each Cbc
     struct RegMapDumper : public HwDescriptionVisitor

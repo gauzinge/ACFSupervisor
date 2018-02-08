@@ -44,8 +44,8 @@
 #include "log4cplus/logger.h"
 #include "log4cplus/loggingmacros.h"
 
-#include "DTCSupervisor/DTCStateMachine.h"
-#include "DTCSupervisor/FilePaths.h"
+#include "ACFSupervisor/ACFStateMachine.h"
+#include "ACFSupervisor/FilePaths.h"
 
 //Ph2 ACF
 #include "System/SystemController.h"
@@ -67,7 +67,7 @@ namespace Ph2TkDAQ {
     class SupervisorGUI : public toolbox::lang::Class
     {
       public:
-        SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMachine);
+        SupervisorGUI (xdaq::Application* pApp, ACFStateMachine* pStateMachine);
 
         //views
         void Default (xgi::Input* in, xgi::Output* out) throw (xgi::exception::Exception);
@@ -251,7 +251,7 @@ namespace Ph2TkDAQ {
         xgi::framework::UIManager fManager;
         log4cplus::Logger fLogger;
         std::string fURN;
-        DTCStateMachine* fFSM;
+        ACFStateMachine* fFSM;
         const std::vector<std::string> fProcedures{"Data Taking", "Calibration", "Pedestal&Noise", "Commissioning"};
         std::string fLogFilePath;
         std::vector<std::string> fImageVector;

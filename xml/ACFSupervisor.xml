@@ -7,15 +7,15 @@
     <xc:Context url="http://cmsuptrackerdaq.cern.ch:41801">
     <!--<xc:Context url="http://cmsuptrackerdaq.cern.ch:50000">-->
 
-        <!-- Declare a DTCSupervisor application -->
-        <xc:Application class="Ph2TkDAQ::DTCSupervisor" id="51" instance="0" network="local">
-            <properties xmlns="urn:xdaq-application:DTCSupervisor" xsi:type="soapenc:Struct">
+        <!-- Declare a ACFSupervisor application -->
+        <xc:Application class="Ph2TkDAQ::ACFSupervisor" id="51" instance="0" network="local">
+            <properties xmlns="urn:xdaq-application:ACFSupervisor" xsi:type="soapenc:Struct">
                 <FedID xsi:type="xsd:unsignedShort">51</FedID>
                 <HWDescriptionFile xsi:type="xsd:string">${PH2ACF_ROOT}/settings/D19CDescription.xml </HWDescriptionFile>
                 <!--<HWDescriptionFile xsi:type="xsd:string">${PH2ACF_ROOT}/settings/CBC3DescriptionIC.xml</HWDescriptionFile>-->
-                <!--<HWDescriptionFile xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/xml/CBC3DescriptionIC.xml</HWDescriptionFile>-->
-                <DataDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Data/</DataDirectory>
-                <ResultDirectory xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Results/</ResultDirectory>
+                <!--<HWDescriptionFile xsi:type="xsd:string">${ACFSUPERVISOR_ROOT}/xml/CBC3DescriptionIC.xml</HWDescriptionFile>-->
+                <DataDirectory xsi:type="xsd:string">${ACFSUPERVISOR_ROOT}/Data/</DataDirectory>
+                <ResultDirectory xsi:type="xsd:string">${ACFSUPERVISOR_ROOT}/Results/</ResultDirectory>
                 <runNumber xsi:type="xsd:integer">-1</runNumber>
                 <NEvents xsi:type="xsd:unsignedInt">1000</NEvents>
                 <WriteRAW xsi:type="xsd:boolean">false</WriteRAW>
@@ -31,12 +31,12 @@
                 <DataSinkHost xsi:type="xsd:string">localhost</DataSinkHost>
                 <DataSinkPort xsi:type="xsd:integer">404002</DataSinkPort>
                 <PlaybackMode xsi:type="xsd:boolean">true</PlaybackMode>
-                <PlaybackFile xsi:type="xsd:string">${DTCSUPERVISOR_ROOT}/Data/run_99999.daq</PlaybackFile>
+                <PlaybackFile xsi:type="xsd:string">${ACFSUPERVISOR_ROOT}/Data/run_99999.daq</PlaybackFile>
             </properties>
         </xc:Application>
 
         <!-- Shared object library that contains the HelloWorld inplementation -->
-        <xc:Module>${DTCSUPERVISOR_ROOT}/lib/libDTCSupervisor.so</xc:Module>
+        <xc:Module>${ACFSUPERVISOR_ROOT}/lib/libACFSupervisor.so</xc:Module>
 
     </xc:Context>
 </xc:Partition>

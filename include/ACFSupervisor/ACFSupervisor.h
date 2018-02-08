@@ -14,11 +14,11 @@
    Version :        1.0
    Date of creation:01/09/2017
    Support :        mail to : georg.auzinger@SPAMNOT.cern.ch
-   FileName :       DTCSupervisor.h
+   FileName :       ACFSupervisor.h
 */
 
-#ifndef __DTCSupervisor_H__
-#define __DTCSupervisor_H__
+#ifndef __ACFSupervisor_H__
+#define __ACFSupervisor_H__
 
 #include "xdaq/ApplicationGroup.h"
 #include "xdaq/ApplicationContext.h"
@@ -52,9 +52,9 @@
 #include "xdata/UnsignedShort.h"
 #include "xdata/Boolean.h"
 
-#include "DTCSupervisor/SupervisorGUI.h"
-#include "DTCSupervisor/DTCStateMachine.h"
-#include "DTCSupervisor/DataSender.h"
+#include "ACFSupervisor/SupervisorGUI.h"
+#include "ACFSupervisor/ACFStateMachine.h"
+#include "ACFSupervisor/DataSender.h"
 
 //Ph2 ACF Includes
 #include "System/SystemController.h"
@@ -77,17 +77,17 @@ using FormData = std::map<std::string, std::string>;
 
 namespace Ph2TkDAQ {
 
-    //DTC Supervisor main class, responsible for GUI and user input
-    class DTCSupervisor : public xdaq::Application, public xdata::ActionListener//, public xgi::framework::UIManager
+    //ACF Supervisor main class, responsible for GUI and user input
+    class ACFSupervisor : public xdaq::Application, public xdata::ActionListener//, public xgi::framework::UIManager
     {
       public:
         XDAQ_INSTANTIATOR();
         //the GUI object
         SupervisorGUI* fGUI;
-        DTCStateMachine fFSM;
+        ACFStateMachine fFSM;
 
-        DTCSupervisor (xdaq::ApplicationStub* s) throw (xdaq::exception::Exception);
-        ~DTCSupervisor();
+        ACFSupervisor (xdaq::ApplicationStub* s) throw (xdaq::exception::Exception);
+        ~ACFSupervisor();
 
         //xdata:event listener
         void actionPerformed (xdata::Event& e);

@@ -1,4 +1,4 @@
-include_directories($ENV{OTSDAQ_CMSOUTERTRACKER_DIR}/otsdaq-cmsoutertracker/DTCSupervisor/include)
+include_directories($ENV{OTSDAQ_CMSOUTERTRACKER_DIR}/otsdaq-cmsoutertracker/ACFSupervisor/include)
 include_directories($ENV{OTSDAQ_CMSOUTERTRACKER_DIR}/xdaq/daq/interface/evb/include)
 include_directories($ENV{OTSDAQ_CMSOUTERTRACKER_DIR}/xdaq/daq/interface/shared/include)
 include_directories($ENV{OTSDAQ_CMSOUTERTRACKER_DIR}/xdaq/daq/xdaq2rc/include)
@@ -21,7 +21,7 @@ cet_set_compiler_flags(
     EXTRA_FLAGS -Wno-reorder -Wno-overloaded-virtual -Wl,--undefined -D__OTSDAQ__
 )
 
-cet_make(LIBRARY_NAME DTCSupervisor
+cet_make(LIBRARY_NAME ACFSupervisor
 		 LIBRARIES
 		 xml++-2.6
 		 xslt

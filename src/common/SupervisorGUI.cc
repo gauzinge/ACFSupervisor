@@ -1,10 +1,10 @@
-#include "DTCSupervisor/SupervisorGUI.h"
+#include "ACFSupervisor/SupervisorGUI.h"
 #include <fstream>
 
 using namespace Ph2TkDAQ;
 using namespace cgicc;
 
-SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMachine) :
+SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, ACFStateMachine* pStateMachine) :
     fApp (pApp),
     fManager (pApp),
     fFSM (pStateMachine),
@@ -55,7 +55,7 @@ SupervisorGUI::SupervisorGUI (xdaq::Application* pApp, DTCStateMachine* pStateMa
     xgi::bind (this, &SupervisorGUI::processPlaybackForm, "processPlaybackForm");
 
     fCurrentPageView = Tab::MAIN;
-    fLogFilePath = (expandEnvironmentVariables ("${DTCSUPERVISOR_ROOT}/logs/DTCSuper.log") );
+    fLogFilePath = (expandEnvironmentVariables ("${ACFSUPERVISOR_ROOT}/logs/ACFSuper.log") );
 
     if (remove (fLogFilePath.c_str() ) != 0)
         LOG4CPLUS_INFO (fLogger, BOLDRED << "Error removing Log file from previous Run: " << fLogFilePath << RESET);
@@ -76,7 +76,7 @@ void SupervisorGUI::MainPage (xgi::Input* in, xgi::Output* out) throw (xgi::exce
     this->createHtmlHeader (in, out, fCurrentPageView);
 
     // generate the page content
-    *out << h3 ("DTC Supervisor Main Page") << std::endl;
+    *out << h3 ("ACF Supervisor Main Page") << std::endl;
     this->displayLoadForm (in, out);
     this->displayPh2_ACFForm (in, out);
     this->displayPh2_ACFLog (out);
@@ -89,7 +89,7 @@ void SupervisorGUI::ConfigPage (xgi::Input* in, xgi::Output* out) throw (xgi::ex
     //define view and create header
     fCurrentPageView = Tab::CONFIG;
     this->createHtmlHeader (in, out, fCurrentPageView);
-    *out << h3 ("DTC Supervisor HwDescription Page") << std::endl;
+    *out << h3 ("ACF Supervisor HwDescription Page") << std::endl;
 
     char cState = fFSM->getCurrentState();
 
@@ -128,7 +128,7 @@ void SupervisorGUI::CalibrationPage (xgi::Input* in, xgi::Output* out) throw (xg
     //define view and create header
     fCurrentPageView = Tab::CALIBRATION;
     this->createHtmlHeader (in, out, fCurrentPageView);
-    *out << h3 ("DTC Supervisor Calibration Page") << std::endl;
+    *out << h3 ("ACF Supervisor Calibration Page") << std::endl;
 
     char cState = fFSM->getCurrentState();
 
@@ -161,7 +161,7 @@ void SupervisorGUI::FirmwarePage (xgi::Input* in, xgi::Output* out) throw (xgi::
     //define view and create header
     fCurrentPageView = Tab::FIRMWARE;
     this->createHtmlHeader (in, out, fCurrentPageView);
-    *out << h3 ("DTC Supervisor Firmware Page") << std::endl;
+    *out << h3 ("ACF Supervisor Firmware Page") << std::endl;
 
     char cState = fFSM->getCurrentState();
 
@@ -234,7 +234,7 @@ void SupervisorGUI::PlaybackDSPage (xgi::Input* in, xgi::Output* out) throw (xgi
     //define view and create header
     fCurrentPageView = Tab::PLAYBACKDS;
     this->createHtmlHeader (in, out, fCurrentPageView);
-    *out << h3 ("DTC Supervisor Playback and Data Sender Page") << std::endl;
+    *out << h3 ("ACF Supervisor Playback and Data Sender Page") << std::endl;
 
     char cState = fFSM->getCurrentState();
 
@@ -388,7 +388,7 @@ void SupervisorGUI::createHtmlHeader (xgi::Input* in, xgi::Output* out, Tab pTab
 
     if (!JSfile.empty() ) *out << script (parseExternalResource (JSfile, cLogStream) ).set ("type", "text/javascript") << std::endl;
 
-    *out << cgicc::div (h1 (a ("DTC Supervisor FedID " + fFedID->toString() ).set ("href", fURN + "MainPage") ) ).set ("class", "title") << std::endl;
+    *out << cgicc::div (h1 (a ("ACF Supervisor FedID " + fFedID->toString() ).set ("href", fURN + "MainPage") ) ).set ("class", "title") << std::endl;
     *out << cgicc::div (cTabBarString.str() ).set ("class", "tab") << std::endl;
     *out << "<cgicc::div class=\"main\">" << std::endl;
     this->showStateMachineStatus (out);
@@ -463,13 +463,13 @@ void SupervisorGUI::fsmTransition (xgi::Input* in, xgi::Output* out) throw (xgi:
 
     try
     {
-        //get the state transition tirggered by the button in the sidebar and propagate to the main DTC supervisor application
+        //get the state transition tirggered by the button in the sidebar and propagate to the main ACF supervisor application
         //before take action as required by the state transition on any GUI elements
         Cgicc cgi (in);
         std::string cTransition = cgi["transition"]->getValue();
 
         //here handle whatever action is necessary on the gui before handing over to the main application
-        //this should be done in DTCSupervisor::initialising() since otherwise it will not work with RCMS
+        //this should be done in ACFSupervisor::initialising() since otherwise it will not work with RCMS
         //if (cTransition == "Initialise" )
         //{
         //if ( fHWFormString.empty() )

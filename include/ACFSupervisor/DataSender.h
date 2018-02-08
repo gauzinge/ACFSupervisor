@@ -99,11 +99,11 @@ namespace Ph2TkDAQ {
             fSinkPort = pSinkPort;
         }
 
-        //to be called in DTCSupervisor::Configure
+        //to be called in ACFSupervisor::Configure
         void openConnection();
-        //to be called in DTCSupervisor::Halt
+        //to be called in ACFSupervisor::Halt
         void closeConnection();
-        //to be called in the workloop in the main DTC Supervisor thread
+        //to be called in the workloop in the main ACF Supervisor thread
         bool sendData ();
 
         //to be called in the main DAQ workloop when the data is there

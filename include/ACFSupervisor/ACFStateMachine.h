@@ -17,12 +17,12 @@
 
   Copyright 2002 - 2003, P. Schieferdecker - CERN
   Changed by F. Drouhin to add more state, namespace is changed to avoid confusion
-  with the other StateMachin, changed again by Jonathan Fulcher to use for Fed to DTCStateMachine
+  with the other StateMachin, changed again by Jonathan Fulcher to use for Fed to ACFStateMachine
   changed again by G. Auzinger for application for the Ph2 Tracker DAQ
 
 */
-#ifndef _DTC_StateMachine_h__
-#define _DTC_StateMachine_h__
+#ifndef _ACF_StateMachine_h__
+#define _ACF_StateMachine_h__
 
 #include "xdaq/WebApplication.h"
 #include "xdaq/Application.h"
@@ -57,11 +57,11 @@ namespace Ph2TkDAQ {
 
     using State = char;
 
-    class DTCStateMachine : public toolbox::lang::Class
+    class ACFStateMachine : public toolbox::lang::Class
     {
       public:
-        DTCStateMachine (xdaq::Application* pApp);
-        virtual ~DTCStateMachine();
+        ACFStateMachine (xdaq::Application* pApp);
+        virtual ~ACFStateMachine();
 
         // finite state machine command callback
         xoap::MessageReference commandCallback (xoap::MessageReference msg)
@@ -162,19 +162,19 @@ namespace Ph2TkDAQ {
 
 
             // define finite state machine
-            fsm_.addState ('I', "Initial", this, &DTCStateMachine::DTCStateMachine::stateChanged);
-            fsm_.addState ('i', "initialising", this, &DTCStateMachine::DTCStateMachine::stateChanged);
-            fsm_.addState ('C', "Configured", this, &DTCStateMachine::DTCStateMachine::stateChanged);
-            fsm_.addState ('c', "configuring", this, &DTCStateMachine::DTCStateMachine::stateChanged);
-            fsm_.addState ('E', "Enabled", this, &DTCStateMachine::DTCStateMachine::stateChanged);
-            fsm_.addState ('e', "enabling", this, &DTCStateMachine::DTCStateMachine::stateChanged);
-            fsm_.addState ('s', "stopping", this, &DTCStateMachine::DTCStateMachine::stateChanged);
-            fsm_.addState ('H', "Halted", this, &DTCStateMachine::DTCStateMachine::stateChanged);
-            fsm_.addState ('h', "halting", this, &DTCStateMachine::DTCStateMachine::stateChanged);
-            fsm_.addState ('x', "destroying", this, &DTCStateMachine::DTCStateMachine::stateChanged);
-            fsm_.addState ('P', "Paused", this, &DTCStateMachine::DTCStateMachine::stateChanged);
-            fsm_.addState ('p', "pausing", this, &DTCStateMachine::DTCStateMachine::stateChanged);
-            fsm_.addState ('r', "resuming", this, &DTCStateMachine::DTCStateMachine::stateChanged);
+            fsm_.addState ('I', "Initial", this, &ACFStateMachine::ACFStateMachine::stateChanged);
+            fsm_.addState ('i', "initialising", this, &ACFStateMachine::ACFStateMachine::stateChanged);
+            fsm_.addState ('C', "Configured", this, &ACFStateMachine::ACFStateMachine::stateChanged);
+            fsm_.addState ('c', "configuring", this, &ACFStateMachine::ACFStateMachine::stateChanged);
+            fsm_.addState ('E', "Enabled", this, &ACFStateMachine::ACFStateMachine::stateChanged);
+            fsm_.addState ('e', "enabling", this, &ACFStateMachine::ACFStateMachine::stateChanged);
+            fsm_.addState ('s', "stopping", this, &ACFStateMachine::ACFStateMachine::stateChanged);
+            fsm_.addState ('H', "Halted", this, &ACFStateMachine::ACFStateMachine::stateChanged);
+            fsm_.addState ('h', "halting", this, &ACFStateMachine::ACFStateMachine::stateChanged);
+            fsm_.addState ('x', "destroying", this, &ACFStateMachine::ACFStateMachine::stateChanged);
+            fsm_.addState ('P', "Paused", this, &ACFStateMachine::ACFStateMachine::stateChanged);
+            fsm_.addState ('p', "pausing", this, &ACFStateMachine::ACFStateMachine::stateChanged);
+            fsm_.addState ('r', "resuming", this, &ACFStateMachine::ACFStateMachine::stateChanged);
 
 
 
@@ -213,19 +213,19 @@ namespace Ph2TkDAQ {
 
 
 
-            fsm_.addStateTransition ('i', 'F', "Fail", this, &DTCStateMachine::DTCStateMachine::failed);
-            fsm_.addStateTransition ('c', 'F', "Fail", this, &DTCStateMachine::DTCStateMachine::failed);
-            fsm_.addStateTransition ('e', 'F', "Fail", this, &DTCStateMachine::DTCStateMachine::failed);
-            fsm_.addStateTransition ('s', 'F', "Fail", this, &DTCStateMachine::DTCStateMachine::failed);
-            fsm_.addStateTransition ('h', 'F', "Fail", this, &DTCStateMachine::DTCStateMachine::failed);
-            fsm_.addStateTransition ('F', 'F', "Fail", this, &DTCStateMachine::DTCStateMachine::failed);
-            fsm_.addStateTransition ('p', 'F', "Fail", this, &DTCStateMachine::DTCStateMachine::failed);
-            fsm_.addStateTransition ('r', 'F', "Fail", this, &DTCStateMachine::DTCStateMachine::failed);
+            fsm_.addStateTransition ('i', 'F', "Fail", this, &ACFStateMachine::ACFStateMachine::failed);
+            fsm_.addStateTransition ('c', 'F', "Fail", this, &ACFStateMachine::ACFStateMachine::failed);
+            fsm_.addStateTransition ('e', 'F', "Fail", this, &ACFStateMachine::ACFStateMachine::failed);
+            fsm_.addStateTransition ('s', 'F', "Fail", this, &ACFStateMachine::ACFStateMachine::failed);
+            fsm_.addStateTransition ('h', 'F', "Fail", this, &ACFStateMachine::ACFStateMachine::failed);
+            fsm_.addStateTransition ('F', 'F', "Fail", this, &ACFStateMachine::ACFStateMachine::failed);
+            fsm_.addStateTransition ('p', 'F', "Fail", this, &ACFStateMachine::ACFStateMachine::failed);
+            fsm_.addStateTransition ('r', 'F', "Fail", this, &ACFStateMachine::ACFStateMachine::failed);
 
 
 
-            fsm_.setFailedStateTransitionAction (this, &DTCStateMachine::DTCStateMachine::failed);
-            fsm_.setFailedStateTransitionChanged (this, &DTCStateMachine::DTCStateMachine::stateChanged);
+            fsm_.setFailedStateTransitionAction (this, &ACFStateMachine::ACFStateMachine::failed);
+            fsm_.setFailedStateTransitionChanged (this, &ACFStateMachine::ACFStateMachine::stateChanged);
             fsm_.setStateName ('F', "Failed");
 
             fsm_.setInitialState ('I');

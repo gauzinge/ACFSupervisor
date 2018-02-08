@@ -1,8 +1,8 @@
-#include "DTCSupervisor/DTCStateMachine.h"
+#include "ACFSupervisor/ACFStateMachine.h"
 
 using namespace Ph2TkDAQ;
 
-DTCStateMachine::DTCStateMachine (xdaq::Application* app)
+ACFStateMachine::ACFStateMachine (xdaq::Application* app)
     : logger_ (app->getApplicationLogger() )
     , workLoopInitialising_ (0)
     , workLoopConfiguring_ (0)
@@ -30,7 +30,7 @@ DTCStateMachine::DTCStateMachine (xdaq::Application* app)
 
 
 //______________________________________________________________________________
-DTCStateMachine::~DTCStateMachine()
+ACFStateMachine::~ACFStateMachine()
 {
 
 }
@@ -41,7 +41,7 @@ DTCStateMachine::~DTCStateMachine()
 ////////////////////////////////////////////////////////////////////////////////
 
 //______________________________________________________________________________
-xoap::MessageReference DTCStateMachine::commandCallback (xoap::MessageReference msg)
+xoap::MessageReference ACFStateMachine::commandCallback (xoap::MessageReference msg)
 throw (xoap::exception::Exception)
 {
     xoap::SOAPPart     part    = msg->getSOAPPart();
@@ -100,7 +100,7 @@ throw (xoap::exception::Exception)
 
 
 //______________________________________________________________________________
-void DTCStateMachine::stateChanged (toolbox::fsm::FiniteStateMachine& fsm)
+void ACFStateMachine::stateChanged (toolbox::fsm::FiniteStateMachine& fsm)
 throw (toolbox::fsm::exception::Exception)
 {
 
@@ -234,7 +234,7 @@ throw (toolbox::fsm::exception::Exception)
 
 
 //______________________________________________________________________________
-void DTCStateMachine::failed (toolbox::Event::Reference e)
+void ACFStateMachine::failed (toolbox::Event::Reference e)
 throw (toolbox::fsm::exception::Exception)
 {
     if (typeid (*e) == typeid (toolbox::fsm::FailedEvent) )
@@ -254,7 +254,7 @@ throw (toolbox::fsm::exception::Exception)
 
 
 //______________________________________________________________________________
-void DTCStateMachine::fireEvent (const std::string& evtType, void* originator)
+void ACFStateMachine::fireEvent (const std::string& evtType, void* originator)
 {
     toolbox::Event::Reference e (new toolbox::Event (evtType, originator) );
     fsm_.fireEvent (e);
@@ -262,7 +262,7 @@ void DTCStateMachine::fireEvent (const std::string& evtType, void* originator)
 
 
 //______________________________________________________________________________
-void DTCStateMachine::fireFailed (const std::string& errorMsg, void* originator)
+void ACFStateMachine::fireFailed (const std::string& errorMsg, void* originator)
 {
     toolbox::Event::Reference e (new toolbox::Event (errorMsg, originator) );
     fsm_.fireEvent (e);

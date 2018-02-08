@@ -23,8 +23,8 @@ ifneq (,$(findstring 6.,$(ROOTVERSION)))
 endif
 
 #Project=Ph2_TkDAQ
-Package=DTCSupervisor
-Sources= DTCSupervisor.cc SupervisorGUI.cc DTCStateMachine.cc DataSender.cc version.cc XMLUtils.cc #LogReader.h
+Package=ACFSupervisor
+Sources= ACFSupervisor.cc SupervisorGUI.cc ACFStateMachine.cc DataSender.cc version.cc XMLUtils.cc #LogReader.h
 
 IncludeDirs = \
 	 ${BOOST_INCLUDE} \
@@ -50,7 +50,7 @@ UserDynamicLinkFlags = ${LibraryPaths} $(shell pkg-config --libs libxml++-2.6) $
 
 #$(LibraryPaths)
 
-DynamicLibrary=DTCSupervisor
+DynamicLibrary=ACFSupervisor
 
 include $(XDAQ_ROOT)/config/Makefile.rules
 include $(XDAQ_ROOT)/config/mfRPM.rules
